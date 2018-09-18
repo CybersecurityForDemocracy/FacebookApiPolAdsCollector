@@ -39,8 +39,6 @@ for i in range(int(len(page_ids)/int(CLUSTER_SIZE))):
     term_list.append(page_ids[(i*int(CLUSTER_SIZE)) + int(NODE)])
 input_connection.close()
 
-term_list = term_list[1:2]
-
 #setup our db cursor
 HOST = config['POSTGRES']['HOST']
 DBNAME = config['POSTGRES']['DBNAME']
@@ -59,7 +57,7 @@ active_ads = set()
 for row in cursor:
     ad_ids.add(row['archive_id'])
     if row['is_active'] == True:
-        active_ads.ad(row['archive_id'])
+        active_ads.add(row['archive_id'])
 
 existing_regions = {}
 existing_regions_query = "select name, id from regions;"
@@ -83,7 +81,7 @@ existing_ad_sponsors = {}
 existing_ad_sponsor_query = "select id, name from ad_sponsors;"
 cursor.execute(existing_ad_sponsor_query)
 for row in cursor:
-    existing_ad_sponsor[row['name']] = row['id']
+    existing_ad_sponsors[row['name']] = row['id']
 
 #data structures to hold new ads
 AdRecord = namedtuple('AdRecord', ['archive_id', 
@@ -98,10 +96,11 @@ AdRecord = namedtuple('AdRecord', ['archive_id',
                                    'min_impressions', 
                                    'max_impressions', 
                                    'min_spend', 
-                                   'max_spend'])
+                                   'max_spend',
+                                   'currency'])
 PageRecord = namedtuple('PageRecord', ['id', 'name'])
-SnapshotRegionRecord = namedtuple('SnapshotRegionRecord', ['name', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
-SnapshotDemoRecord = namedtuple('SnapshotDemoRecord', ['age_range', 'gender', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
+SnapshotRegionRecord = namedtuple('SnapshotRegionRecord', ['archive_id', 'name', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
+SnapshotDemoRecord = namedtuple('SnapshotDemoRecord', ['archive_id', 'age_range', 'gender', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
 new_ads = set()
 new_ad_sponsors = set()
 new_pages = set()
@@ -154,16 +153,22 @@ for term in term_list:
             page_id = result['page_id']
             page_name = result['page_name']
             start_date = result['ad_delivery_start_time']
-            ad_text = result['ad_creative_body']
-            ad_sponsor_label = result['funding_entity']
+            currency = result['currency']
+            ad_text = ''
+            if 'ad_creative_body' in result:
+                ad_text = result['ad_creative_body']
+            ad_sponsor_label = ''
+            if 'funding_entity' in result:
+                ad_sponsor_label = result['funding_entity']
+
             if ad_sponsor_label not in existing_ad_sponsors:
                 new_ad_sponsors.add(ad_sponsor_label)
 
-            end_date = ""
+            end_date = None
             if 'ad_delivery_stop_time' in result:
                 end_date = result['ad_delivery_stop_time']
-            if 'impressions' not in result:
-                print("no impressions for " + str(archive_id))
+            if 'impressions' not in result or 'spend' not in result:
+                print("no impressions or no spend for " + str(archive_id))
                 continue
 
             min_impressions = result['impressions']['lower_bound']
@@ -189,16 +194,23 @@ for term in term_list:
                                min_impressions, 
                                max_impressions, 
                                min_spend, 
-                               max_spend)
+                               max_spend,
+                               currency)
 
             if is_active or archive_id in active_ads or archive_id not in ad_ids:
                 new_impressions.add(curr_ad)
+                if 'demographic_distribution' not in result:
+                    print("no demo information in:")
+                    print(result)
+                    continue
+                   
                 for demo_result in result['demographic_distribution']:
                     demo_key = demo_result['gender']+demo_result['age']
                     if demo_key not in existing_demo_groups:
                         new_demo_groups[demo_key] = (demo_result['gender'], demo_result['age'])
 
-                    new_ad_demo_impressions.add(SnapshotDemoRecord(demo_result['age'], 
+                    new_ad_demo_impressions.add(SnapshotDemoRecord(archive_id,
+                                                                   demo_result['age'], 
                                                                    demo_result['gender'], 
                                                                    float(demo_result['percentage']) * int(min_impressions), 
                                                                    float(demo_result['percentage']) * int(max_impressions), 
@@ -209,7 +221,8 @@ for term in term_list:
                 for region_result in result['region_distribution']:
                     if region_result['region'] not in new_regions:
                         new_regions.add(region_result['region'])
-                    new_ad_region_impressions.add(SnapshotRegionRecord(region_result['region'], 
+                    new_ad_region_impressions.add(SnapshotRegionRecord(archive_id,
+                                                                       region_result['region'], 
                                                                        float(region_result['percentage']) * int(min_impressions), 
                                                                        float(region_result['percentage']) * int(max_impressions), 
                                                                        float(region_result['percentage']) * int(min_spend), 
@@ -228,7 +241,7 @@ for term in term_list:
 
 
 #write new pages, regions, and demo groups to db first so we can update our caches before writing ads
-insert_ad_sponsors = "INSERT INTO ad_sponsors(name) VALUES "
+insert_ad_sponsor = "INSERT INTO ad_sponsors(name) VALUES "
 ad_sponsor_count = 0
 for ad_sponsor in new_ad_sponsors:
     insert_ad_sponsor += cursor.mogrify("(%s),", (ad_sponsor,)).decode('utf-8')
@@ -237,13 +250,15 @@ for ad_sponsor in new_ad_sponsors:
     if ad_sponsor_count >= 250:
         insert_ad_sponsor = insert_ad_sponsor[:-1]
         insert_ad_sponsor += ";"
-        print(cursor.mogrify(insert_ad_sponsor))
+        #print(cursor.mogrify(insert_ad_sponsor))
         cursor.execute(insert_ad_sponsor)
         insert_ad_sponsors = "INSERT INTO ad_sponsors(name) VALUES "
         ad_sponsor_count = 0
 
 if ad_sponsor_count > 0:
-    print(cursor.mogrify(insert_ad_sponsor))
+    insert_ad_sponsor = insert_ad_sponsor[:-1]
+    insert_ad_sponsor += ";"
+    #print(cursor.mogrify(insert_ad_sponsor))
     cursor.execute(insert_ad_sponsor)
 
 insert_page = "INSERT INTO pages(page_id, page_name) VALUES "
@@ -255,7 +270,7 @@ for page in new_pages:
     if page_count >= 250:
         insert_page = insert_page[:-1]
         insert_page += ";"
-        print(cursor.mogrify(insert_page))
+        #print(cursor.mogrify(insert_page))
         cursor.execute(insert_page)
         insert_page = "INSERT INTO pages(page_id, page_name) VALUES "
         page_count = 0
@@ -263,7 +278,7 @@ for page in new_pages:
 insert_page = insert_page[:-1]
 insert_page += ";"
 if page_count > 0:
-    print(cursor.mogrify(insert_page))
+    #print(cursor.mogrify(insert_page))
     cursor.execute(insert_page)
 
 insert_regions = "INSERT into regions(name) VALUES "
@@ -274,16 +289,16 @@ for region in new_regions:
     
     if region_count >= 250:
         insert_regions = insert_regions[:-1]
-        insert_region += ";"
-        print(cursor.mogrify(insert_regions))
-        cursor.execute(insert_region)
+        insert_regions += ";"
+        #print(cursor.mogrify(insert_regions))
+        cursor.execute(insert_regions)
         insert_regions = "INSERT INTO regions(name) VALUES "
         region_count = 0
 
 if region_count > 0:
     insert_regions = insert_regions[:-1]
     insert_regions += ";"
-    print(cursor.mogrify(insert_regions))
+    #print(cursor.mogrify(insert_regions))
     cursor.execute(insert_regions)
 
 insert_demo_groups = "INSERT INTO demo_groups(age, gender) VALUES "
@@ -295,7 +310,7 @@ for key, val in new_demo_groups.items():
     if demo_group_count >= 250:
         insert_demo_groups = insert_demo_groups[:-1]
         insert_demo_groups += ";"
-        print(cursor.mogrify(insert_demo_groups))
+        #print(cursor.mogrify(insert_demo_groups))
         cursor.execute(insert_demo_groups)
         insert_demo_groups = "INSERT INTO demo_groups(age, gender) VALUES "
         demo_group_count = 0
@@ -303,10 +318,10 @@ for key, val in new_demo_groups.items():
 if demo_group_count > 0:
     insert_demo_groups = insert_demo_groups[:-1]
     insert_demo_groups += ";"
-    print(cursor.mogrify(insert_demo_groups))
+    #print(cursor.mogrify(insert_demo_groups))
     cursor.execute(insert_demo_groups)
 
-cursor.commit()
+connection.commit()
 
 existing_ad_sponsors = {}
 existing_ad_sponsors_query = "select name, id from ad_sponsors;"
@@ -333,38 +348,38 @@ for row in cursor:
     existing_pages[row['page_id']] = row['page_name']
 
 #write new ads to our database
-ad_insert_query = "INSERT INTO ads(id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active) VALUES "
+ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active) VALUES "
 ad_count = 0
 for ad in new_ads:
 
-    ad_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s, %s),", (ad.archive_id, ad.creation_date, ad.start_date, ad.end_date, "", ad.page_id, "", ad.text, ad.sponsor_label, ad.is_active)).decode('utf-8')
+    ad_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s),", (ad.archive_id, ad.creation_date, ad.start_date, ad.end_date, currency, ad.page_id, ad.image_url, ad.text, existing_ad_sponsors[ad.sponsor_label], ad.is_active)).decode('utf-8')
     ad_count += 1
 
     if ad_count >= 250:
         ad_insert_query = ad_insert_query[:-1]
         ad_insert_query += ";"
-        print(cursor.mogrify(ad_insert_query))
+        #print(cursor.mogrify(ad_insert_query))
         cursor.execute(ad_insert_query)
-        ad_insert_query = "INSERT INTO ads(id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, is_active) VALUES "
+        ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active) VALUES "
         ad_count = 0
 
 if ad_count > 0:
     ad_insert_query = ad_insert_query[:-1]
     ad_insert_query += ";"
-    print(cursor.mogrify(ad_insert_query))
+    #print(cursor.mogrify(ad_insert_query))
     cursor.execute(ad_insert_query)
 
 
 impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES "
 impression_count = 0
 for impression in new_impressions:
-    impressions_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s),", (impression.archive_id, curr_date, impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend))
+    impressions_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s),", (impression.archive_id, crawl_date, impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
     impression_count += 1
 
     if impression_count >= 250:
         impressions_insert_query = impressions_insert_query[:-1]
         impressions_insert_query += ";"
-        print(cursor.mogrify(impressions_insert_query))
+        #print(cursor.mogrify(impressions_insert_query))
         cursor.execute(impressions_insert_query)
         impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES "
         impression_count = 0
@@ -372,20 +387,20 @@ for impression in new_impressions:
 if impression_count > 0:
     impressions_insert_query = impressions_insert_query[:-1]
     impressions_insert_query += ";"
-    print(cursor.mogrify(impressions_insert_query))
+    #print(cursor.mogrify(impressions_insert_query))
     cursor.execute(impressions_insert_query)
 
 
 impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
 impression_count = 0
 for impression in new_ad_demo_impressions:
-    impression_demo_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_demo_groups[impression.gender + impression.age], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend))
+    impression_demo_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_demo_groups[impression.age_range + impression.gender], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
     impression_count += 1
 
     if impression_count >= 250:
         impression_demo_insert_query = impression_demo_insert_query[:-1]
         impression_demo_insert_query += ";"
-        print(cursor.mogrify(impression_demo_insert_query))
+        #print(cursor.mogrify(impression_demo_insert_query))
         cursor.execute(impression_demo_insert_query)
         impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
         impression_count = 0
@@ -393,20 +408,20 @@ for impression in new_ad_demo_impressions:
 if impression_count > 0:
     impression_demo_insert_query = impression_demo_insert_query[:-1]
     impression_demo_insert_query += ";"
-    print(cursor.mogrify(impression_demo_insert_query))
+    #print(cursor.mogrify(impression_demo_insert_query))
     cursor.execute(impression_demo_insert_query)
 
 
 impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
 impression_count = 0
 for impression in new_ad_region_impressions:
-    impression_region_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend))
+    impression_region_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
     impression_count += 1
 
     if impression_count >= 250:
         impression_region_insert_query = impression_region_insert_query[:-1]
         impression_region_insert_query += ";"
-        print(cursor.mogrify(impression_region_insert_query))
+        #print(cursor.mogrify(impression_region_insert_query))
         cursor.execute(impression_region_insert_query)
         impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
         impression_count = 0
@@ -414,10 +429,10 @@ for impression in new_ad_region_impressions:
 if impression_count > 0:
     impression_region_insert_query = impression_region_insert_query[:-1]
     impression_region_insert_query += ";"
-    print(cursor.mogrify(impression_region_insert_query))
+    #print(cursor.mogrify(impression_region_insert_query))
     cursor.execute(impression_region_insert_query)
 
 
-cursor.commit()
+connection.commit()
 
 connection.close()
