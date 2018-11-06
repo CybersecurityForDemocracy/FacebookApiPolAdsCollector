@@ -4,13 +4,11 @@ Beto O'Rourke,2523,5046
 Powerpac GA,1850,3700
 UChooseCo,1676,3352
 Tai Lopez,1469,2937
-NumbersUSA,1433,2865
 Wisconsin League of Conservation Voters,1250,2499
 Karen Katz For Judge,1221,3053
 Democratic Socialists of America,1116,2231
 Pocket Politics,1102,2204
 Donald J. Trump - Keep America Great,1070,2139
-Energy Transfer,1069,2138
 Save Our Air Medical Resources,1037,2591
 Elevate MN,1016,2539
 Avocado Green Mattress,984,2460
@@ -36,6 +34,7 @@ No on Measure P Berkeley,608,1216
 Congressional Black Caucus PAC (CBC PAC),599,1497
 Best Friends Animal Society,591,1478
 L.A. County Registrar-Recorder,560,1399
+Pela Case,557,1114
 Sun Basket,551,1102
 Congressman Mo Brooks,550,1099
 Stanton for Arizona,546,1364
@@ -47,7 +46,6 @@ Minnesota DFL Party,518,1037
 Union of Concerned Scientists,502,1255
 KSL 5 TV,495,1238
 Marsy's Law for Oklahoma SQ 794,486,1214
-Tim Walz for Governor,479,1196
 PGE Lawsuit,478,1195
 Carry Virginia,475,1186
 Students Loan News,475,950
@@ -60,7 +58,6 @@ Black Love Doc,432,865
 The Nib,424,848
 Go Coast Guard,417,1042
 RepresentUs,406,812
-45Committee,406,812
 Rita Lucido for Texas State Senate District 17,405,1012
 Brut,404,807
 World Peace Placards,403,1008
@@ -69,6 +66,7 @@ Our Health California,399,996
 MI Senate Republican Campaign Committee,396,989
 Mayor Philip Levine,393,983
 David Rubin,392,980
+Josh Harder,390,976
 Colorado Votes 2018,387,968
 Federal Voting Assistance Program - FVAP,385,769
 Green Circle Salons,380,759
@@ -78,6 +76,7 @@ Ohio Senate Democrats - Campaign Team,360,900
 We All Do Better,359,896
 Yes on Prop 12 - Prevent Cruelty California,351,878
 Our Next America,344,689
+Truvia,343,685
 GZERO World with Ian Bremmer,342,856
 Steve Huffman,340,851
 RSCC,334,834
@@ -113,12 +112,12 @@ Can't Trust Cordray,287,718
 Allison Gilman For Judge,285,569
 New Yorkers Together,284,567
 Save Tips NY,282,564
-Julie Blaha for State Auditor,281,562
 Sidhu for Mayor,278,556
 AustinTogether,278,556
 Dennise Smith for WV Supreme Court,276,552
 NC Homeowners Alliance,274,684
 Toren For Colorado,273,545
+Vote Utah,270,540
 Wayne Williams for Colorado Secretary of State,269,538
 Yes on 8,268,535
 Michael L. Magasinn for Judge,261,522
@@ -139,6 +138,7 @@ Shamelessly Corrupt Menendez,243,486
 Independent Voter PAC,243,486
 Boxed Water Is Better,242,483
 YouGov,241,602
+Energy Transfer,241,602
 Pennsylvania Department of Health,237,593
 California Policy Center,237,592
 Bridge Project,236,472
@@ -178,7 +178,6 @@ Citizens Against Computerized Justice,197,394
 The Real Heidi Heitkamp,196,392
 For Michigan's Future,196,392
 Michigan Families Matter,194,389
-Fred Hubbell,192,384
 Healthy and Productive North Dakota,191,382
 Greg Fischer for Mayor,191,381
 Tom McClintock,189,473
@@ -189,7 +188,9 @@ The Boeing Company,186,465
 Give Voters A Voice,186,465
 Ed Emmett Campaign,186,372
 Business Roundtable,185,369
+Fighting for Florida,183,365
 Power California,182,910
+NumbersUSA,182,364
 CeaseFirePA,181,362
 Uber,178,357
 Help grow Maine's economy,177,443
@@ -213,6 +214,7 @@ Russell Guerard for State House Seat 110,168,336
 Share Better,168,335
 C-RED PAC,167,334
 Matt Flynn,166,331
+The Other 98%,165,330
 JP Morgan for Mahoning County Court Judge,165,330
 Gerry Connolly,165,330
 Schuette Backs Tax Cuts for the Rich,165,329
@@ -229,7 +231,6 @@ Elmont Against the Megamall,158,316
 Charlie Susano,158,316
 South Carolina Votes,156,313
 Comedy Central Stand-Up,156,312
-Liuba Grechen Shirley-Congress,155,309
 Just Facts,154,308
 Friends of the United Farm Workers,154,307
 "Raja Krishnamoorthi - Congressman, IL-8",153,306
@@ -258,6 +259,7 @@ One Nation Design,139,279
 The Humane Farming Association (HFA),139,278
 realtor.com,138,275
 California Deserves Innovative Public Schools,138,275
+Julie Blaha for State Auditor,137,275
 Congressman Ami Bera,137,275
 Nyscopba PR,137,274
 Eduardo Soto Abogado Inmigracion,136,339
@@ -298,6 +300,7 @@ Tracy Mitrano for Congress,118,589
 Lex Leifheit,118,589
 Truth & Dignity in Municipal Leadership,118,236
 Fish Eye Guy Photography,118,236
+Bernie Sanders,118,236
 PhRMA,118,235
 Republican Party of Florida,116,290
 No Cuts to Care: No on Measure 106,115,231
@@ -315,6 +318,7 @@ Idaho United Against Prop 1,111,223
 Senator Thomas V. Mike Miller Jr.,111,222
 Joe Lombardo,111,222
 New Jersey Education Association,111,221
+Oregon AFL-CIO,110,548
 SEIU California,110,220
 C-SPAN,110,220
 All Out,109,544
@@ -335,6 +339,7 @@ Defending Donald,102,205
 David Friess for State Representative,102,205
 Rebel for Iowa,102,204
 Weare1Day,101,202
+The Trump Prophecy Movie,101,202
 Chellie Pingree,101,202
 Alli for Alabama,101,202
 David Shafer,100,250
@@ -342,11 +347,11 @@ Rene Lopez for Chandler City Council,100,201
 PSEG,100,200
 LJ Bryant,100,200
 Energy Upgrade California,100,200
+End Citizens United,100,200
 CCSP,100,200
 Aventura Vice Mayor Bob Shelley,99,199
 The Daily Record,99,198
 Floridians for a Fair Shake,98,195
-International Rescue Committee,97,483
 Majority Matters,97,194
 The Real Robyn Vining,97,193
 First Freedoms,97,193
@@ -380,6 +385,7 @@ The Forum Page of Illinois,90,179
 Ilhan Omar for Congress,89,447
 Randy Boyd,89,222
 Friends of Dave Paul,89,178
+Wisconsin Alliance for Women's Health,89,177
 Strong Wisconsin,89,177
 VICELAND,88,441
 Convention of States,88,219
@@ -416,12 +422,12 @@ Yes on 104,80,160
 Kimberly Overman for County Commission District 7 - 2018,80,160
 FloridaPolitics,80,159
 Clint Koble For Congress,80,159
+Working Families Party,79,158
 Bay City Beacon,78,391
 New Yorkers for Justice,78,390
 Zuckerman for Vermont,78,389
 LifeWorks Austin,78,155
 Daggett for Higher Taxes,77,387
-Pela Case,77,384
 Lina Hidalgo for Harris County Judge,77,155
 Americans for Prosperity - Kentucky,77,155
 Jobs for St. Lucie,77,154
@@ -445,6 +451,7 @@ A.J. Brady for District Attorney,74,148
 Boston Public Library,73,367
 Actimazo,73,365
 Will Ainsworth,73,147
+Fred Hubbell,73,147
 William Tong,73,145
 Swamp Drainers of Alabama,73,145
 Great Lakes Education Project,73,145
@@ -508,9 +515,7 @@ Dominion Energy South,62,123
 The Arena,61,306
 Tax March,61,123
 Guy Furay - GUY4Congress - Vote For Guy,61,122
-ACLU,61,122
 LG&E and KU,61,121
-Elizabeth Warren,60,302
 "The Cochran Firm, D.C.",60,298
 Jeff Sheehy,60,297
 Walden University,60,120
@@ -526,6 +531,7 @@ Andy Kim for Congress,59,119
 Americans for Farmers & Families,59,119
 Voz Boricua,59,118
 USA for UNHCR,59,118
+Color Of Change,59,118
 Carolina Leadership Coalition,59,118
 State Representative Nathan Manning,59,117
 NV People’s Lawyer Project,59,117
@@ -535,7 +541,6 @@ Elect Kristin Dybvig-Pawelko,58,117
 bullsugar.org,58,116
 Tonality,58,116
 Noble Energy Colorado,58,116
-Re-Elect Devin Carney,57,286
 ACLU of Oregon,57,286
 Jim McGovern,57,284
 Marilyn Burgess for Harris County District Clerk,57,114
@@ -561,10 +566,9 @@ Meet the Real Troy Balderson,54,269
 Equality Florida,54,268
 Matador Network,54,134
 Vote No Arizona,54,108
-The Young Turks,54,108
-Young America's Foundation,54,107
 Paul Gomez Home Loan Expert,53,266
 Sam Harris,53,265
+Proud Americans Supply,53,265
 Timothy David Ray,53,263
 Pocket Tower,53,263
 Scott Learn,53,107
@@ -593,6 +597,7 @@ Tennessee: Get out and Vote,50,251
 Mpls 4 Everyone,50,250
 The Conservative Choice: President Donald Trump,50,249
 EdChoice,50,249
+Elect Amanda Edwards,50,248
 OneAmerica Votes,50,101
 Charity Mobile,50,99
 Alliance For Maine,50,99
@@ -669,16 +674,15 @@ Andy Manar,43,86
 Protect Ohio's Middle Class,43,85
 Brigid Kelly,42,212
 WSPA (Western States Petroleum Association),42,211
+UltimateStraw,42,211
 Planned Parenthood of the Pacific Southwest,42,210
 Upper Hudson Planned Parenthood Advocates of NY,42,209
 I Am An Immigrant,42,209
 Thomas P. DiNapoli,42,208
 The N.C. Star,42,85
 Tom Glass for Texas Senate,42,84
-Wisconsin Alliance for Women's Health,42,83
 Judicial Watch,42,83
 Republican Lorie Zapf,41,207
-Meet Tim Pawlenty,41,207
 Maryland Clean Energy Jobs Initiative,41,206
 Elect Nicolette for Orange County Commission District 4,41,205
 "BusinessGhost, Inc.",41,205
@@ -692,18 +696,21 @@ Iowa City Downtown District,41,82
 Institute for New Economic Thinking,41,82
 Brandon Reed for State Representative,41,82
 NO on B - Citizens For Real Term Limits,40,202
+Shareblue Media,40,200
 Kobach is Wrong for Kansas,40,200
 Democrats,40,200
 Suraj Patel for Congress,40,199
 NYC Commission On Human Rights,40,199
 Monthly Review,40,198
 Debbie Warner for House of Delegates - District 51,40,198
+Geoff Diehl,40,81
 NextGen New Hampshire,40,80
 Educators for Thurmond for State Superintendent of Public Instruction,40,80
 High Ground Action Fund,40,79
 Get Off My Lawn with Gavin McInnes,39,196
 Elect Brandon Morrison Shelby County Commission,39,196
 Tyler for City Council,39,195
+Spencer Dress for Walnut Creek City Council,39,195
 Shout Your Abortion,39,195
 Sheila Cherfilus-McCormick for Congress,39,195
 Cold Dead Hands,39,195
@@ -733,8 +740,10 @@ Marsy's Law for Wisconsin,37,187
 West Virginians for Affordable Health Care,37,186
 Blueprint Kansas,37,186
 Iceland Naturally,37,185
+45Committee,37,185
 League of Conservation Voters,37,184
 Warren Kampf for PA State Representative,37,183
+Patriotic Drop Shop,37,183
 Missouri Secretary of State,37,183
 Colorado Care Workers Unite,37,183
 Working Californians Against Corruption,37,91
@@ -743,6 +752,7 @@ National Health Law Program (NHeLP),37,74
 French Hill for Arkansas,37,74
 Safe Clean Water L.A.,37,73
 Carla Nelson,37,73
+Brick Underground,36,182
 Newman for Senate,36,181
 Discover Charters,36,181
 Zach Wahls,36,180
@@ -772,6 +782,7 @@ Women For Tennessee's Future: Young Leaders,35,70
 The Republican Standard,35,70
 Hornet Stories,35,70
 Energy Bill Cruncher,35,70
+Shield Republic,35,69
 Keep Birth Control Affordable,35,69
 Julio Gonzalez for Congress,35,69
 Lachiondo for Ada,34,172
@@ -793,6 +804,7 @@ RCV Maine,34,68
 Marili Cancio For State Senate,34,68
 Tim Grayson for Assembly,34,67
 Iowa Gun Owners,34,67
+Humane Society International,34,67
 Vermont-NEA,33,167
 MudbuM Supply Shack,33,167
 J. Foster Jewelers,33,167
@@ -810,10 +822,8 @@ Dave Brown for Columbia County Sheriff,33,164
 Medals Of America,33,163
 Buncombe County Democratic Party,33,163
 Welcome.,33,82
-Solar Energy Today,33,67
 One Earth,33,67
 New Mexico Immigrant Law Center,33,67
-UltimateStraw,33,66
 SF League of Pissed Off Voters,33,66
 GUNVOTE,33,66
 Equality Pennsylvania,33,66
@@ -837,6 +847,7 @@ Kate Albright-Hanna for State Rep,32,159
 David Ulmer for Liberty,32,159
 OurStates,32,158
 Jim Newberger for US Senate,32,158
+Amnesty International USA,32,158
 Oregonians for Safe Gun Storage,32,64
 Danner For Nebraska,32,64
 D.C. Diane Black,32,64
@@ -903,6 +914,7 @@ American Patriot,30,61
 Unitarian Universalist Congregation at Shelter Rock (UUCSR),30,60
 Shinesty,30,60
 Lea Marquez Peterson for Congress,30,60
+Illinois Working Together,30,60
 Illinois Republican Party,30,60
 Senator Ron Grooms,30,59
 Remember Mississippi,30,59
@@ -929,13 +941,11 @@ Florida Policy Institute,29,59
 Rick Snyder,29,58
 Opt Out Today,29,58
 Latta for Congress,29,58
-Illinois Working Together,29,58
 "Adrian Fontes, Maricopa County Recorder",29,57
 The Giving Keys,28,142
 Rob Arlett For US Senate,28,142
 Riverside County Sheriff Stan Sniff,28,142
 Meg Walsh for Texas Senate,28,142
-Jetties Bracelets,28,142
 Consumers for Quality Care,28,142
 Becerra For Hays County Judge,28,142
 Yoder Wrong for Kansas,28,141
@@ -961,7 +971,6 @@ The Portland Pod,28,57
 Jim Webb for Bentonville Mayor,28,57
 Dump Trump,28,57
 Volunteers for Shimkus,28,56
-Color Of Change,28,56
 Save The Bees,27,137
 Retain Our San Francisco Judges,27,137
 Leadership for Maine’s Future,27,137
@@ -978,7 +987,7 @@ Justice Cindy Olson Bourland,27,134
 Friends of Mari Leavitt - D,27,134
 Clinton Inc. The Movie,27,134
 Block Party for Peace,27,134
-The Other 98%,27,133
+Meet Tim Pawlenty,27,133
 Julie Bray Patterson for Judge - Bexar County Court at Law #5,27,133
 Jim Gaughran for State Senate,27,133
 Jeanné Kapela,27,133
@@ -1005,7 +1014,6 @@ Peter MacGregor for State Senate,26,132
 Eric Cole's Breach Prevention,26,132
 Susie Lee,26,131
 Sarah Elfreth for Senate - District 30,26,131
-Pennsylvania Leadership Committee,26,131
 Mike Frerichs,26,131
 Jerome Green,26,131
 Fixate Consulting,26,131
@@ -1027,6 +1035,7 @@ Jeff Larsen for School Board,26,128
 Gregg Peppin for ISD 728 School Board,26,128
 "Dexter Williams, Ward 7 Committeeman",26,128
 Connie FitzPatrick,26,128
+Citizens Against Government Waste,26,128
 YWCA Silicon Valley,26,52
 Save Our Tips,26,52
 Dustin Daniels for Mayor,26,52
@@ -1054,10 +1063,9 @@ Becoming American Initiative,25,126
 We Need Driver’s Choice,25,125
 The Real Donna Shalala,25,125
 Brown Lives Matter,25,125
-We The People Holsters,25,124
+ACLU,25,125
 Scholten4Iowa,25,124
 Ray Chiaramonte for Hillsborough County Commission District 7,25,124
-Patriotic Drop Shop,25,124
 Maryland Environmental Service,25,124
 Father Joe's Villages,25,124
 California Republican Party,25,124
@@ -1103,7 +1111,6 @@ Kelly Albright for House District 95,24,119
 Jessica For Ohio,24,119
 Jamie Kirchick for Yale Trustee,24,119
 Debra Heffernan for the 6th District,24,119
-"Councilmember Tasha Boerner Horvath, Candidate for Assembly District 76",24,119
 ClearPath Action Fund,24,119
 Judd Cowan,24,118
 Fett for Iowa,24,118
@@ -1136,7 +1143,6 @@ Recycle Cartons,23,116
 Mike Crimi for County Commission,23,116
 Kevin Lopez for Texas Senate District 30,23,116
 Environmental Law & Policy Center,23,116
-Billy Kovacs,23,116
 United Association,23,115
 The Ruderman Family Foundation,23,115
 Keep Portland Affordable,23,115
@@ -1164,6 +1170,7 @@ Abolish Slavery Colorado,23,113
 U.S. Chamber of Commerce,23,47
 Momo Promo,23,47
 Florida Conservation Voters,23,47
+Civiqs,23,47
 Vote for Shannon,23,46
 Re-Elect Christie Carpino,23,46
 PolicyEd,23,46
@@ -1244,7 +1251,6 @@ FEE,21,106
 Chip LaMarca,21,106
 Be Ready to Vote,21,106
 Armenian American Museum,21,106
-Alliance for a Better Minnesota,21,106
 "Vericool, Inc.",21,105
 Representative Marcy Kaptur,21,105
 Re-Elect Patrick Henry for State Representative District 26,21,105
@@ -1273,7 +1279,6 @@ Steven Curtis for Pike County District Judge,21,103
 Nuestra Florida,21,103
 Georgia School Choice Now,21,103
 Frontier Fairness,21,103
-Fighting for Florida,21,103
 AMA Patients’ Action Network,21,103
 Tom Malinowski for Congress,21,43
 Scott Peters,21,43
@@ -1322,7 +1327,6 @@ Coal Tar: A story about children,20,99
 Americans for Prosperity - Pennsylvania,20,99
 Vote for Paul Keefer,20,98
 Shawnna Bolick,20,98
-Shareblue Media,20,98
 Right Future for Florida,20,98
 National Constitution Center,20,98
 Marisa Manley for Governor,20,98
@@ -1342,7 +1346,6 @@ Women United Network,20,40
 Rob Wagner for State Senate,20,40
 RDTdaily.com,20,40
 Patriot News Alerts,20,40
-No Tax Solutions,20,40
 Hampton Institute,20,40
 End Party Politics,20,40
 Alan Wilson,20,40
@@ -1375,7 +1378,6 @@ Faith Johnson For District Attorney,19,96
 Yes on Measure A - For the Future of Santa Clara County,19,95
 Wolf-PAC Maryland,19,95
 Tommy Ryan for Monroe County Commissioner,19,95
-Spencer Dress for Walnut Creek City Council,19,95
 Rep. David Adkins,19,95
 PIVOT - The Progressive Vietnamese American Organization,19,95
 Michelle Ugenti-Rita,19,95
@@ -1401,10 +1403,10 @@ Tim Bedwell,19,93
 The ABA in PA Initiative,19,93
 Texas HDCC,19,93
 Reyma McCoy McDeid,19,93
-"Melissa Ziobron, State Senate Candidate",19,93
 Mario Méndez for State Representative,19,93
 David Keyes for Fresno County Auditor-Controller,19,93
 Alex Farrell,19,93
+4ocean,19,93
 +972 Magazine,19,93
 "Rhino Metals, Inc.",19,39
 Kristy Nuñez for County Court Judge,19,39
@@ -1421,7 +1423,6 @@ Re-Elect Garrett Wiggins for Routt County Sheriff,19,37
 Orphan Relief and Rescue,19,37
 We Are ALPA,18,92
 "Sean Mitchell for St. Lucie County Commission, District 2",18,92
-Proud Americans Supply,18,92
 Michigan Online,18,92
 Leah Aldridge for State Senate,18,92
 "Javier ""Cuate"" Mendoza for City Council District 6",18,92
@@ -1429,6 +1430,7 @@ Financialinsiderclub.org,18,92
 Elect Lisa Callan,18,92
 Donahue for State House District 68,18,92
 DFPC Action,18,92
+YES on 127: Clean Energy for a Healthy Arizona,18,91
 "State of Hawaii, Office of Elections",18,91
 Promote Oregon,18,91
 Phillip Pettus State Representative District 1,18,91
@@ -1458,6 +1460,7 @@ Joy Motts for Antioch City Council 2018,18,89
 Jennifer Jermaine for AZ LD18 House,18,89
 High Desert Energy Experts,18,89
 Elect Debra Entenman,18,89
+Claire McCaskill,18,89
 Wisconsin Alumni,18,88
 We Are PA,18,88
 Vote No on Janet Nguyen,18,88
@@ -1524,6 +1527,7 @@ All Def Nation,17,86
 Robert Murphy for 39th Ward Alderman,17,85
 Ride the Blue Bus,17,85
 Republicans for Ted Howze,17,85
+MoveOn,17,85
 Missourians for Leydens,17,85
 Mark Brnovich for Attorney General,17,85
 Leonard 'Lennie' MOSES,17,85
@@ -1563,12 +1567,12 @@ Michael Ohevzion for Congress,17,82
 Dave Joyce,17,82
 Team46,17,35
 Russo Richmond & Walsh for Howell Council,17,35
+Arizona Democratic Legislative Campaign Committee,17,35
 The Resistance Alliance,17,34
 Steve Schuh,17,34
 Rinaldo Sidoli,17,34
 Link TV,17,34
 Lawrence Goldfarb Criminal Justice Partners,17,34
-Cam Cavasso For Congress,17,34
 Adams 12 CAN for Kids,17,34
 Abacus,17,34
 "Yes on Measure V, Vote Affordable San Jose",17,33
@@ -1586,6 +1590,7 @@ Green Upward,16,82
 Eddiction/Headline News,16,82
 Dan David For Congress,16,82
 Carson's,16,82
+California Secretary of State,16,82
 Tim Schneider,16,81
 Run for Something,16,81
 Jonathan Lee for Rich County Commissioner,16,81
@@ -1647,6 +1652,7 @@ Representative Mickey Dollens,16,31
 No on IM-25,16,31
 Dalia Kasseb for Pearland Position 4,16,31
 Congressman Lou Barletta,16,31
+AMATE - American Muslims Against Terrorism & Extremism,16,31
 Mike Unes,15,77
 Kumar Barve,15,77
 Gregg Goslin,15,77
@@ -1742,15 +1748,16 @@ Texas Democratic Party,15,30
 Stand Up Republic,15,30
 San Francisco Workforce Housing Alliance,15,30
 Ranson House 34,15,30
+Penzeys Spices,15,30
 Nick Carter for Governor's Council,15,30
 Miele  Peterforskeetercontrol,15,30
 Michele Dauber,15,30
 Mark Williams for Colorado,15,30
-Kerry Donovan,15,30
 Karen For Kentucky,15,30
 John-Michael Parker for State Representative,15,30
 Jahana Hayes,15,30
 Good Jobs Nation,15,30
+Gary Morris 2018,15,30
 Florida Gun Rights,15,30
 Connect Americans Now,15,30
 Brian Whelan For Fresno City Council,15,30
@@ -1779,6 +1786,7 @@ Representative Patrice Arent - Utah District 36,14,72
 Rep. Tom Reed,14,72
 Protect MO Families,14,72
 Pennsylvania Chamber of Business and Industry,14,72
+Michigan Families for Economic Prosperity,14,72
 Marc Elrich for County Executive,14,72
 Human Rights Campaign,14,72
 Bill Yanger For County Judge,14,72
@@ -1820,7 +1828,6 @@ Steven Fulop,14,69
 Sierra Club Florida,14,69
 Self-Reliant Republic,14,69
 Harriet Hageman,14,69
-FutureinAmerica,14,69
 Cory Williams for District Attorney,14,69
 CFG Action,14,69
 Ashley Nickloes for Congress,14,69
@@ -1828,6 +1835,7 @@ Yes On SQ 798 for Accountable Leadership,14,68
 Williamson County Republicans,14,68
 Washington Election Update,14,68
 Tim Knutson for Iowa,14,68
+Swing Left,14,68
 Stand,14,68
 SEIU Florida,14,68
 Peter J. Corrigan for County Executive,14,68
@@ -1900,6 +1908,7 @@ Georgia Republican Party,13,66
 Election 20XX,13,66
 Dave Schoenthal for Richmond City Council 2018,13,66
 Daily Quotes,13,66
+Conservation International,13,66
 Chisago County to Elect J. Carlson for Sheriff,13,66
 Bernat Blanket Stitch Along,13,66
 Arizona House Victory PAC,13,66
@@ -1919,7 +1928,9 @@ Behavioral Health Services Research Department,13,65
 Andrew Yang for President 2020,13,65
 Aaron D. Ford,13,65
 30A,13,65
+Working People Rising,13,64
 "William F. Buckley, Jr. Program at Yale",13,64
+Tim Walz for Governor,13,64
 Shak Hill,13,64
 Randy Price,13,64
 Queer Kid Stuff,13,64
@@ -1968,6 +1979,7 @@ Gary Woronchak for State Senate,13,26
 Everyday California,13,26
 Chardo Richardson,13,26
 Beth Harwell,13,26
+Alliance for a Better Minnesota,13,26
 Alliance for Climate Education,13,26
 Alex Poythress for Medford City Council,13,26
 "Tamara McKee, for Boca Raton City Council, Seat A",13,25
@@ -1982,6 +1994,7 @@ Campaign For America,13,25
 Ashlee Lauren Photo,13,25
 Angela Leet for Mayor,13,25
 Steve Sheldon,12,62
+"Samuel ""Sam"" Davis for Buckingham County Circuit Court Clerk",12,62
 Re-Elect State Representative Mark Batinick,12,62
 Marty McClendon for State Senate,12,62
 Land Stewardship Action Fund,12,62
@@ -1991,6 +2004,7 @@ GreenableTrends,12,62
 Double Talk Ducey,12,62
 Changetherules.org,12,62
 Ben & Jerry's,12,62
+Barbara Comstock has changed,12,62
 A Beautiful Perspective,12,62
 UPROXX,12,61
 UC Hastings,12,61
@@ -2008,7 +2022,6 @@ Anthony Sabatini for State House,12,61
 World Mercury Project,12,60
 "The Lesbian, Gay, Bisexual & Transgender Community Center",12,60
 Stand for Children - Colorado,12,60
-Speak Up For Education and Kids,12,60
 Sloan for Arizona,12,60
 Rick Edmonds,12,60
 Rhode Island Coalition Against Gun Violence,12,60
@@ -2020,8 +2033,8 @@ Modern Hero,12,60
 Mike Hamper for Commissioner,12,60
 Kelli Butler for Arizona,12,60
 Jeff Apodaca,12,60
-Human Rights Watch,12,60
 Great American Era,12,60
+Forest Fire Facts,12,60
 Folsom Facts,12,60
 Focus on Energy,12,60
 Citizens for a Strong District 55,12,60
@@ -2035,6 +2048,7 @@ Rick Scott,12,59
 Rich Vial,12,59
 Paul Mitchell for Congress,12,59
 Moving Giants,12,59
+It’s Our America,12,59
 Hillary Shields,12,59
 Goldman Sachs,12,59
 Forbes,12,59
@@ -2058,6 +2072,7 @@ Joe Kaufman for Congress,12,58
 Jim Reilly for Will County Sheriff,12,58
 Jim Mathias,12,58
 IKonic Designs,12,58
+Dean Heller,12,58
 Coloradans for Responsible Energy Development,12,58
 City of Tempe Government,12,58
 Bob Henderson for House,12,58
@@ -2068,6 +2083,7 @@ Martin Eye Clinic,12,25
 John Huot for Minnesota House,12,25
 Jim Frazier People Before Politics,12,25
 J Lee Castillo for Congress,12,25
+"Councilmember Tasha Boerner Horvath, Candidate for Assembly District 76",12,25
 Conor Lamb,12,25
 Charles L. Wilkes,12,25
 Cathy McNickle for Brown County Auditor,12,25
@@ -2125,11 +2141,9 @@ No on Prop 109,11,57
 Minnesota Ag-Energy Alliance,11,57
 KateSquad,11,57
 Julie Simpson for Lake County Board,11,57
-Jane Roger for Register,11,57
 Friends to Elect Pat Rowe Kerr,11,57
 Firearms Policy Coalition,11,57
 "Dori Miller Rivas for Orange County Judge, Group 11",11,57
-Dinesh D'Souza,11,57
 Chris Suarez for Alexandria School Board District A,11,57
 Ben Cardin,11,57
 Arkansas Supreme Court Justice Courtney Goodson,11,57
@@ -2144,6 +2158,7 @@ New Jersey League of Conservation Voters,11,56
 Montana Food Bank Network,11,56
 Jake Hoffman,11,56
 "Iowa Federation of Labor, AFL-CIO",11,56
+Invest in Education Arizona,11,56
 HesGotASecret,11,56
 "Ed Lloyd & Associates, PLLC",11,56
 Donna Shalala for Congress,11,56
@@ -2196,6 +2211,7 @@ CAIR Connecticut,11,54
 Badlands News,11,54
 Arizonans for Effective Leadership,11,54
 Andy Biggs,11,54
+32BJ SEIU,11,54
 Yes for Fire Safety - Helena,11,53
 YES for a Stronger Dotte,11,53
 Vote Vail,11,53
@@ -2219,6 +2235,7 @@ Houston Socialist Movement,11,53
 California Voter Update,11,53
 Basic Rights Oregon,11,53
 Barrett Davie for Illinois Senate,11,53
+Arizonans 4 Affordable Electricity,11,53
 Allegan County Clerk Bob Genetski,11,53
 AFP-Wisconsin,11,52
 Tony Rackauckas,11,23
@@ -2236,6 +2253,7 @@ Texas Pride,11,22
 Terry Power for Florida House,11,22
 Support Our Firefighters PAC,11,22
 State Representative Tom Phillips,11,22
+Stand for the 2nd Amendment,11,22
 Stand For Salmon,11,22
 Sherry Eason Gautier for Circuit Court Clerk,11,22
 SLO County Progressives,11,22
@@ -2281,6 +2299,7 @@ MO Research,10,52
 John Grasso for Senate,10,52
 James Futrell - Madison County Board,10,52
 Jack Bergman,10,52
+Human Coalition,10,52
 Giorgio Moroder,10,52
 Engage Miami,10,52
 Eddie Lorton for Mayor,10,52
@@ -2305,6 +2324,7 @@ Family Policy Alliance of Georgia,10,51
 East Brunswick 2018,10,51
 Dave Dodson for Senate,10,51
 Conservative Leadership for Georgia Action Fund,10,51
+Climate Change Adaptation Costa Rica,10,51
 Carter Turner for Delegate,10,51
 Bishop Jordan | Master Prophet | Power of Prophecy,10,51
 Anna for Indiana,10,51
@@ -2363,7 +2383,6 @@ The Flyover Press,10,21
 Ray Strahl for City Council,10,21
 Piper for Senate,10,21
 Pawsitive Change,10,21
-Lebowski Lovers,10,21
 Kristin Sunde for Iowa,10,21
 Kristie Fiegen for South Dakota,10,21
 Gary Trauner for U.S. Senate,10,21
@@ -2374,6 +2393,7 @@ Ben Shnider for County Council,10,21
 Americans for Prosperity-Nebraska,10,21
 YVPRC,10,20
 Vincent Goldsmith,10,20
+United Food and Commercial Workers International Union,10,20
 Theodore Roosevelt Conservation Partnership,10,20
 Secure San Antonio's Future,10,20
 Roseland Democratic Committee,10,20
@@ -2396,7 +2416,6 @@ Joseph Dunkle,10,20
 Johnson County Democratic Party,10,20
 Independent Petroleum Association of NM,10,20
 Hometown Freedom Action Network,10,20
-Healthy Montana Campaign,10,20
 Greg Green For Judge,10,20
 Floyd Bonner for Sheriff,10,20
 Florida Outrage,10,20
@@ -2411,6 +2430,7 @@ Alaska Republican Party,10,20
 Airlines for America,10,20
 Adam Papin for State Senate,10,20
 We The People - San Diego County,10,19
+Vance Aloupis for State Representative,10,19
 The Buckeye Institute,10,19
 Texas Association of School Boards,10,19
 Tamborine for Congress,10,19
@@ -2438,6 +2458,7 @@ Texas Patriot,9,47
 Teach Plus Massachusetts,9,47
 Stephen Adler for County Clerk,9,47
 Speak Out Central New York,9,47
+Sierra Club,9,47
 Sarah Swain for Attorney General,9,47
 Rossi for Himself,9,47
 Republican Party of Sarasota,9,47
@@ -2471,6 +2492,7 @@ Martin Harry,9,46
 Maine Senate Republican Campaign,9,46
 Jay Brooks for Sheriff,9,46
 Ja'Mal Green,9,46
+Fred Upton,9,46
 Dromedary Records,9,46
 Dr. Katherine Gaulke,9,46
 Douglas County Conservatives,9,46
@@ -2484,11 +2506,9 @@ Cardozo School of Law,9,46
 Andrew Stoddard for HD44,9,46
 Alex Hansen for Livingston County Commissioner,9,46
 Alerta Política,9,46
-YES on 127: Clean Energy for a Healthy Arizona,9,45
 Vicki Beaty,9,45
 Texas Medicaid Works,9,45
 T.J. Wessel for Cass County Circuit Judge,9,45
-Rick Green,9,45
 Republican Party of Pennsylvania,9,45
 Patient Freedom Coalition,9,45
 Moderate Discussions US National,9,45
@@ -2533,7 +2553,6 @@ Peach Festival Gardens,9,43
 OUTCentralOregon,9,43
 New Direction PAC,9,43
 Nevada News Now,9,43
-Morgan Freeman's Voice,9,43
 Michael Hall for Mayor - Corpus Christi,9,43
 Mark Romanchuk,9,43
 Lee Boan for Kershaw County Sheriff 2018,9,43
@@ -2617,9 +2636,9 @@ Senator Spineless Dean Heller,9,17
 Ron Curtis for Hawaii,9,17
 Public Water Now,9,17
 Progressive Democrats of the 13th Senate District of Kansas,9,17
-Penzeys Spices,9,17
 Oregon Right to Life,9,17
 Ohio Democratic Party,9,17
+NO on 3,9,17
 Milwaukee County Sheriff Schmidt,9,17
 Howard Friedman for Judge,9,17
 Hank Hellman for Constable- Mayer Precinct,9,17
@@ -2630,7 +2649,6 @@ CarsonWatch,9,17
 Brent Knautz for Yakima County Commissioner,9,17
 American Academy of Family Physicians (AAFP),9,17
 A. Ross Douglass For Judge,9,17
-Vote NO on 1,8,42
 Veteran Loan Benefits,8,42
 United for Clean Power,8,42
 Sydney Batch,8,42
@@ -2721,7 +2739,6 @@ Boardwalkbuy Electronics,8,39
 YES on C - Our City Our Home SF,8,38
 Utah Stonewall Democrats,8,38
 Tommy Tomlinson for State Senate,8,38
-SoCal Daily Media,8,38
 Senator Sylvia Allen,8,38
 Ricky Barajas,8,38
 Ray Skip Sandman for 8th Congressional District Minnesota,8,38
@@ -2733,7 +2750,6 @@ North County  Climate Change Alliance,8,38
 NM SAFE,8,38
 Michael Blichar Jr. for State Representative,8,38
 Matt Lynch for Ohio,8,38
-Mass Torts Made Perfect,8,38
 Luanne Van Werven,8,38
 Kosciusko County Democrats,8,38
 Jason May,8,38
@@ -2832,6 +2848,7 @@ State Representative Jason Chipman,8,15
 Shannon Latham,8,15
 Senator Kemp Hannon,8,15
 Senator Jim Dabakis,8,15
+Senate Leadership Fund,8,15
 Santa Ana Police Officers' Association I.E.C #1255606,8,15
 Roy Masters,8,15
 Phil Young for State Representative,8,15
@@ -2955,7 +2972,6 @@ Kreider for Judge,7,34
 Klint Kesto,7,34
 Kentucky Opportunity Coalition,7,34
 Indiana AFL CIO,7,34
-I Love My Freedom,7,34
 Focus on What Matters,7,34
 Florida's Source for Low to $0 Down Solar Installations,7,34
 Elect Shad Higgins Sheriff Buncombe County 2018,7,34
@@ -3053,7 +3069,6 @@ Earthjustice,7,14
 Dishonest Dean Heller,7,14
 Diana Palmer For Chowchilla City Council 2018,7,14
 Councilman Sal DiCiccio,7,14
-Claire McCaskill,7,14
 Chrisforgov,7,14
 Chris Todd for State Representative,7,14
 Charlie McConkey,7,14
@@ -3074,6 +3089,7 @@ Tim Kennedy for Senate,7,13
 Tanner Demmery for Broward County Court Judge,7,13
 Tabitha Isner for Congress,7,13
 Steve Toprani for State Representative,7,13
+SoCal Daily Media,7,13
 Sleeping Joe,7,13
 Sheriff Brian Asbell,7,13
 Shanelle Jackson,7,13
@@ -3097,6 +3113,7 @@ Bruce Griffey for State Representative,7,13
 Barnes & Noble,7,13
 Andrea Truppa for Probate Judge 2018,7,13
 World Animal Protection USA,6,32
+The Story Exchange,6,32
 The Lone Liberal Republican,6,32
 SubjectPolitics,6,32
 Stan Cooke,6,32
@@ -3117,6 +3134,7 @@ Law Offices of Lisa A. Kopelman,6,32
 Katherine Ruocco for Circuit Judge,6,32
 International Women's Health Coalition,6,32
 Home Improvement Deals,6,32
+Environmental Working Group,6,32
 Educate78,6,32
 Earth Clan,6,32
 Deputy Sheriffs' Association of San Diego County,6,32
@@ -3139,8 +3157,10 @@ Northern Plains Resource Council,6,31
 Niskanen Center,6,31
 Nine Line Apparel,6,31
 NC Conservation Network,6,31
+Minnesota Values Project,6,31
 Michelle Udall,6,31
 Marty Olsen for Congress,6,31
+Mark Haase for Hennepin County Attorney,6,31
 Manhattan Institute for Policy Research,6,31
 Latino Victory,6,31
 Kelly Smith for Pasco County Commissioner,6,31
@@ -3175,6 +3195,7 @@ Vote Poppy,6,30
 Vote Jon Ford,6,30
 Vern Buchanan,6,30
 Trevor4Vermont,6,30
+The Van Buren,6,30
 State Rep Mark Batinick,6,30
 Simply Ageless R + F Skin,6,30
 Shaun King,6,30
@@ -3227,6 +3248,7 @@ Jessica Ho 何鐘靈 for Supervisor,6,29
 Jason Nichols for Congress,6,29
 Interwest Energy Alliance,6,29
 In The Thick,6,29
+Human Rights Watch,6,29
 Global Strategy Group,6,29
 Ginni Thomas,6,29
 Douglas County Democratic Party (Kansas),6,29
@@ -3265,9 +3287,7 @@ Judge Richard Titus,6,28
 Jefferson County Corruption - Beaumont Port Arthur TX,6,28
 JayClark4TN,6,28
 I Love the 90's Bash,6,28
-Humane Society International,6,28
 Georgetown Law,6,28
-Framed Tweets,6,28
 Elect Tyler Stevens,6,28
 Elect Gene Strong Wahkiakum County Commissioner,6,28
 Danny Farrar,6,28
@@ -3314,7 +3334,6 @@ Steve Dettelbach,6,12
 Stand with Susan Collins,6,12
 Stand for Children - Louisiana,6,12
 Secretary of State Steve Simon,6,12
-Ryan Nawrocki for Baltimore County Council,6,12
 Ryan Bowden - Alamance County Board of Education 2018,6,12
 "Representative Greg Murphy, MD",6,12
 "Protect Coyote Valley, San Jose",6,12
@@ -3323,7 +3342,6 @@ Nebraska Department of Insurance Health Division,6,12
 Mike Palazzolo For Germantown Mayor,6,12
 Mary Swenson for Cascade County Treasurer & Superintendent of Schools,6,12
 Marty Grohman for Congress,6,12
-Liberalogic,6,12
 Lake County Gazette,6,12
 Kim LaSata for State Senate,6,12
 Kara Eastman,6,12
@@ -3358,7 +3376,6 @@ Brent Nyberg for Oklahoma House District 82,6,12
 Bam Margera,6,12
 Arizona School Boards Association,6,12
 Antoinette Sedillo Lopez for Congress,6,12
-Angus King,6,12
 American Society of Addiction Medicine - ASAM,6,12
 Allan Creasy,6,12
 A Prophet Without Honor,6,12
@@ -3423,7 +3440,6 @@ Phil Skaggs,5,27
 PDX Clean Energy Initiative,5,27
 Ocean  Township Democrats,5,27
 Nevada Values PAC,5,27
-NTD Life,5,27
 Morgan Stanley,5,27
 Mo Seifeldein,5,27
 Mindvalley,5,27
@@ -3443,7 +3459,6 @@ Deedra 2018,5,27
 Cumings4Congress,5,27
 CubaNet Noticias,5,27
 "Corbin Van Arsdale, Mayor of Cedar Park, Texas",5,27
-Conservation International,5,27
 Carolyn Parker for Mayor of Gadsden,5,27
 Brian Fitzpatrick,5,27
 Beth Workman for Representative,5,27
@@ -3453,6 +3468,7 @@ Annie's List,5,27
 Anna Dearmore for Oklahoma,5,27
 Alliance for a Better Utah,5,27
 myHIVteam,5,26
+Wind Energy Foundation,5,26
 We the People Sounding Board,5,26
 Washington Community Action Network,5,26
 Vaughn for Buena Park,5,26
@@ -3475,6 +3491,7 @@ John Kefalas,5,26
 Jeff Smith for State Senate,5,26
 Houston Young Republicans,5,26
 Harris for Baltimore,5,26
+Finish the Ballot,5,26
 DimoStrong,5,26
 Deb Haaland for Congress,5,26
 Dallas For Mayor,5,26
@@ -3492,6 +3509,7 @@ Workday Minnesota,5,25
 Wisconsin Historical Society Press,5,25
 Washington State Democratic Party,5,25
 South Carolina Farm Bureau Federation,5,25
+Seth Evans for Clark County Commissioner,5,25
 Savage America,5,25
 STAR Voting,5,25
 Rothe for Highlands Ranch,5,25
@@ -3519,7 +3537,6 @@ John Morgan,5,25
 Jason Hunt,5,25
 Idaho Freedom Foundation,5,25
 Heather Scott for Wake County Board of Education District 1,5,25
-Giving Brush,5,25
 Flippable,5,25
 Early Ed,5,25
 Dr. Humphrey Lee for State House,5,25
@@ -3529,6 +3546,7 @@ Circa Pop Live,5,25
 Casey Cagle,5,25
 Cardinal for Congress,5,25
 Carberry for Supervisor,5,25
+Askov Finlayson,5,25
 American Committee for Shaare Zedek Medical Center in Jerusalem,5,25
 "Amanda Webster, New For 62",5,25
 Yangming,5,24
@@ -3542,6 +3560,7 @@ Searcy for State Senate,5,24
 San Diego County Water Authority,5,24
 Roger Stone - Stone Cold Truth,5,24
 RevTees,5,24
+Progress Florida Education Institute,5,24
 Planned Parenthood,5,24
 Opinion of the Times,5,24
 No On WDAAC,5,24
@@ -3569,6 +3588,7 @@ Joe4schools,5,24
 Jacque Phillips for Colorado State Representative District 34,5,24
 Grassroots Oregon Voters,5,24
 Fleming for Indiana,5,24
+Finance Watchdogs,5,24
 FORTHE,5,24
 Eightyfive Miles,5,24
 "Dr. Vivek Palavali, MD",5,24
@@ -3604,7 +3624,9 @@ Nathaniel Harding for City Council,5,23
 NH Ranked Choice Voting,5,23
 Military Tees,5,23
 Mike Lee,5,23
+Mayor Matt Hall,5,23
 Lower Makefield/Yardley Democratic Committee,5,23
+Liuba Grechen Shirley-Congress,5,23
 Kurtz for Assembly,5,23
 Kevin Jones for Congress,5,23
 Kansas Hospital Association,5,23
@@ -3708,6 +3730,7 @@ Rod Gracey For Santa Rosa School Board - District 1,5,10
 Robert Udell 4 Sheriff,5,10
 Robert Ranco's Law & Police Brutality Info Page,5,10
 Robert Butler for Senate,5,10
+Rick Green,5,10
 Relevant Seminars,5,10
 Reed Gusciora for Mayor of Trenton,5,10
 Re-elect Circuit Judge Lamar Pickard,5,10
@@ -3879,6 +3902,7 @@ Random House,4,21
 Procesoid,4,21
 Planned Parenthood Action,4,21
 Pinoy Thinking,4,21
+No on Prop C,4,21
 Nasty Scientist,4,21
 Missouri's Voice,4,21
 Michigan People's Campaign,4,21
@@ -3887,12 +3911,12 @@ Lindsay Brown,4,21
 Leslie Soden for Douglas County Commission,4,21
 LegalMatch,4,21
 Lauren Johnson-Norris for Irvine City Council 2018,4,21
+Kyrsten Sinema,4,21
 Kevin Neal for Judge Executive,4,21
 Karen McMahon for New York State Assembly,4,21
 Joe Sam Queen,4,21
 Jewish Life League,4,21
 Jerry Knirk for NH House,4,21
-Jeff Irwin for State Senate,4,21
 I'm Hope,4,21
 I love Cocoa Beach FL,4,21
 Human Life Action,4,21
@@ -3906,7 +3930,6 @@ Delegate Sam Rasoul,4,21
 Daily Wire,4,21
 Corona City Council Get Out The Vote,4,21
 CodeNEVER,4,21
-Civiqs,4,21
 Chris Phillips 4 City Council,4,21
 Chase Winder,4,21
 Capital & Main,4,21
@@ -3914,6 +3937,7 @@ CCAN Action Fund,4,21
 Budgeting Essentials,4,21
 Bill Turner for Washington Township School Board,4,21
 Big Red Media LLC,4,21
+Association of American Railroads,4,21
 Amy McGrath,4,21
 "American Revolution: A Gay Novel (Keywords: gay, american, president)",4,21
 Advanced Energy Economy,4,21
@@ -3935,7 +3959,6 @@ Team Kerry Bentivolio,4,20
 Steve Castaneda for Chula Vista City Council,4,20
 Sophia Resciniti for City Council,4,20
 Solar Rebate Today,4,20
-Shield Republic,4,20
 Sheila Dills for State House District 69,4,20
 Schulteis for Sheriff,4,20
 Sam Tuck for FNSB Assembly,4,20
@@ -3962,7 +3985,6 @@ Joe Biden,4,20
 Jeff Golden for State Senate,4,20
 IMUAlliance,4,20
 Hotel Workers for Stronger Communities,4,20
-Gina Raimondo,4,20
 Gary Glenn for State Senate,4,20
 G.I. Jobs Magazine,4,20
 Everytown for Lucy McBath,4,20
@@ -3989,7 +4011,6 @@ Bird + Stone,4,20
 Betsy Holland for Georgia,4,20
 Bernard Douthit for State Treasurer,4,20
 Bayou Blue Democrats,4,20
-Auditor Suzanne Bump,4,20
 Army Times,4,20
 350 Tacoma,4,20
 Zillow,4,19
@@ -4028,15 +4049,14 @@ Physicians Grassroots Network,4,19
 Pennsylvania Record,4,19
 Pastrick for Justice,4,19
 Paloma Saucedo for City Council,4,19
-PCCC - BoldProgressives.org,4,19
 "PACE, The Partnership for Affordable Clean Energy",4,19
 Opportunity Solutions Project,4,19
+Online Carry Course,4,19
 One for the World - Texas State University,4,19
 North Texas Ford Dealers,4,19
 Nebraska Young Democrats,4,19
 Mike Hanna for State Representative,4,19
 Megan for Arkansas,4,19
-Mallory Hagan for Congress,4,19
 Mainers Against Health Care Cuts,4,19
 Lloyd Hilling for Fairbanks City Council,4,19
 Lisa Hunter for Ward 6,4,19
@@ -4097,7 +4117,6 @@ Tomi Lahren,4,18
 "Tim Piatt for Ohio House, 36th District",4,18
 St. Paul's Episcopal Church,4,18
 South Dakota Republican Party,4,18
-Shawn Kumagai for Dublin City Council,4,18
 "Shandy Thompson for Jacksonville Beach City Council, District 1, Seat 4",4,18
 Shadia Tadros for City Court Judge,4,18
 Seth Levy for District Attorney,4,18
@@ -4134,7 +4153,6 @@ Kasey Olivier,4,18
 Judge Gregg Iddings,4,18
 Joseph Williams for State Rep,4,18
 Jill Norgaard for AZ House,4,18
-Jewish Voice Ministries International,4,18
 Irene Fernando for Hennepin County Commissioner - District 2,4,18
 Indiana Stonewall Democrats,4,18
 "Imprimis, a Publication of Hillsdale College",4,18
@@ -4150,7 +4168,6 @@ Dexter Dow for U.S. Representative 2nd District,4,18
 Democratic Party of Virginia,4,18
 Debbie Condrey for Treasurer,4,18
 Dave Bault 4 Schools,4,18
-Dan Thurlow / 7,4,18
 Cook Inletkeeper,4,18
 Conversations with Bill Kristol,4,18
 Consumer Technology Association (CTA),4,18
@@ -4158,7 +4175,6 @@ Colin Rafferty for Delran Board of Education,4,18
 Clarion Project,4,18
 Center for Reproductive Rights,4,18
 Cathy Bevins for Baltimore County Council,4,18
-Catholic Relief Services,4,18
 Brianne Solomon for House of Delegates District 14,4,18
 Brian Payton for Eureka City School Board 2018,4,18
 Bob Ballinger for Arkansas State Senate,4,18
@@ -4170,8 +4186,8 @@ Augusta-Richmond County Democratic Party,4,18
 Arizona Game & Fish Department,4,18
 Anti-colonial Land Defense,4,18
 Anthony Jordick for State Rep,4,18
+Angus King,4,18
 Andy Ellis For State Delegate-MD 45,4,18
-Andres Mejer Law,4,18
 Alot Travel,4,18
 AMPsuite,4,18
 ACLU of Connecticut,4,18
@@ -4251,7 +4267,6 @@ Doris Matsui,4,8
 Diane Kelley for School Board District 5,4,8
 DelcoGOP,4,8
 David Livingston for County Mayor of Haywood,4,8
-Clear the Air,4,8
 Clay Sprouse for School Board- Seat 6,4,8
 Christian Ziegler for County Commission,4,8
 Carlee White Gonzales for Hammond City Council District 2,4,8
@@ -4260,7 +4275,6 @@ Campaign To Elect A.G. Crowe - Secretary of State,4,8
 CA Charter Schools Association,4,8
 Beverly Adams for District 47,4,8
 Bert Pezzarossi for HD38,4,8
-Aspire Fashion,4,8
 Anton Andrew for State Representative,4,8
 Adam Schwadron for Director of Elections - St. Charles County,4,8
 Abdorrahman Boroumand Center - بنیاد برومند,4,8
@@ -4300,7 +4314,6 @@ Golden Gate University School of Law,4,7
 Elect Eric Richey,4,7
 Ed Page for Judge,4,7
 Defend Our Constitution,4,7
-Dean Heller,4,7
 David Valadao,4,7
 "David Perryman, Oklahoma House of Representatives, District 56",4,7
 Daphne Campbell,4,7
@@ -4334,14 +4347,15 @@ SEIU Local 1,3,17
 SEIU Faculty Forward,3,17
 Rob Brooks For Assembly,3,17
 Representative Alan Lowenthal,3,17
+Proud Right Winger,3,17
 Prairie Rivers Network,3,17
 Pittman for Pitt County,3,17
 Phil Glynn for Mayor,3,17
 People To Elect William L Howard II,3,17
+New York State Nurses Association,3,17
 Neighborhood Sun,3,17
 National Conference on Public Employee Retirement Systems (NCPERS),3,17
 Nancy Groves,3,17
-Michigan Republican Party,3,17
 Michael DeVito For Congress,3,17
 Mesa Plays,3,17
 Mark Shiffer for Alexandria City Council,3,17
@@ -4364,6 +4378,7 @@ Joe Lindquist for Skagit PUD Commissioner,3,17
 Joe Green Vista City Council,3,17
 Jim Coll for NYS Assembly,3,17
 Jeff Richards for Ohio District 66,3,17
+Jason Kwiat for School Board,3,17
 Jason Ellsworth,3,17
 Jason Dombkowski for Tippecanoe County Sheriff,3,17
 Janet Bewley for Wisconsin,3,17
@@ -4378,6 +4393,7 @@ Grow America's Infrastructure Now,3,17
 Gray for Mayor,3,17
 Gary Schwartzenberger,3,17
 Garden State Forward,3,17
+FutureinAmerica,3,17
 Fuel Freedom Foundation,3,17
 Front Street Brewery Taproom,3,17
 Friends of Justine Caldwell,3,17
@@ -4419,7 +4435,6 @@ ACES,3,17
 We Built This,3,16
 Vote for Kids,3,16
 Vote Yes on 2 Massachusetts,3,16
-Vote Utah,3,16
 Votantes informados de Houston,3,16
 Voices Counseling,3,16
 TruOcean,3,16
@@ -4430,7 +4445,6 @@ Sleepy Robert,3,16
 Seth Bernard - Cumberland City Councilman,3,16
 Senator Maralyn Chase,3,16
 Sandra Peake for Family District Court Judge,3,16
-Sand Cloud,3,16
 Sally Siegrist Indiana State Representative District 26,3,16
 SPELLCHEk,3,16
 Representative Athena Salman,3,16
@@ -4448,8 +4462,10 @@ Nebraska Democratic Party,3,16
 Nathan Evershed for District Attorney,3,16
 Nate Pelczar,3,16
 NYC Votes,3,16
+NTD Life,3,16
 Montana Department of Transportation,3,16
 Michigan for Vaccine Choice,3,16
+Mia Bonta for Alameda School Board,3,16
 Maureen Martin for Livingston,3,16
 Marc Snyder for House District 18,3,16
 Maine Votes,3,16
@@ -4509,12 +4525,12 @@ Arthur 'AJ' Valenzuela Jr.,3,16
 Appalachian Energy Center,3,16
 Andy Gronik,3,16
 Affordable Housing for Who?,3,16
+Adam Milasincic for Texas State Representative,3,16
 AJ Kern MN 6th District,3,16
 Yes on Measure G Coalition to Protect San Luis Obispo County,3,15
 Woodbury MN Budget,3,15
 Wesley Anne Beggs,3,15
 WeCare for Weld,3,15
-We Are The Mighty,3,15
 Warrior 12,3,15
 Vote No On Cabrillo Unified School District Measure M,3,15
 Vote For Five Rivers MetroParks,3,15
@@ -4532,6 +4548,7 @@ Steve Snell for PA House - 94th,3,15
 Stephanie Smith for Delegate,3,15
 State Representative Will Crocker,3,15
 Stacey Abrams,3,15
+Shawn Kumagai for Dublin City Council,3,15
 Sedrick T. Walker II for Judge,3,15
 Sara For State House,3,15
 Sage TeBeest for Pottawatomie County Commission,3,15
@@ -4624,6 +4641,7 @@ ACLU of New Mexico,3,15
 94.7 The WAVE,3,15
 World Community Center,3,14
 Working America,3,14
+We The People Holsters,3,14
 Vote Mark Mudd for Butler County Judge-Executive,3,14
 Vince Workman for Burnsville City Council,3,14
 Upstate Jobs Party,3,14
@@ -4650,7 +4668,6 @@ Show Up To Vote,3,14
 Shawn Lavin Amherst Town Board,3,14
 Scott Cernicek For 105,3,14
 Robin Comey Candidate for State Representative Connecticut's 102nd,3,14
-Restoration PAC,3,14
 Resistance Boot Camp,3,14
 Republican Party of Texas,3,14
 Republican Party of Story County,3,14
@@ -4661,6 +4678,7 @@ Real Property Alliance,3,14
 Randy Bryce,3,14
 Project Red TX,3,14
 Progress Hilliard,3,14
+Preemptive Love Coalition,3,14
 "Political Action, DC37",3,14
 Philadelphia Children's Alliance,3,14
 Parents Against Recreational Cannabis,3,14
@@ -4711,6 +4729,7 @@ Hannan for Kentucky,3,14
 Hamilton Vein Center,3,14
 Green Dragon Room at Bier Station,3,14
 Ginny Klevorn for Minnesota House,3,14
+Giffords,3,14
 Gerald Sensabaugh For Mayor,3,14
 George Nelson for District 34,3,14
 Genevieve Plumadore for Milaca School Board,3,14
@@ -4727,7 +4746,6 @@ Donald Lee Sheppard,3,14
 Disability Rights Ohio,3,14
 Dearborn Heights 48125 East,3,14
 David Pechefsky,3,14
-Dan Crenshaw,3,14
 Dallas Young Republicans,3,14
 Daily Mélange,3,14
 DC Statesman,3,14
@@ -4762,6 +4780,7 @@ WomenStrong International,3,13
 Women's March Florida- St. Augustine Chapter,3,13
 Winnie Brinks for State Senate,3,13
 William Cogswell Jr.,3,13
+We Are The Mighty,3,13
 Vote YES for the Sarasota Legacy Trail Extension,3,13
 Vote David Green CPA for Treasurer,3,13
 Vanderburgh County Prosecutor's Office,3,13
@@ -4786,7 +4805,6 @@ Standard News,3,13
 South Carolina Alliance to Fix Our Roads,3,13
 Sharen Wilson,3,13
 Shane Natalie Thompson,3,13
-Seth Evans for Clark County Commissioner,3,13
 Seth Berry for Legislature,3,13
 Say No to impeachment,3,13
 Saginaw Conservatives,3,13
@@ -4840,6 +4858,7 @@ Jewish Center for Justice,3,13
 Jennifer Stark for Claremont City Council,3,13
 Jennifer Harris for Fullerton School Board 2018,3,13
 Jennie Sherwood for Nevada,3,13
+James Thompson for Kansas,3,13
 Harry He For Assembly 2018,3,13
 HPAE - Health Professionals & Allied Employees,3,13
 Gyners,3,13
@@ -4860,6 +4879,7 @@ Elect Dyotha Rene' Sweat,3,13
 Elect Danielle Mashburn-Myrick,3,13
 "Duane Roberts for Anaheim City Council, District 2",3,13
 Dr. Joaquin Arambula for Assembly,3,13
+Diane Mitsch Bush for Colorado CD3,3,13
 Democrats of Jefferson County WV,3,13
 Democratic Asian Americans of Virginia,3,13
 Delegate Lashrecse Aird,3,13
@@ -4874,6 +4894,7 @@ Christi Haswell for Sheridan County Commission,3,13
 Chris Stewart,3,13
 Charlie Clark for TNDP State Executive Committee,3,13
 Brilliance Publishing,3,13
+Brill for Congress,3,13
 Benno4Congress,3,13
 "Barry Newcomb for Sheriff of Rockingham County, NH",3,13
 Barika Davis for Sartell City Council,3,13
@@ -4888,7 +4909,6 @@ Aimy Steele for NC House 82,3,13
 AGDAILY,3,13
 68 - a new American musical,3,13
 Stansberry Research,3,12
-Proud Right Winger,3,12
 Ohio Gun Owners,3,12
 Majority Forward,3,12
 Zachary Collins for Orange City Council,3,7
@@ -4943,6 +4963,7 @@ White Post Wind Project,3,6
 West Michigan News and Events,3,6
 Tom Lovell for Missouri Dist. 35,3,6
 Tim Walberg,3,6
+The Young Turks,3,6
 The World Against Ted Cruz,3,6
 Texas Senate Republican Caucus,3,6
 Talk Business & Politics-Statewide,3,6
@@ -4950,6 +4971,7 @@ TV JAM,3,6
 Steven Allen for School Board,3,6
 State of Safety,3,6
 Stan Pulliam for Mayor of Sandy,3,6
+Spokane Public Schools,3,6
 South Florida For Change,3,6
 Sobampo4JP.com,3,6
 "Seth W. Arkow, Attorney at Law",3,6
@@ -4997,6 +5019,7 @@ Deann Mitchell for Kansas,3,6
 David Wolkinson for State Representative,3,6
 David Lawson,3,6
 Crawford County Kansas Democratic Party,3,6
+Conservative Tribune,3,6
 Commissioner Jesse Gonzalez,3,6
 Children's Action Alliance,3,6
 Cheapest Health Quotes,3,6
@@ -5007,7 +5030,6 @@ Brian Neely for Circuit Court Judge,3,6
 Bottle Breacher,3,6
 Bob Weiner,3,6
 Beto Mural - East Austin,3,6
-Association of American Railroads,3,6
 "Arizona State Representative Regina E. Cobb, DDS",3,6
 Americans for Prosperity - Mississippi,3,6
 American Council for Capital Formation,3,6
@@ -5032,12 +5054,12 @@ Pawtographs,3,5
 Patients For Affordable Drugs Action,3,5
 Palm Cottages Assisted Living and Memory Care,3,5
 Ogden Driskill for Senate District #1,3,5
-North Dakota Republican Party,3,5
 NOmeasureX,3,5
 Montanans Against Higher Taxes,3,5
 Mayor Christopher Cabaldon,3,5
 Libertarian Party of Mississippi,3,5
 KumoriSol Empire,3,5
+Kirsten Gillibrand,3,5
 Kansas Republican Party,3,5
 Kansans for Dove,3,5
 Joel Keller for BART,3,5
@@ -5062,6 +5084,7 @@ Williams For OPPD,2,12
 Weisiger For Champaign County Board,2,12
 VoterEngage,2,12
 Vote NY,2,12
+Vote For Fairfield ADAMH,2,12
 Vote Crier For Marion County,2,12
 Viki Purdy for Idaho,2,12
 Victor Ramirez for State's Attorney,2,12
@@ -5132,7 +5155,6 @@ Molly Kelly,2,12
 Missouri Senate Campaign Committee,2,12
 Milton Post,2,12
 Millan For Mayor,2,12
-Mike Reuter for 23rd Judicial Circuit Clerk,2,12
 Mike Aday 4 Pasco,2,12
 Michigan Wildlife Council,2,12
 Michael Garrett for NC Senate 27,2,12
@@ -5161,6 +5183,7 @@ Jay Kahn: NH State Senator District 10,2,12
 Janice Williams,2,12
 Jane Velez-Mitchell,2,12
 Jamie McLeod-Skinner for Oregon,2,12
+James Oscarson,2,12
 Iowa Starting Line,2,12
 Herbert Theodor,2,12
 Henry Holt,2,12
@@ -5184,7 +5207,6 @@ FED Up Rally,2,12
 Evan Glass for Montgomery County Council,2,12
 Erin Cox for Gallatin County Auditor,2,12
 Engineers Labor Employer Cooperative ELEC,2,12
-End Citizens United,2,12
 Elect Tickle Judge,2,12
 Ed Smith,2,12
 Donna Meyers for Santa Cruz City Council 2018,2,12
@@ -5202,7 +5224,6 @@ Clergy for a New Drug Policy,2,12
 Citizens Against Foreign Interference,2,12
 Christopher F. Davis For State Senate,2,12
 Change for Ohio District 2,2,12
-Chad Benson Show,2,12
 Caty Presas for BISD Pl.1,2,12
 Buen Vecino,2,12
 Brown for Vallejo City Council,2,12
@@ -5226,6 +5247,8 @@ Aislynn4Mayor,2,12
 Aftab Pureval,2,12
 Adams for Arizona,2,12
 AFPF Colorado,2,12
+ACLU of Texas,2,12
+Yes on 1 - Mainers for Home Care,2,11
 Yes On Prop. 2 - No Place Like Home,2,11
 Wisconsin Liberty Initiative,2,11
 "William ""Bill"" Crawford",2,11
@@ -5233,7 +5256,6 @@ Wildlife Conservation Network,2,11
 Vote for Vicki Campaign,2,11
 Vote Yes Prop A,2,11
 Vote Pinky Vargas,2,11
-Vote For Fairfield ADAMH,2,11
 "Vasquez Law Firm, PLLC",2,11
 UnitedHealthcare Community Plan,2,11
 UAW Region 2B,2,11
@@ -5286,6 +5308,7 @@ Nussbaum Baker for School Board,2,11
 "Nikiya Dodd for Alderwoman, District 5",2,11
 Next Generation Nepal,2,11
 New Yorker's Family Research Foundation,2,11
+National Institute for Reproductive Health,2,11
 National Farmers Union,2,11
 NRA Women,2,11
 Mitch McConnell,2,11
@@ -5300,7 +5323,6 @@ Michele Dale for Mayor of West Milford Township,2,11
 McCullah For Kansas,2,11
 Matt Maddock for Michigan State Representative,2,11
 Matt Dernoga,2,11
-Mary Auker-Endres for PA,2,11
 Mark Kinner,2,11
 Margaret O'Brien for State Senate,2,11
 Marcus Ferrell for Arizona LD 24,2,11
@@ -5309,6 +5331,7 @@ Let's Grow Kids,2,11
 Les Smith for El Centro City Council,2,11
 LendingTree,2,11
 Lee Auman for U.S. Congress,2,11
+Lebowski Lovers,2,11
 Laura Sturgeon,2,11
 Lashar for Congress,2,11
 LaShawn Strachan for Hillsborough County Court Judge,2,11
@@ -5399,6 +5422,7 @@ Chakisse Newton for Council,2,11
 Chad Stachowicz for NC Senate,2,11
 Cean Stevens for House,2,11
 Cathy Costello For Labor Commissioner,2,11
+Catholic Relief Services,2,11
 "Caryn Ann Harlos, Libertarian Party LNC Secretary",2,11
 Carole Fiola,2,11
 Campus Vote Project,2,11
@@ -5474,6 +5498,7 @@ Sue Peterson for District 13 House,2,10
 "Studstill Firm, LLP",2,10
 "Stand Up, Lisa",2,10
 Spiro for District Court Judge,2,10
+Speak Up For Education and Kids,2,10
 Speak Up,2,10
 "Spango, Fishman & Freda for Roseland Mayor & Council",2,10
 Southeast Kansas United for Justice and Freedom,2,10
@@ -5524,6 +5549,7 @@ Nueces County Democratic Party,2,10
 No Nuke Bailout,2,10
 No GRU Authority Referendum,2,10
 Niki Lopez Fine Art,2,10
+NewsBusters.org,2,10
 New Florida Vision PAC,2,10
 Nate McMurray for Congress,2,10
 Nano Vision,2,10
@@ -5536,6 +5562,7 @@ Michelle Snodgrass Commonwealth Attorney,2,10
 Merrillee Malwitz-Jipson,2,10
 Mayor Robert J. Lovero,2,10
 MasterClass,2,10
+Mary Auker-Endres for PA,2,10
 Marty Jackley,2,10
 Marsha Holland,2,10
 Marjan Philhour,2,10
@@ -5616,7 +5643,6 @@ Franklin County Democratic Party,2,10
 FrackFeed,2,10
 Family Policy Alliance,2,10
 Experimentul Pitesti Film Artistic,2,10
-Everytown for Gun Safety,2,10
 Erin Zwiener for Texas House,2,10
 Eric Sabin For State Representative 85th District,2,10
 Eric Holien for Kandiyohi County Sheriff 2018,2,10
@@ -5673,6 +5699,7 @@ BeltLine Rail Now,2,10
 Barry Wadle for Washington County Senate,2,10
 Baltimore Yes for E,2,10
 Avera St. Luke's Hospital,2,10
+Auto Wise,2,10
 Ashley Gaudiano for State Representative,2,10
 Artesia Chamber of Commerce,2,10
 Arlissa,2,10
@@ -5795,6 +5822,7 @@ National Loan Programs,2,9
 Monica Zoltanski for Utah,2,9
 Miguel Levario For Congress TX-19,2,9
 Mid-Ohio Energy Cooperative,2,9
+Michigan Republican Party,2,9
 Michelle Deatrick,2,9
 Michael Eggman,2,9
 Meraki Journey,2,9
@@ -5826,7 +5854,6 @@ Kelly Northcutt for State Senate,2,9
 Karen McCallum For District Court Judge - District 26-F,2,9
 Junior for Laredo City Council District 6,2,9
 Judge Renée,2,9
-Josh Blair for State Representative,2,9
 John Turner for Texas House District 114,2,9
 John Lake for LaPorte County Prosecutor,2,9
 John Flynn for State Representative,2,9
@@ -5862,6 +5889,7 @@ Fayrouz Saad,2,9
 Everyone Votes Maryland,2,9
 Ernie Whiteside for State Representative,2,9
 Emily Skopov,2,9
+Elizabeth Warren,2,9
 Elect John Paul Elliott,2,9
 Elect Gregory Rome,2,9
 Elect Dean E. Hill,2,9
@@ -5964,9 +5992,11 @@ Tina For Jeffco,2,8
 Tim Ryan,2,8
 Tim O'Neal for State Representative,2,8
 Thomas Beadle - ND District 27,2,8
+The Western Journal,2,8
 The People's Voice - Ethics Ballot,2,8
 The Hate Club,2,8
 The Corner at Brush Creek,2,8
+The Center for Community Change Action,2,8
 Teyana Taylor,2,8
 Terry Canales,2,8
 Ted Buhner for Nobles County Auditor-Treasurer,2,8
@@ -5982,6 +6012,8 @@ Steve Bestolarides,2,8
 State Representative Trent Ashby,2,8
 "St. George, Louisiana",2,8
 Sportsmen and Sportswomen for Tester,2,8
+Solar Energy Today,2,8
+Shenna Bellows for State Senate,2,8
 Shelby County Democrats,2,8
 Sheet Metal Air Rail and Transportation Workers,2,8
 Sean Quinlan for State House,2,8
@@ -5996,6 +6028,7 @@ STAND UP Nashville,2,8
 SF Bay Times,2,8
 SEMO Electric Cooperative,2,8
 Ryan Winkle,2,8
+Ryan Nawrocki for Baltimore County Council,2,8
 Ruth Johnson for State Senate,2,8
 Run Jump-n-Play,2,8
 Rockaway Youth Task Force,2,8
@@ -6030,13 +6063,13 @@ Organization For Black Struggle,2,8
 Old Astoria Neighborhood Association,2,8
 Nunleyforschoolboard,2,8
 Noticias Jaretipa SE,2,8
+North Dakota Republican Party,2,8
 Nick Harpster for Lubbock County Commissioner Pct. 2,2,8
 Nevadans for Integrity,2,8
 National Insurance Programs,2,8
 ND xPlains,2,8
 Moms Clean Air Force,2,8
 Minnesota Votes,2,8
-Minnesota Values Project,2,8
 Milken Educator Awards,2,8
 "Michael Whaley for County Commission, District 5",2,8
 Message,2,8
@@ -6047,6 +6080,7 @@ Mel for House,2,8
 Mayor Clint Lorimore,2,8
 Matt de Ferranti for Arlington,2,8
 Matt Miller for State Representative,2,8
+"Matt Brown, Democrat for Rhode Island Governor",2,8
 Maryland State Education Association,2,8
 Maryland Matt Rosendale,2,8
 Martha Guerrero,2,8
@@ -6056,10 +6090,10 @@ Mallory McMorrow for State Senate,2,8
 "Luis ""Lucho"" de la Cruz for Mayor of Key Biscayne",2,8
 Lucy McBath for Congress,2,8
 "Linda O'Neal for City Council, District 9",2,8
+Liftable Engagement Services,2,8
 Liberal Lauren Underwood,2,8
 Laurel Prussing for Champaign County Treasurer,2,8
 LDW,2,8
-LCV Victory Fund,2,8
 Klamath River Renewal Corporation,2,8
 Ken Ivory,2,8
 Kelly Rossman-McKinney for State Senate,2,8
@@ -6082,6 +6116,7 @@ Jeff Wright for Wisconsin,2,8
 Jeff Greene,2,8
 "Jay Nolan Community Services, Inc.",2,8
 Janice Rich for Colorado,2,8
+Jane Roger for Register,2,8
 Jaime for Justice,2,8
 Jacque for State Senate,2,8
 J.R. Claeys,2,8
@@ -6133,7 +6168,6 @@ Dick Barr for Lake County Board Dist. 3,2,8
 Dennis Disrupting,2,8
 Democrats Moving Forward#RESIST,2,8
 Democratic Central Committee of Shasta County,2,8
-Definition.org,2,8
 Deb Patterson,2,8
 David Weatherspoon for TN-31,2,8
 Dave Stanko for Sheriff,2,8
@@ -6209,6 +6243,7 @@ Donna White,2,5
 Diamonds Do Good,2,5
 Diamond Hook Media,2,5
 Defending Democracy Together,2,5
+Dan Crenshaw,2,5
 Chuck Brannan for State Representative,2,5
 Chris Evans for Missouri District 9,2,5
 Caroline Self,2,5
@@ -6231,7 +6266,6 @@ The Capitolist,2,4
 Stop The Regulatory Drought,2,4
 Steve Farley,2,4
 State Representative Matthew Hill,2,4
-Solar Programs In AZ Counties,2,4
 "Shelia Arnett for School Board, District 5",2,4
 Senator Ray Holmberg,2,4
 Scribol,2,4
@@ -6250,7 +6284,6 @@ Pereira for Wickenburg,2,4
 Our Iowa Values,2,4
 Ocean City Development LLC,2,4
 No On Measure W - It's Bad for National City,2,4
-NewsBusters.org,2,4
 New Yorkers For Kim,2,4
 Neubert for Hawkins County Mayor,2,4
 National Union of Healthcare Workers,2,4
@@ -6296,6 +6329,7 @@ Cooperative Action Network,2,4
 Congressman Jim Banks,2,4
 Citizens Alliance of Pennsylvania,2,4
 Chad Hampton for Maryville City School Board,2,4
+Chad Benson Show,2,4
 CalmEffect,2,4
 Brandon Brown for Congress,2,4
 Brandon A Wood for Victor Valley Community College Board of Trustees,2,4
@@ -6334,7 +6368,6 @@ John Wolfe U.S. Senate,2,3
 Jewish Leadership Conference,2,3
 James Dean Leavitt for Judge,2,3
 Jack D. Franks,2,3
-Invest in Education Arizona,2,3
 Humanity on the Move,2,3
 Gordon Wildridge for State Representative,2,3
 George Heim for State Representative,2,3
@@ -6579,6 +6612,7 @@ Christopher Roberts,1,7
 Christine Svenson,1,7
 "Christians In Public Service, Inc.",1,7
 Chris Sununu,1,7
+Chris Guy,1,7
 "Checkmate The War for the Black Mind, Part 1: The Black Woman",1,7
 "Charles ""Will"" Hawkins For Windham Town Council",1,7
 Catalano for Judge,1,7
@@ -6629,8 +6663,8 @@ Alaska Right to Life,1,7
 Aaron Day,1,7
 "ALLEN WELLS for Splendora ISD Board Of Trustees, Pos. 5",1,7
 ACLU of Alabama,1,7
+22 Words,1,7
 Yes to Affordable Groceries,1,6
-Yes on 1 - Mainers for Home Care,1,6
 "Yemi Getachew Immigration Law Office, P.C.",1,6
 Yates for EGR School Board,1,6
 Write-in Ric Caruso PA US Senator,1,6
@@ -6696,6 +6730,7 @@ Serge Dedina,1,6
 Senator John S. McCollister,1,6
 Senator Bobby Zirkin,1,6
 Senator Andy Vidak,1,6
+Senate Majority Fund IEC,1,6
 Selectman Joel Desilets for Windham State Representative,1,6
 Sean Flynn for Congress,1,6
 Saving The West,1,6
@@ -6728,6 +6763,7 @@ Raintree Media Group,1,6
 Property Tax Protection Program,1,6
 Peter Robbins for Jupiter Town Council,1,6
 Pennsylvanians Against Socialism,1,6
+Pennsylvania Leadership Committee,1,6
 Paul Davis,1,6
 Patton for Judge,1,6
 Pasco Democratic Party,1,6
@@ -6741,14 +6777,13 @@ One Nation,1,6
 Oklahoma Health Action,1,6
 Okaloosa County Supervisor of Elections,1,6
 No on 74,1,6
-No Kid Hungry,1,6
 New Mexico Open Primaries,1,6
 Neil Ruddy,1,6
 Nate Bristow,1,6
 Naketa Ross,1,6
+Nadine Scott for Oceanside,1,6
 NYC Council Committee on the Justice System,1,6
 NORML,1,6
-NO on 3,1,6
 NJ Left Behind,1,6
 "Moses Jackson for Lee County School Board, District 5",1,6
 Montezuma County Democrats,1,6
@@ -6808,9 +6843,9 @@ JJ for JP,1,6
 Irfan M Ibrahim 4 DuPage Forest Preserve commissioner,1,6
 Iowa Conservative Union - ICU,1,6
 Indigo Theater,1,6
+Independent Voter,1,6
 "IAFF LOCAL 4658 Professional Paramedics and EMT's of Charles County, MD",1,6
 IAFF 4th District Vice President Andrew Pantelis,1,6
-Human Coalition,1,6
 Heartland Institute,1,6
 Heartland Gazette,1,6
 Heady For Senate,1,6
@@ -6911,7 +6946,6 @@ Brian Hobbs for Oklahoma House District 38,1,6
 Braden Sharpe for Maine House of Representatives,1,6
 Brad Wenstrup,1,6
 Boca Save our Beaches,1,6
-Bobbleheads.com,1,6
 Bob Wilson for RTD,1,6
 Bob Green for Ontario County Sheriff,1,6
 Bloomberg Philanthropies,1,6
@@ -6922,7 +6956,6 @@ Belmont Abbey College,1,6
 Beechtree Diagnostics,1,6
 Azad Mulk Party - AMP,1,6
 Assemblyman Jake Ashby,1,6
-Arizonans 4 Affordable Electricity,1,6
 Anybody seen my slippers ?,1,6
 Anthony Sionni for City Council Ward 14,1,6
 Ann Kirkpatrick,1,6
@@ -6938,7 +6971,6 @@ Al-pam Republican Club,1,6
 Abby Romaine for Flagler County Commission - District 2,1,6
 Aaron Young for KS District 14,1,6
 AFSCME Council 31,1,6
-ACLU of Texas,1,6
 417 Magazine,1,6
 2A Training,1,6
 iVoterGuide,1,5
@@ -6962,6 +6994,7 @@ Vote Yolanda Smith Charles Oakland County Commissioner,1,5
 Vote Tony Thompson for Bullitt County Judge Executive,1,5
 Vote Sarah Kovoor Family Court Judge,1,5
 Vote New York State Senate,1,5
+Vote NO on 1,1,5
 Vote Larry Haltiwanger and Ed White for District 5 Schools,1,5
 Vote Bronsten Kossow,1,5
 Vivify Products,1,5
@@ -6993,7 +7026,6 @@ Tibbetts for Assembly,1,5
 Theron Smith for City Council Member At-Large,1,5
 Theresa Gasper for Congress,1,5
 The Voice /  La Voz / Ang Tinig,1,5
-The Trump Prophecy Movie,1,5
 The Rising Right,1,5
 The Missouri Plan,1,5
 The Fight Magazine,1,5
@@ -7009,7 +7041,6 @@ Tania Garcia-Cadena for City Council Member,1,5
 TUSD Kids First,1,5
 TARA for Cupertino City Council,1,5
 T. George Davis for Clerk of Courts,1,5
-Swing Left,1,5
 Susan Makowski for Orange County Commissioner District 4,1,5
 Susan Coons Collins for IPS,1,5
 Survival Life,1,5
@@ -7067,7 +7098,6 @@ Phil McGrane for Idaho,1,5
 Phil Graham for Assembly,1,5
 Pendleton For Congress,1,5
 Paul Bjerk for High Plains Water,1,5
-Patriot Powered Products,1,5
 Patricia Fox 4 School Board Orange County District 6,1,5
 Pancreatic Cancer Action Network,1,5
 Pam White-Colbert for Macon-Bibb Civil Magistrate,1,5
@@ -7091,7 +7121,6 @@ National Right To Work,1,5
 National Council of Jewish Women (NCJW),1,5
 Nate Tate - Missouri State Representative District 119,1,5
 Napoli for State Rep,1,5
-NARAL Pro-Choice America,1,5
 Más New Mexico,1,5
 My Shop Therapy,1,5
 Movebr,1,5
@@ -7100,7 +7129,6 @@ Mitch for Newtown,1,5
 Mississippi Local News,1,5
 Mike Siegel for Congress - TX-10,1,5
 Mike Lee Baltimore County Council,1,5
-Michigan Families for Economic Prosperity,1,5
 Michigan Energy Innovation Business Council,1,5
 Michele Meyer for Maine House,1,5
 Michael Ray for West Volusia Hospital Authority,1,5
@@ -7211,6 +7239,7 @@ Greene 4 Mayor,1,5
 Graham Phalen for Wahkiakum County Sheriff,1,5
 Goren and Selvin for Livingston Board of Education,1,5
 Gil Isbell for State House District 28,1,5
+Gerrett Morris for State Representative,1,5
 Gary Snyder for State Senate,1,5
 Funny Texts,1,5
 Friends of Thomas Ashwell,1,5
@@ -7321,7 +7350,6 @@ BLM Wild,1,5
 Assemblyman Gary Finch,1,5
 Assemblyman Cliff Crouch,1,5
 Ashley Harada for District Judge,1,5
-Arizona Democratic Legislative Campaign Committee,1,5
 Arin Wilhelm for NC Senate,1,5
 Apex high school seniors sick of bad government,1,5
 Antonio Sabato Jr,1,5
@@ -7347,6 +7375,7 @@ A place at the table with Shir,1,5
 2018 CA Midterms,1,5
 elitefeats,1,4
 Zay for State Senate,1,4
+Young America's Foundation,1,4
 Yes 2 Our Students - Richland 2 School Bond Referendum,1,4
 Women for Marty,1,4
 Windbag Cares,1,4
@@ -7379,7 +7408,6 @@ Tomika Harris-Irving for Circuit Court Judge,1,4
 Todd Lippert for MN House 20B,1,4
 Tim Greimel,1,4
 Tim Glenn for State House,1,4
-The Western Journal,1,4
 The Texas Reckoning,1,4
 The Pharos Project for Patriotic Conservatism,1,4
 The Loyal Opposition,1,4
@@ -7391,6 +7419,7 @@ The Coalition for a Better Illinois 6th,1,4
 The City of Bayonne,1,4
 The Baltimore Post,1,4
 The BROWN Report,1,4
+Texans for Traffic Relief,1,4
 Tennessee Voter Project,1,4
 Ted Budd,1,4
 Taylor W. Burks,1,4
@@ -7398,6 +7427,7 @@ Tamara St John for SD District 1 House,1,4
 TakeAction Minnesota,1,4
 Syed Rob For District 4,1,4
 Susan K. McComas,1,4
+Support Our Schools,1,4
 Supervisor Calvin Callahan,1,4
 Sumner County Republican Assembly,1,4
 Strong D38 Community,1,4
@@ -7417,7 +7447,6 @@ Solar Rebate,1,4
 Socrata,1,4
 Slimy Steve,1,4
 Sivoli For Senate,1,4
-Sierra Club,1,4
 "Shay White, LMSW",1,4
 Shao for Fremont City Council,1,4
 Shannon Pottie-Whitaker for Mayor of La Grange,1,4
@@ -7491,7 +7520,6 @@ North Oak Lawn Democrats - Precinct 1022,1,4
 North Carolina Sierra Club,1,4
 Nick Freitas,1,4
 New Hampshire Community Loan Fund,1,4
-Nevada Counties Solar Program,1,4
 Natalie Iwasa for Honolulu City Council,1,4
 Nashville Tea Party,1,4
 My America,1,4
@@ -7562,7 +7590,6 @@ Lancaster County Republican Party,1,4
 La Verne Firefighters' Association L-3624,1,4
 La Quinta Councilman Robert Radi,1,4
 La Crosse County Republican Party,1,4
-Kyrsten Sinema,1,4
 Kristi Racines,1,4
 Kirk for Supervisor,1,4
 "Ken Selzer, CPA for Governor",1,4
@@ -7615,6 +7642,7 @@ Hip-Hop Memes For Edgy White Teens,1,4
 Hilkemann for Legislature,1,4
 Henry Branham Clark County Judge/Executive,1,4
 "Helen Henderson for St. Lucie County Commission, District 4",1,4
+Healthy Montana Campaign,1,4
 Hanu For County Commission,1,4
 HOT SAUCE MAGA,1,4
 Gulf Coast Community Church,1,4
@@ -7630,7 +7658,6 @@ Gell.com,1,4
 Galvanize America,1,4
 Friends of Rockford Police K-9,1,4
 Friends of Danny Glidewell,1,4
-Fred Upton,1,4
 Francys Johnson for Congress,1,4
 Founder of the Day,1,4
 "Forrest ""Butch"" Freeman for Oklahoma County Treasurer",1,4
@@ -7679,7 +7706,6 @@ Cuff For Wisconsin,1,4
 Courtney Watson -  Howard County,1,4
 County Councilman Clayton Whitson,1,4
 Count My Vote 18,1,4
-Conservative Tribune,1,4
 Conservation Voters of Pennsylvania,1,4
 Connie Munk for Nevada Assembly District 4,1,4
 Congressman Salud Carbajal,1,4
@@ -7690,7 +7716,6 @@ Community Discussion with Scott Adams,1,4
 Commissioner Chris Hanks,1,4
 Collier County Republicans,1,4
 Collier County Republican Men's Club,1,4
-Co-ops Vote,1,4
 Civil Justice Association of California,1,4
 Citizens to Keep Rives Rural,1,4
 Citizens for Raymond Lampert,1,4
@@ -7760,7 +7785,6 @@ Al Hardwick for MI 48th District State Representative,1,4
 Action.GOP,1,4
 ARmindsMatter,1,4
 ARISE,1,4
-32BJ SEIU,1,4
 2atees1,1,4
 "Zito Media - High Speed Internet, Digital Cable TV, & Digital Voice",1,3
 YES for Responsible Mining,1,3
@@ -7797,6 +7821,7 @@ Tim Lingerfelt For State Representative,1,3
 Tim Hugo,1,3
 Tim Griffin for Arkansas,1,3
 Tiffany Ackley for Aliso Viejo City Council,1,3
+Thomas Salisbury for District Judge,1,3
 The Ripp Report,1,3
 The News and Why It Matters,1,3
 The Mark Kaye Show,1,3
@@ -7829,6 +7854,7 @@ Sean Bowie,1,3
 Scott Cepicky for State Representative,1,3
 Scott Bryan for Washington County,1,3
 Save the Dells,1,3
+Save the Children Action Network,1,3
 Save Kansas Coalition,1,3
 Sarah Homes for District Court Judge,1,3
 Sandy Davis For Wabash MSD School Board,1,3
@@ -7870,6 +7896,7 @@ Perth Amboy First for City Council,1,3
 Persistence PAC,1,3
 Paving Logan County,1,3
 Paul Gonzales,1,3
+Patriot Powered Products,1,3
 Patrick Sullivan for Foster City Council,1,3
 Patrick Johnson for District Court Judge,1,3
 Partnership for Texas,1,3
@@ -7969,6 +7996,7 @@ Joel Abelove for District Attorney,1,3
 Joe Markley for Lieutenant Governor,1,3
 Joe Davern - Healthcare Solutions Team,1,3
 Jimmy Blacklock Campaign,1,3
+Jewish Voice Ministries International,1,3
 Jewell Horner for Mayor,1,3
 Jessica Catron,1,3
 Jeopardy World Tour,1,3
@@ -7982,6 +8010,7 @@ James W. Chandler for Circuit Court Judge,1,3
 JT Wilcox,1,3
 Into the Light,1,3
 Indiana Environmental Reporter,1,3
+Independent Republicans of Wyoming,1,3
 In the Woods with Phil,1,3
 Ihlenfeld for State Senate,1,3
 Idiocracy News Media,1,3
@@ -8005,7 +8034,6 @@ Ginger Garner for NC Senate,1,3
 Ghouta,1,3
 "Gerald A. Griggs - Advocate, Attorney, Activist",1,3
 Gaylin for Judge,1,3
-Gary Morris 2018,1,3
 Gary Gardner for Desert Hot Springs City Council,1,3
 GV Wire,1,3
 Friends of John McGuire,1,3
@@ -8058,6 +8086,7 @@ Dan Schmitt for Supervisor,1,3
 Dakota Nelson for House District 16,1,3
 Daily Kos,1,3
 DK Hirner for Cole County Prosecutor,1,3
+DFW Homebuyer's Club,1,3
 D.J. Byrnes for Ohio House District 80,1,3
 "Cynthia Long - County Commissioner, Pct. Two   Williamson County, TX",1,3
 Cumberland County GOP,1,3
@@ -8077,6 +8106,7 @@ Commissioner Angelo Castillo,1,3
 Colorado GOP,1,3
 Cole for Nicholas County Commission,1,3
 Clint Erickson Holmes County Commissioner District 5,1,3
+Clear the Air,1,3
 Civics Nation,1,3
 CitizensUnited Switzerland,1,3
 Citizens for Jim Moran,1,3
@@ -8135,7 +8165,6 @@ American Freedom Fighter,1,3
 America First News,1,3
 America 101,1,3
 Alton Wright,1,3
-Alliance Defending Freedom,1,3
 Alec Johnson for Texas State House District 11,1,3
 Alan Youngblood for Seminole County School Board - District 1,1,3
 Alan McMillan for District 2 Escambia County Commission,1,3
@@ -8154,10 +8183,10 @@ Trump Loves Me,1,2
 The Bear Flag Revolt,1,2
 Texas Nationalist Movement,1,2
 Steve Deace,1,2
-Stand Up America,1,2
 SimonBooks,1,2
 Roger Ford for Pike County Clerk,1,2
 Rick Wilson for Polk County Commission,1,2
+Restoration PAC,1,2
 Republican Party of Virginia,1,2
 Re-Elect Tim Wirgau State Representative,1,2
 Re-Elect Rebeca Sosa for Miami-Dade County Commissioner District 6,1,2
@@ -8165,7 +8194,6 @@ RISE - Live to Inspire,1,2
 Pat Snyder for the 85th Assembly,1,2
 Millions of Jobs,1,2
 Mike Pusley For County Judge,1,2
-Michael Williams,1,2
 Mean Mr. Trump,1,2
 MYVEGAS Magazine,1,2
 Louisiana Association of Business and Industry - LABI,1,2
@@ -8180,6 +8208,7 @@ Friends of the Earth U.S.,1,2
 Fire Jim Jordan,1,2
 Fallon For Texas,1,2
 Dunleavy for Alaska,1,2
+Dinesh D'Souza,1,2
 Common Cause,1,2
 Colbeck for Governor,1,2
 Coachella Valley,1,2
@@ -8218,6 +8247,7 @@ Chad Lovejoy for WV,0,500
 Population Source,0,250
 NAACP at UVA,0,250
 Coal River Mountain Watch,0,200
+ChooseChildren,0,200
 Pennsylvania Cable Network (PCN),0,167
 NJ7 Forward,0,167
 SimiChange,0,143
@@ -8274,18 +8304,19 @@ Kevin Walsh for Kyrene School Board,0,43
 Covenant House International,0,43
 Be Conscious. Be Kind.,0,43
 Tattooed Mom,0,42
-The Center for Community Change Action,0,40
 Pittsburgh Lesbian Correspondents,0,40
 Making Every Vote Count,0,40
 Chloe Maxmin for State Representative in District 88,0,39
 Tom Murray for State Assembly,0,38
 Relay Power,0,38
 Oregon Tree Talk,0,38
+NRDC Action Fund,0,38
 John Wilson,0,38
 Green Matters,0,38
 Colin Van Ostern,0,38
 Scott E's Blog,0,37
 Planned Parenthood Advocates of Michigan,0,37
+PCCC - BoldProgressives.org,0,37
 Off The Beaten Path,0,37
 Launchpadmusicgroup,0,37
 Friends to Elect Kristine Reeves,0,37
@@ -8297,7 +8328,6 @@ Women's March Rockford,0,34
 UpCounsel,0,34
 Philip Stengel Presents,0,34
 BESE,0,34
-Working Families Party,0,33
 Stephanie Land,0,33
 Rossana for 33rd Ward Alderman,0,33
 Mod3rn Media Magazine,0,33
@@ -8310,11 +8340,11 @@ Denver ISO,0,32
 Americans for Prosperity-Kansas,0,32
 Vincent for Boston,0,31
 KevinMD.com,0,31
-Cotton Case,0,31
 SameSide,0,30
 Lalit mohan teespring,0,30
 Kenneth Mejia for Congress,0,30
 "Green Party of Kansas City, Missouri",0,30
+GOP,0,30
 Terry Jones for District 21,0,29
 Stewart Law Group,0,29
 Reenie Montgomery,0,29
@@ -8330,6 +8360,7 @@ Verl Farnsworth for Mesa City Council,0,27
 Theo Ellington for D10 Supervisor 艾霖敦,0,27
 Synchro-Niss With Me,0,27
 Resistance School,0,27
+Reason To Believe,0,27
 Akash for State Senate,0,27
 1MISSION,0,27
 Xotic Design,0,26
@@ -8347,7 +8378,6 @@ Shounak Dharap,0,25
 Putting Women In Their Place,0,25
 Mike Saville for Idaho,0,25
 Lion Recovery Fund,0,25
-Katie Porter,0,25
 Douglas County Republicans,0,25
 Build CT,0,25
 The Center For Black Equity  Baltimore,0,24
@@ -8380,16 +8410,16 @@ National LGBTQ Task Force,0,22
 Meindl for 45th Ward Alderman,0,22
 James Skoufis,0,22
 GR Rapid Response to ICE,0,22
-Askov Finlayson,0,22
 Andrew Gounardes for State Senate,0,22
 Addicted to Golf,0,22
 Washoe County Republican Assembly,0,21
 Washington State Public Disclosure Commission,0,21
 Stage Left Theatre,0,21
 Sami Al-AbdRabbuh,0,21
+OZY FEST,0,21
 Lost without an Enemy,0,21
+Katie Porter,0,21
 Girl Be Brave,0,21
-Giffords,0,21
 Accountable Idaho,0,21
 etee,0,20
 You Ready Grandma,0,20
@@ -8410,6 +8440,7 @@ Geoffrey Cauble For GA,0,20
 Emily Gasoi for Ward 1 State Board of Education,0,20
 Consumer Energy Alliance,0,20
 Bottlepops USA,0,20
+Aspire Fashion,0,20
 Vote Bobby O,0,19
 Suzanne Harrison,0,19
 Pete Visclosky for Congress,0,19
@@ -8434,7 +8465,6 @@ Rednecknationco,0,18
 Pointlesss Talks,0,18
 POW Action Fund,0,18
 NARAL Pro-Choice California,0,18
-Josh Harder,0,18
 Huru International,0,18
 "Diana Karau, Citizen Taxpayer",0,18
 Consider Our Knowledge,0,18
@@ -8473,7 +8503,6 @@ Ken Humberston Clackamas County Commissioner Page,0,16
 Keep Our Town in Democratic Hands,0,16
 Erin Murphy for Governor,0,16
 Emilie Kornheiser for State Representative,0,16
-Distractify,0,16
 Dave Matthews Band,0,16
 Coos Bay Daily Times,0,16
 Chuck Tyler,0,16
@@ -8493,6 +8522,7 @@ Impeach Trump Run,0,15
 Global Citizen,0,15
 Families United Now,0,15
 Dream Living Arizona,0,15
+Distractify,0,15
 Chris Turner,0,15
 CASA of Park and Sweet Grass Counties,0,15
 Brickspot Comedy,0,15
@@ -8518,7 +8548,6 @@ Our McKalla Station,0,14
 Naytev,0,14
 Movement Voter Project,0,14
 Mark Phariss for SD 8,0,14
-LifeZette,0,14
 King Claude Collections,0,14
 Joe Zimmerman for State Representative,0,14
 Jackie for 279,0,14
@@ -8530,7 +8559,6 @@ Alison4Dro,0,14
 Action St. Louis,0,14
 AHM ZADIK,0,14
 Your Energy,0,13
-WERS 88.9FM,0,13
 Votedrkevin,0,13
 Ted Wheeler,0,13
 Stop Trial Lawyer Greed,0,13
@@ -8543,11 +8571,11 @@ Re-Elect Clayton Koo to JESD School Board 2018,0,13
 OZY Future,0,13
 National Center for Transgender Equality Action Fund,0,13
 NON,0,13
-Kaniela Ing,0,13
 Jointly,0,13
 Joe Donnelly,0,13
 Jessica Cohen for Austin City Council District 3,0,13
 JT's Law - Child Food Choking Prevention Act,0,13
+Independence USA,0,13
 Elect Lori Saldaña for Supervisor,0,13
 Democratic Environmental Caucus of Florida - Pasco,0,13
 Community Voices SD,0,13
@@ -8563,6 +8591,8 @@ University City Police Officers' Association,0,12
 The Center for Election Science,0,12
 The Arc Georgia,0,12
 TBReporter.com,0,12
+Sharon Shewmake Page,0,12
+Shamann Walton 華頌善,0,12
 Renew Missouri,0,12
 Precinct 3114-Tarrant County,0,12
 Poems Porn,0,12
@@ -8588,12 +8618,12 @@ Death Penalty For All Murders And Rape.,0,12
 Dana Maxfield for Vermont State Senate,0,12
 Coconino County Democratic Party,0,12
 Citizens for Everett Medic One,0,12
-California Counties Solar Program,0,12
 Arizona Truth Squad,0,12
 Arcadia Power,0,12
 AFSCME Council 28 WFSE,0,12
 Микола Хандурiн,0,11
 Vito Sheeley,0,11
+Truth Examiner,0,11
 Trevor Ozawa,0,11
 The New MAGA - Make America GOOD Again,0,11
 The Market Urbanism Report,0,11
@@ -8605,6 +8635,7 @@ Putting Kids First,0,11
 Paul Deasy for Flagstaff City Council,0,11
 Paolo Weston,0,11
 Our Lives Our Vote,0,11
+Ocean Conservancy,0,11
 Music for Resistance and Revolution,0,11
 Model D,0,11
 Liberal SpecialTees,0,11
@@ -8632,6 +8663,7 @@ Bill Cox for Rich County Commissioner,0,11
 Awkward Family Photos,0,11
 Ashley Wheeland for Colorado,0,11
 Antonio M. Garcia for State Assembly,0,11
+AZ Counties Solar Program,0,11
 Women's Lobby of Colorado,0,10
 West Virginia Citizen Action Group,0,10
 Wesley Bolin,0,10
@@ -8661,11 +8693,13 @@ Pursuit,0,10
 Peoples Progressive Media,0,10
 Our Wisconsin Revolution,0,10
 National Republican Congressional Committee,0,10
+"Morton Law Firm, PLLC",0,10
 Millennial Bridge,0,10
 Michelle Ciccolo for State Rep,0,10
 Marihelen Wheeler Campaign for Alachua County Commission,0,10
 Linda Bennett,0,10
 Lillian Salerno,0,10
+Liberty or Death Project,0,10
 Libertarians Against Intellectual Property,0,10
 Kyle Whelton for State Senate,0,10
 Keith Perry,0,10
@@ -8673,7 +8707,6 @@ Joseph Jaumann for State Rep,0,10
 Janice Rettman for Ramsey County Commissioner District 3,0,10
 IBC KID MIN Team,0,10
 I Make America,0,10
-Home Financial Helper,0,10
 Hodan for Minnesota House 62A,0,10
 Friends of the North Branch Park & Nature Preserve,0,10
 Faulkner County Democratic Party,0,10
@@ -8685,6 +8718,7 @@ ClubResist,0,10
 Chris Murphy,0,10
 Center for Elder Law & Justice,0,10
 Caroline Walker for NC Senate,0,10
+Cam Cavasso For Congress,0,10
 Calandra Vargas for County Commissioner,0,10
 CBIA,0,10
 Branford Democratic Town Committee,0,10
@@ -8712,7 +8746,6 @@ The #News,0,9
 Teton County Idaho Democrats,0,9
 TeacherFreedom,0,9
 TODCO - South of Market Neighborhood Builders,0,9
-Support Our Schools,0,9
 Steve Friday for US Congress,0,9
 Sojourners,0,9
 Silver State Sentinel,0,9
@@ -8727,11 +8760,10 @@ Penny Shaw,0,9
 Pennsylvania Spotlight,0,9
 Parveen Tumber for School Board 2018,0,9
 Orange County Crooks,0,9
-OZY FEST,0,9
 Nonhuman Rights Project,0,9
 New Lenox Professional Firefighters Local 5097,0,9
+Nevada Counties Solar Program,0,9
 NetChoice,0,9
-Nate for State,0,9
 NJ 11th For Change,0,9
 Monica Sparks For County Commissioner,0,9
 Michael Yakubovich for NH State Representative,0,9
@@ -8744,7 +8776,6 @@ Maple Heights African American Gazette,0,9
 Lyon County Democratic Party,0,9
 Lemuel Jack-Parish Council District C,0,9
 League of Women Voters Dakota County,0,9
-Laura for Illinois - Senate District 9,0,9
 Keepsakes Plus,0,9
 Kauai Farming & Jobs Coalition,0,9
 "Kaiden, Celia, Saverino for Collingswood BOE",0,9
@@ -8753,6 +8784,7 @@ Jill Barry for Connecticut-31st,0,9
 Jen Mallo for HCPSS Board of Education,0,9
 Jen Dailey-Provost for Utah,0,9
 It's Time D.C.,0,9
+International Rescue Committee,0,9
 Henry Alexander III,0,9
 Greenpeace USA,0,9
 Gina Walkington,0,9
@@ -8780,6 +8812,7 @@ Young Democrats of Cumberland County,0,8
 Whitfield County Democratic Party,0,8
 We Love National Park,0,8
 We Are What We Vote,0,8
+WERS 88.9FM,0,8
 Voter Awareness Project,0,8
 Vote for Zach Larsen,0,8
 Vote Jenn Gray,0,8
@@ -8809,7 +8842,6 @@ Quick Fix Finances,0,8
 Project Lifeline,0,8
 Progressive Champions PAC,0,8
 ProgressNow Colorado,0,8
-Progress Florida Education Institute,0,8
 PoliticallyShort.com,0,8
 Political Shirt Outlet,0,8
 Patients for Affordable Drugs,0,8
@@ -8822,6 +8854,7 @@ North Pole Montessori,0,8
 No Action No Peace,0,8
 New Avenues Democratic Club,0,8
 Neal Dikeman for Senate,0,8
+Nate for State,0,8
 Natalie Mai for District Judge,0,8
 NJ RAMP,0,8
 Mike Garic for Washington Parish Council,0,8
@@ -8829,6 +8862,7 @@ Mexico Joe,0,8
 Maureen Leidy for Atlantic County Freeholder,0,8
 Massene Mboup for Lake Oswego City Council,0,8
 Maria Weekes For Judge,0,8
+Mallory Hagan for Congress,0,8
 Little Dictator Game,0,8
 Liberty News,0,8
 Lensabl,0,8
@@ -8878,15 +8912,14 @@ Zeke Cohen,0,7
 Winona Pints and Policy,0,7
 We Love DC,0,7
 Wayne Goldner MD for NH State Rep,0,7
+Water Lifestyle Co.,0,7
 United Way of Northeast Louisiana,0,7
-United Food and Commercial Workers International Union,0,7
 UFCW Local 367,0,7
 Two Broads Talking Politics Podcast,0,7
 Transpire OK,0,7
 Torberson Law,0,7
 Tom Loughman for NH State Rep,0,7
 Thoughts From My Heart by Carolyn Putney,0,7
-TheRichest,0,7
 The Tribal Resistance,0,7
 The Politics of Justice in American Society,0,7
 The Ohio Society of Certified Public Accountants,0,7
@@ -8919,6 +8952,7 @@ Open Primaries,0,7
 Oceana,0,7
 National Academy of Social Insurance (NASI),0,7
 Naomi Levin,0,7
+NARAL Pro-Choice America,0,7
 "Move Over Mike, It's Time For Change",0,7
 Mom's Secret Stash,0,7
 Minnesota Interfaith Power & Light,0,7
@@ -8978,6 +9012,7 @@ Charley Burch,0,7
 Charles Triplett for MO House,0,7
 Cathy Carter for State Representative,0,7
 Carlos Reyes for Congress,0,7
+CANVAS Unplugged,0,7
 Bridget Fleming,0,7
 Brecksville Broadview Heights Democratic Club,0,7
 Breaking Big,0,7
@@ -9016,10 +9051,11 @@ TAS Apparel,0,6
 Stu News Laguna,0,6
 Stop Clinton from Becoming Connecticut's Dumping Ground,0,6
 Starboyant Media,0,6
+Stand Up America,0,6
 Sonoma Land Trust,0,6
+Solar Programs In AZ Counties,0,6
 Shelley Santry for Judge,0,6
 Shawn Mulchay for Camarillo City Council,0,6
-Sharon Shewmake Page,0,6
 Sharice for Congress,0,6
 Scott Schmidt Running For Assembly District 7,0,6
 Scott Hawkins for Governor,0,6
@@ -9029,6 +9065,7 @@ Scott Garren for State Senate,0,6
 Salisbury Democratic Town Committee,0,6
 Salaam Hearts Of Palestine,0,6
 Ryan Woods,0,6
+Rodney J. Strange - 15th District Chemung County Legislator,0,6
 Roanoke for Jennifer Lewis,0,6
 Ro Khanna,0,6
 Real Science Store,0,6
@@ -9059,7 +9096,7 @@ Muslim Legal Fund of America,0,6
 MusicSocial,0,6
 Multiply Your Vote,0,6
 Moylan for Judge,0,6
-MoveOn,0,6
+Mikie Sherrill,0,6
 Miami Freedom Park PC,0,6
 Memphis Teacher Residency,0,6
 "Mayor Lee Hollenbach, Jr.",0,6
@@ -9075,6 +9112,7 @@ Logic Fitness,0,6
 Linsey Fagan for Texas,0,6
 Link20: Act Up for Inclusion,0,6
 Lifemadesimple,0,6
+LifeZette,0,6
 Liberty Radio,0,6
 Left Over Rights,0,6
 Labor Guild,0,6
@@ -9105,9 +9143,11 @@ HEAVYGRINDER,0,6
 Green Tees Co.,0,6
 Grand Forks Dem-NPL Campaign Office,0,6
 Giselle Hale for RWC Council,0,6
+Gina Raimondo,0,6
 Gary Woods for State Representative,0,6
 Gallatin County Democrats,0,6
 Friends of Michael A Thomas,0,6
+Framed Tweets,0,6
 Florida House Victory,0,6
 Eric Bromwell,0,6
 Environmental Voter Project,0,6
@@ -9129,6 +9169,7 @@ Blue Banter Saugerties,0,6
 Betty McCollum for Congress,0,6
 Bay Harbor Vision,0,6
 Atmalogy,0,6
+Arizona G&T Cooperatives,0,6
 Anne Oliva for Millbrae City Council,0,6
 Andrew Collins for State Rep,0,6
 Ameritech College of Healthcare,0,6
@@ -9152,7 +9193,6 @@ Wayne Long for JP 6 Jackson Co.,0,5
 Walker Mallott for Alaska,0,5
 "Vincent Dixie, TN House District 54",0,5
 "Vince Pearcy - Candidate for Justice of the Peace, District 4 Craighead Co.",0,5
-Vikki for Texas House District 47,0,5
 Vernon Moore For NC Senate District 10,0,5
 Valerie Gaydos for State Representative,0,5
 United States Constitution,0,5
@@ -9167,7 +9207,6 @@ Tom Walters,0,5
 Tom Tull,0,5
 Time To Vote On Climate,0,5
 Thieves in the Temple,0,5
-The Voter Participation Center,0,5
 The University Conservative,0,5
 The Truth about Sue Serino,0,5
 The Right Way,0,5
@@ -9186,6 +9225,7 @@ Sharon Hirsch for Texas HD 66,0,5
 Senator Kelli Stargel,0,5
 Senator Brian Zehnder,0,5
 Santa Cruz Indivisible,0,5
+Sand Cloud,0,5
 Sabrina Heisey for State Rep,0,5
 Sabrina Harms for Posey County Auditor,0,5
 "SARAH, Inc.",0,5
@@ -9206,7 +9246,6 @@ Rainforest Action Network,0,5
 Put Floyd On Board,0,5
 Prompt News,0,5
 Progress NC Votes,0,5
-PrintedKicks,0,5
 Print For Progress,0,5
 Porsche Middleton for City Council,0,5
 Pierre Richard Augustin,0,5
@@ -9222,7 +9261,6 @@ Oklahoma Council of Public Affairs,0,5
 Occupy Dims,0,5
 Oakland County Board of Commissioners,0,5
 OVEC,0,5
-No on Prop C,0,5
 New York State AFL-CIO,0,5
 New Way California,0,5
 New Orleans Workers' Center for Racial Justice,0,5
@@ -9232,6 +9270,7 @@ NRSC,0,5
 Muslim Aid USA,0,5
 Mirrorless Productions,0,5
 Mike Kaczmarek for Wright County Sheriff,0,5
+Mike Heiser,0,5
 Michael J Pearce for Albany County Treasurer,0,5
 Melissa Osborne for Senate,0,5
 Mayor Corey Napier,0,5
@@ -9285,8 +9324,8 @@ Greater Arlington Republican Club,0,5
 Gordon Machado for Mayor-City of Hollister,0,5
 Gloria Walker For Judge,0,5
 Glenn P. Russell for Justice of the Peace - Pct. 2,0,5
+Giving Brush,0,5
 Geraldine Thompson,0,5
-Gascosage Electric Cooperative,0,5
 Gail Symons,0,5
 FuzzWeb,0,5
 From Prison Cells to PhD,0,5
@@ -9353,6 +9392,7 @@ Blair County Citizens for Accurate Re-Assessment,0,5
 Bill Smethers for Sheriff,0,5
 Berkeley Tenants Union,0,5
 Barry Finegold for State Senate,0,5
+Auditor Suzanne Bump,0,5
 Astor Immigration,0,5
 Assemblywoman Lesley Cohen,0,5
 Aruna Miller,0,5
@@ -9365,16 +9405,15 @@ Annie Kuster,0,5
 Ann Bollin for State Representative,0,5
 Andy Gottlieb for State Senate,0,5
 Andrew Wilkow,0,5
-Amnesty International USA,0,5
 Americans for Prosperity New Hampshire,0,5
 All-Options Pregnancy Resource Center,0,5
 Alderman George A. Cardenas,0,5
 Adam Jenning for MO State Representative - District 69,0,5
 Aaron From Maine,0,5
-22 Words,0,5
 15-40 Connection,0,5
 ᴛᴀʟɪʙᴀɴ ᴛᴀɴ ᴛᴀᴄᴏ,0,4
 ketnoinguoiviet.com,0,4
+iAmerica Action,0,4
 Zillow - Rentals,0,4
 YES on Proposition 111: Stop predatory payday loans in Colorado,0,4
 Wyoming Wildlife Federation,0,4
@@ -9390,7 +9429,6 @@ Vote NO on 5,0,4
 Viral Motion,0,4
 Valerie Harris for AZ State House LD22,0,4
 Tweedie for CT,0,4
-Truth Examiner,0,4
 Trumps Train 2020,0,4
 Trump Store,0,4
 Travis Helm for US House of Representatives,0,4
@@ -9423,6 +9461,7 @@ Soli,0,4
 Solar Programs In Nevada Counties,0,4
 Sister District NY 12-13-14,0,4
 Simply Eco,0,4
+Shen Yun,0,4
 Shannon Beckham for School Board,0,4
 Shabnam For Wisconsin,0,4
 Secular Student Alliance,0,4
@@ -9462,7 +9501,6 @@ Oswego Porchfest,0,4
 Oregon Food Bank,0,4
 Omar J. Herrera for Ossining Mayor,0,4
 Ocean Helper,0,4
-Ocean Conservancy,0,4
 Novak Djokovic,0,4
 No on CO Amendment 73,0,4
 No On Measure J,0,4
@@ -9481,11 +9519,11 @@ N&S Apparel,0,4
 "Monique Burr Foundation for Children, Inc.",0,4
 Modern Medicaid Alliance,0,4
 Mississippi Votes,0,4
+Milford Democratic Town Committee,0,4
 Middle Class Voices of Pennsylvania,0,4
 Michelle Quist for SLCo Council 4,0,4
 Michael Wildes for Mayor,0,4
 Melanie Nutter - 陸美蓮 - for BART Board,0,4
-Mayor Matt Hall,0,4
 MaryEllen Odell,0,4
 Martin Gem & Mineral Miners,0,4
 Maria Collett for PA Senate,0,4
@@ -9495,10 +9533,9 @@ MOSES Action,0,4
 Lynn Anderson for Brown County Commissioner,0,4
 Loving My Library,0,4
 Liz Baklaich for St Cloud City Council,0,4
-Liftable Engagement Services,0,4
-LifeDaily,0,4
 Liberal Definition,0,4
 Lee County Democrats,0,4
+Leadership MKE,0,4
 Laura Sundstrom For Campbell County Coroner,0,4
 LR3 Consulting & Public Relations,0,4
 Kiwi Report,0,4
@@ -9536,7 +9573,7 @@ Jack Patrick Lewis,0,4
 International Crane Foundation,0,4
 IL 14 UNITED,0,4
 IFC PAC,0,4
-Home Energy Guide,0,4
+Home Financial Helper,0,4
 Hollis Hackman - Candidate for Wyoming Senate District 21,0,4
 Hillsdale College,0,4
 Here for America,0,4
@@ -9558,14 +9595,14 @@ Friends of Tommy Waters,0,4
 Friends of Allan Hancock College - Yes on Measure Y,0,4
 FreedomWorks,0,4
 Free Press Action Fund,0,4
-Forest Fire Facts,0,4
 Focus Texas,0,4
 Flaherty For Judge,0,4
 Fix Wayne County Now,0,4
-Finish the Ballot,0,4
 Family Planning of South Central New York,0,4
 Families Belong Together - Tucson,0,4
 FTC PAC,0,4
+Exclusive Apparel,0,4
+Everytown for Gun Safety,0,4
 Eric Fejeran for Whitman County Auditor,0,4
 Environmental Defense Fund,0,4
 Elizabeth Tran for Wabash Board,0,4
@@ -9587,6 +9624,7 @@ Diffenderfer for Caledonia School Board,0,4
 Democratic Citizens Of Berwyn,0,4
 Delran Democratic Committee,0,4
 Delaware River Shad Fishermen's Association,0,4
+Definition.org,0,4
 Dean Howe for State House 76,0,4
 David Rolf,0,4
 David Clifford for Congress,0,4
@@ -9622,7 +9660,6 @@ Carima 4 Senate,0,4
 Campaign to Re-Elect Wade Kach,0,4
 California Right To Carry,0,4
 CAVU,0,4
-CANVAS Unplugged,0,4
 CA-49 WOMEN VOTE,0,4
 CA Votes - LWVC Education Fund,0,4
 BulletROOF,0,4
@@ -9642,8 +9679,10 @@ Anthony Sudweeks for House District 49,0,4
 Andy Hawkins for House District 70,0,4
 "Andrew Punch for Excelsior, MN Mayor",0,4
 Andrew Goforth,0,4
+Andres Mejer Law,0,4
 Amy Fazio for PA,0,4
 Americans for Tax Reform,0,4
+American Money,0,4
 American Freedom and Opportunity PAC,0,4
 America's Future Foundation,0,4
 Amanda Yu Dieterich,0,4
@@ -9656,7 +9695,6 @@ Akshay for Assembly,0,4
 Adam Schiff,0,4
 Aaron Harris Sr.,0,4
 AJ Holmes for State Representative,0,4
-45 Hats,0,4
 350.org,0,4
 2nd Amendment,0,4
 Zero Waste Produce Bags,0,3
@@ -9712,7 +9750,6 @@ Swing Left Knoxville,0,3
 Sustainable Politician Project,0,3
 Susan Wild for Congress,0,3
 Susan Funk for City Council,0,3
-Strong Women Society,0,3
 Stephen Chesley for Guilderland Town Justice,0,3
 State Senator Regina Birdsell,0,3
 State Representative Will Duff,0,3
@@ -9759,14 +9796,12 @@ Republican Roundtable MN,0,3
 Representative Jody Steverson,0,3
 "Renee Hoyos for Congress, Tennessee 2nd District",0,3
 Reasonable Anarchy,0,3
-Reason To Believe,0,3
 Real Facts NC,0,3
 Re-Elect Sheriff Mike Lowell,0,3
 "Randall Wagner for County Commissioner , Authority: Dan Mackley, Treasurer",0,3
 "Race, Racism and the Law",0,3
 Quakenbush for Sheriff,0,3
 PushBlack,0,3
-Progress Michigan,0,3
 Population Connection,0,3
 Pomona Proud,0,3
 Political Laboratory,0,3
@@ -9789,6 +9824,7 @@ Patriot Style,0,3
 Patrick Kirton for City Council,0,3
 Patrick Kearney,0,3
 Pastor Gordon Alley for Colorado State Senate,0,3
+PA Green In 18,0,3
 Otto Radio,0,3
 Ohio Legislative Black Caucus,0,3
 Oconee County Democratic Party,0,3
@@ -9854,13 +9890,13 @@ Libertarian Party of Minnehaha County,0,3
 Let Us Vote For A Balanced Budget Amendment Citizen's Campaign,0,3
 Lesley Dahlkemper,0,3
 Leo Karruli,0,3
-Leadership MKE,0,3
 Laura Fortman for State Senate,0,3
 Lammis Vargas for Council,0,3
 Lachance for Lewiston,0,3
 Kurt Schrader,0,3
 Kibbe on Liberty,0,3
 Kevin Schmelzlen for Mason County Commissioner,0,3
+Kerry Donovan,0,3
 Kenny Long for Santa Rosa County School Board District 3,0,3
 Kelly Smith for Kentucky,0,3
 Keep Justice Jennifer Caughey,0,3
@@ -9898,7 +9934,6 @@ Jeanette Schipper,0,3
 Jay Murphy for Illinois District 51 Representative,0,3
 Javahn Walker for Congress,0,3
 Jared Polis,0,3
-James Thompson for Kansas,0,3
 James P. Leahy Attorney At Law,0,3
 James Howard for Delegate,0,3
 James Harden for Florida House District 116,0,3
@@ -9922,7 +9957,6 @@ Gerald T. Reiner Jr. For Teaneck Board of Education,0,3
 George Thomas Clark Page,0,3
 George Barnett Republican for Magistrate,0,3
 Geneva Believer,0,3
-GOP,0,3
 Friends of Wayne State PAC,0,3
 Friends of Judge Fay Stetz-Waters,0,3
 Freborg for Ward 9,0,3
@@ -9936,7 +9970,6 @@ Fix Politics Now,0,3
 FirstCoast.tv,0,3
 Fenton Fire Protection District,0,3
 Fed Up New Yorkers,0,3
-Environmental Working Group,0,3
 Emily Siegrist for Wisconsin,0,3
 Emanuela Palmares,0,3
 Elect Mike Krusen,0,3
@@ -9981,6 +10014,7 @@ Commissioner Ron Beitler,0,3
 Commissioner John Lindsey,0,3
 Commissioner David Carrington,0,3
 Colleen Hanabusa,0,3
+Co-ops Vote,0,3
 Clear Creek Greenway Authority,0,3
 Class,0,3
 Claire Doesn't Care,0,3
@@ -9989,7 +10023,6 @@ Cisneros for Congress,0,3
 Christopher Marte,0,3
 Christmas On Knob Hill,0,3
 Chris Stone for Wilcox County Probate Judge,0,3
-ChooseChildren,0,3
 Chippewa County Democrats - Michigan,0,3
 Charles Stone for Belmont City Council 2018,0,3
 Charles Rhodes for Mason County Auditor,0,3
@@ -9999,6 +10032,7 @@ Cascadia Progressive Forum,0,3
 Carrigan for Union  County Coroner,0,3
 Cape Fear Indivisible,0,3
 California League of Conservation Voters,0,3
+California Counties Solar Program,0,3
 Caleb Frostman for State Senate,0,3
 CW Wolfe for Clayton City Council,0,3
 CUNA,0,3
@@ -10056,7 +10090,6 @@ A Better Mt. Pleasant,0,3
 2018 Hot Deals,0,3
 12 Peers Theater,0,3
 10-4 Gear,0,3
-iAmerica Action,0,2
 arizonadownpaymentassistance.com,0,2
 Zahra Karinshak,0,2
 Zachary D. Brien for Marshall County Attorney,0,2
@@ -10075,7 +10108,6 @@ We the People - Pennsylvania,0,2
 Wayne Liebnitzky for Congress,0,2
 Watts for Congress,0,2
 Waterkeepers Chesapeake,0,2
-Water Lifestyle Co.,0,2
 Walt Wilkins for Solicitor,0,2
 Wake GOP,0,2
 WV Future PAC,0,2
@@ -10127,6 +10159,7 @@ Thomas For First,0,2
 Thomas E Rodgers,0,2
 Theresa Coates Ellis for Manassas,0,2
 The Washington Blade,0,2
+The Voter Participation Center,0,2
 "The Urbina Law Firm, LLC",0,2
 The Trump Survival Guide,0,2
 The Towson Flyer,0,2
@@ -10202,7 +10235,6 @@ Sentinel Books,0,2
 Senator Juan Chuy Hinojosa,0,2
 Senator Dan Innis,0,2
 Senator Carl Marcellino,0,2
-Senate Leadership Fund,0,2
 Scott Perry for Congress,0,2
 School of Christian Thought,0,2
 Scamazon,0,2
@@ -10236,6 +10268,7 @@ Rob Davis for Hemet Schools,0,2
 Right Scan Right Time,0,2
 Right Now USA Superpac,0,2
 Ridgefield NJ Democratic Club,0,2
+Rick Walker,0,2
 Rick Meyer For Jackson County Sheriff,0,2
 Richland County Democratic Party,0,2
 Richard W. Ryals for Chancery Court Judge,0,2
@@ -10278,6 +10311,7 @@ Political Pull,0,2
 Pocket Your Dollars,0,2
 Peter Zalmayev,0,2
 Peter Onoszko for Jefferson County Commissioner,0,2
+Pete Schwartzkopf for the 14th,0,2
 Pete Schuckert for Sibley County Commissioner,0,2
 Pete Olson for Congress,0,2
 Pete Harckham for Senate,0,2
@@ -10305,7 +10339,6 @@ Overworked Moms,0,2
 Orman for Kansas,0,2
 Organizing for Action,0,2
 Online University of the Left,0,2
-Online Carry Course,0,2
 Omar Navarro,0,2
 Ohioans Against the Reckless Dialysis Amendment,0,2
 Ohio's Electric Cooperatives,0,2
@@ -10316,6 +10349,7 @@ Northeast Charter Schools Network,0,2
 North Dakotans for Citizen Voting,0,2
 No Water No Life,0,2
 No Labels,0,2
+No Kid Hungry,0,2
 No Casinos,0,2
 Nick Myers for House 2018,0,2
 Newton County Republican Central Committee,0,2
@@ -10325,7 +10359,6 @@ New Jersey Working Families Alliance,0,2
 New Hampshire Republican State Committee,0,2
 National Wildlife Federation Action Fund,0,2
 National Security Action,0,2
-National Institute for Reproductive Health,0,2
 National Horizon Action,0,2
 Natasha Marcus for NC Senate District 41,0,2
 Nasty Woman Cosmetics,0,2
@@ -10346,7 +10379,6 @@ Misty Servia for County Commission,0,2
 Missy Morris for House,0,2
 Missouri HRCC,0,2
 Millionaire Claire,0,2
-Mikie Sherrill,0,2
 Mike Smith,0,2
 Mike Simpfenderfer,0,2
 Mike Pence,0,2
@@ -10387,7 +10419,6 @@ MapleTwig,0,2
 Mandy Meisner for Anoka County Commissioner,0,2
 Maine Term Limits,0,2
 Maine GOP Vets,0,2
-Maine Coast Heritage Trust,0,2
 Maine AFL-CIO,0,2
 Mack for NC,0,2
 MIKE GAY For Carlton County Commissioner,0,2
@@ -10404,6 +10435,7 @@ Lisa Bough-Burkdoll for Cedar County Collector,0,2
 Linda L. Gaustad for Judge,0,2
 Linda Champion,0,2
 Lincoln Land Wind,0,2
+LifeDaily,0,2
 Liberty Alerts,0,2
 Liberal Kathy Afzali,0,2
 Liberal America,0,2
@@ -10422,13 +10454,13 @@ Lauren A. Wright,0,2
 Latah County Democrats,0,2
 Lanna Clark for Clark County Assessor,0,2
 LIberty Road,0,2
+LCV Victory Fund,0,2
 L.A. River Expeditions,0,2
 Kyle Kvamme For Grand Forks County Commission,0,2
 Kristine Menicucci,0,2
 Kris Murray For Supervisor,0,2
 Konni Burton,0,2
 Koi Rivers for Cosumnes CSD,0,2
-Kirsten Gillibrand,0,2
 Kirk Cullimore,0,2
 Kingdom Builders Academy,0,2
 Kimberly Ann Cobos-Cawthorne For Montebello City Council 2018,0,2
@@ -10447,6 +10479,7 @@ Kate Brown,0,2
 Karla Silvestre for the Board of Education At-Large,0,2
 Karen Spiegel for County Supervisor 2018,0,2
 Karen Goh,0,2
+Kaniela Ing,0,2
 Kalan Haywood for State Assembly,0,2
 K.C. Baran for Genesee County Circuit Court Judge,0,2
 Justin “Cory” Hamilton For District Judge Div. II,0,2
@@ -10514,22 +10547,19 @@ Jason Elliott - SC State House Representative,0,2
 Janice McGeachin,0,2
 JamieSchoolcraft ForCongress,0,2
 James W Byrd 4 Wyo Secretary of State,0,2
-James Oscarson,0,2
 Jack Jacobs,0,2
 Jack Houghteling for New York,0,2
 JD Wooten for NC Senate,0,2
 JB Akers for Mayor,0,2
 J Street,0,2
 Israel Under Fire,0,2
-Independent Voter,0,2
-Independent Republicans of Wyoming,0,2
-Independence USA,0,2
 Illinois Local News,0,2
 Idaho Republican Party,0,2
 Ian Shetron,0,2
 Humane PA PAC,0,2
 House of Patriots,0,2
 HoosierNinth,0,2
+Home Energy Guide,0,2
 Home Again St. Johns,0,2
 Hohl Law Firm PLLC,0,2
 Hill Reporter,0,2
@@ -10579,7 +10609,6 @@ Faith in Place Action Fund,0,2
 FairTax,0,2
 FLIC Votes,0,2
 FLAG  - Foundation for Liberty and American Greatness,0,2
-Exclusive Apparel,0,2
 Evesham Lower Tax Team,0,2
 Everett School Board Project,0,2
 Evangelical Environmental Network,0,2
@@ -10629,8 +10658,8 @@ District 3 Candidate Tim Lewis,0,2
 Dillon Clark for State Representative,0,2
 Dianne Williams-Cox for City Commission Seat 5,0,2
 Dianne For Commissioner,0,2
-Diane Mitsch Bush for Colorado CD3,0,2
 Diane Lewis,0,2
+Designs For Victory,0,2
 Derek Armstead Mayor of Linden,0,2
 Dennis D Degenhardt for Assembly,0,2
 Dennis Bova for Assembly,0,2
@@ -10719,7 +10748,6 @@ Byron Barkhurst For Carbon County Commissioner,0,2
 BusinessForce,0,2
 Business Forward,0,2
 Buddy Wheatley for State Representative,0,2
-Brill for Congress,0,2
 Brian Towey for Hood River,0,2
 "Brian N. Thomas, Clark County Attorney",0,2
 Brian Hill For the House 2018 HD47,0,2
@@ -10747,9 +10775,9 @@ Betty Griffin Center,0,2
 Betsy Vaughn for Lee County School Board District 6,0,2
 Beth Bye 2018,0,2
 Best Friends of Lowcountry Transit,0,2
-Bernie Sanders,0,2
 Ben Carmitchel for State Senate 16th District,0,2
 "Becky St. John for Place 2, Grapevine-Colleyville ISD",0,2
+Becky Koelzer for Florida House,0,2
 Becky Fast Johnson County Commission,0,2
 Becker for Franklin County Prosecuting Attorney,0,2
 Barbara Lee,0,2
@@ -10784,9 +10812,11 @@ American Potential,0,2
 American Kidney Fund,0,2
 American Federation for Children Action Fund - Wisconsin IE Committee,0,2
 American Academy of Ophthalmology PAC,0,2
+America First Policies,0,2
 Amber Daniels for Ohio House District 78,0,2
 Aloyse Brown for County Mayor,0,2
 Alliance for Gun Responsibility,0,2
+Alliance Defending Freedom,0,2
 Allen Farley for State House District 15,0,2
 Allen Dascher,0,2
 Allegheny Forest Alliance,0,2
@@ -10801,7 +10831,6 @@ Advocacy Tees,0,2
 ActWorthy,0,2
 Accountability Project Ohio,0,2
 AZ Dream Team,0,2
-AZ Counties Solar Program,0,2
 ASPCA,0,2
 AK Headlamp,0,2
 ADL - Anti-Defamation League,0,2
@@ -10843,6 +10872,7 @@ Support Missouri Senate Bill SB791 - Kenny's Law,0,1
 Support Kasie’s Law,0,1
 Sue Hatfield for CT Attorney General,0,1
 Stuart McDaniel for House,0,1
+Strong Women Society,0,1
 Stop Soldier Suicide,0,1
 Steven R Becker,0,1
 Steven Ireland 4 Superintendent,0,1
@@ -10850,8 +10880,6 @@ Steve Allison for Texas House,0,1
 Stephen Brown,0,1
 Stacie MacDonald for Delegate,0,1
 "Sherrod & Bernard, P.C.",0,1
-Senate Majority Fund IEC,0,1
-Save the Children Action Network,0,1
 Satanam Singh Khalsa,0,1
 Sarasota citizen Martin Hyde,0,1
 SEIU Healthcare Illinois & Indiana,0,1
@@ -10877,7 +10905,9 @@ Race and Grace,0,1
 Rabbit & Small Animal Rescue,0,1
 Queen for NC House,0,1
 Purdue Convocations,0,1
+Progress Michigan,0,1
 Priorities USA Action,0,1
+PrintedKicks,0,1
 "Perris/Menifee - Measure W for Safe, Quality Local Schools",0,1
 People's House Project,0,1
 Paul Brown for University of Michigan Regent,0,1
@@ -10893,7 +10923,6 @@ Northwest Michigan Libertarian,0,1
 No DDC,0,1
 Need To Impeach,0,1
 National League of Cities,0,1
-NRDC Action Fund,0,1
 NRA Institute for Legislative Action,0,1
 "Morales & Sparks, PLLC",0,1
 Missouri Democratic Party Progressive Caucus,0,1
@@ -10901,7 +10930,6 @@ Michelle Malkin Investigates,0,1
 Michael Gaddis for Bonsall School Board,0,1
 Meredith Edwards for Clerk of Court,0,1
 Melissa Garff Ballard,0,1
-"Matt Brown, Democrat for Rhode Island Governor",0,1
 Mary's Faith,0,1
 Mary Kate Feeney for State Representative,0,1
 Marv Taylor for Washington County Commissioner,0,1
@@ -10937,14 +10965,15 @@ Joe Riggs for House,0,1
 Joe Johnson for County Commissioner,0,1
 Jim Evans For Congress,0,1
 Jim Beard for Executive Council Dist. 2,0,1
+Jetties Bracelets,0,1
 Jersey Village City Councilmember Bobby Warren,0,1
 Jen Mangrum for NC Senate,0,1
 Jeff McCormick for Dunklin County Prosecuting Attorney,0,1
 Jan Schneider,0,1
-It’s Our America,0,1
 Island Park Safe Wildlife Passage,0,1
 Informed Immigrant,0,1
 "Important, Not Important",0,1
+I Love My Freedom,0,1
 Hudson County View,0,1
 Howard Hunt for Boyle County Judge Executive,0,1
 Hidden Tips,0,1
@@ -10956,7 +10985,6 @@ Greenbrier County Republican Club,0,1
 Greater Corona Traffic Alliance Announcements,0,1
 Glenn Hegar,0,1
 Give America Hope,0,1
-Geoff Diehl,0,1
 Gentner Drummond,0,1
 Front and Centered,0,1
 Friends of Glenn Thompson - Team GT,0,1
@@ -10964,7 +10992,6 @@ Friends for the Election of Judge Stephen Clark 2018,0,1
 "Frank Moe ""Incumbent"" Candidate Moffat County Commissioner District 3",0,1
 Florida Votes Values,0,1
 Flip It Blue CA 25th,0,1
-Finance Watchdogs,0,1
 Family Protection Association,0,1
 Eric Householder for WV House of Delegates,0,1
 Energy Nation,0,1
@@ -10998,6 +11025,7 @@ Cvancara for Gilbert Town Council,0,1
 Councilman Greg Brockhouse,0,1
 Corpus Christi Professional Firefighters Association,0,1
 Coqui Aqui,0,1
+Colorado Rural Electric Association,0,1
 "Clyde Jones for Baldwin County Board of Education, District II",0,1
 Clila- Coalición De Líderes Latinos,0,1
 City Councilor Barb Campbell,0,1
@@ -11020,19 +11048,17 @@ Birmingham Museum of Art,0,1
 Bill Rickert Fort Bend County Treasurer Elect,0,1
 Barbara L'Italien,0,1
 Axiom News Network,0,1
-Auto Wise,0,1
 Anthem Foundation,0,1
 Angel in a Hummer & HEART Foundation,0,1
 Andy Solis for County Commission,0,1
 Andrea Clark for Judge,0,1
 Americans for Food and Beverage Choice,0,1
-American Money,0,1
-America First Policies,0,1
 "Allied Churches of Alamance County, Inc.",0,1
 Alicia Scott for Georgia District 164,0,1
 Against Question A,0,1
 Advanced Auto Service,0,1
 Abdullah Hammoud,0,1
+45 Hats,0,1
 2nd Amendment Rights,0,1
 Zareh & Associates,0,0
 Walmart,0,0
@@ -11048,7 +11074,6 @@ South Metro Denver Chamber,0,0
 Sean Shaw,0,0
 Saveourpublicschools,0,0
 Rebuilding America Now,0,0
-RV Camping,0,0
 RAGA Ohio,0,0
 Online Lenders Alliance,0,0
 Oklahomans for Lamb 2018,0,0
@@ -11065,6 +11090,7 @@ Marsy's Law for North Carolina,0,0
 Louisiana Federation for Children,0,0
 Lisa Ann Koon for Chancery Judge,0,0
 Lice Clinics of America,0,0
+Liberalogic,0,0
 L.L.Bean,0,0
 Instagram,0,0
 Galaxy Teez,0,0
@@ -11090,4 +11116,3 @@ Andy Coleman for Congress,0,0
 American Jewish Congress,0,0
 Adam Laxalt,0,0
 AFSCME,0,0
-4ocean,0,0

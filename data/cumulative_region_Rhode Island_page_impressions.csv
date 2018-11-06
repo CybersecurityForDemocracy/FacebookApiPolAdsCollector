@@ -1,7 +1,7 @@
 Sheldon Whitehouse,1333471,4811025
 Allan Fung,859715,2728354
-Gina Raimondo,780875,2886679
-Save the Children Action Network,551044,1105288
+Gina Raimondo,787584,2920882
+Save the Children Action Network,551000,1105176
 Let's Fix Rhode Island,411000,1178960
 Rhode Island Votes,405000,1082961
 Judge Bob Flanders for U.S. Senate - Rhode Island,386842,1539717
@@ -15,13 +15,13 @@ McKee for Rhode Island,167000,623911
 Robert A. DeRobbio,166850,660195
 Patricia Morgan,138734,481033
 Planned Parenthood Votes! Rhode Island,133000,500973
-"Matt Brown, Democrat for Rhode Island Governor",125721,1050480
+"Matt Brown, Democrat for Rhode Island Governor",127208,1060167
 Vote Yes on 2 RI,121000,304996
 Justice Gaines for Providence City Council Ward 1,110840,254197
-Civiqs,100309,456666
+Civiqs,110049,503337
 Gina Raimondo Against Gun Violence,100000,199999
 Nellie Gorbea,96000,288489
-Solar Energy Today,78035,360169
+Solar Energy Today,78106,360266
 Ryan Holt for Providence City Council Ward 2,77983,288879
 Rhode Island Coalition Against Gun Violence,73565,294741
 Rhode Island Auto Body Choice,65946,149720
@@ -37,6 +37,7 @@ Friends of Bill Murray,47000,179982
 Carlos Diaz for Ward 8,42000,186977
 Feroce for Governor,41975,121910
 Aaron Regunberg,41650,215056
+Solar Rebate,36003,184997
 Mike Costa for US Senate,36000,106971
 Friends of Justine Caldwell,35000,101983
 Representative Nick Mattiello,35000,101963
@@ -45,20 +46,19 @@ Sean O'Leary for East Greenwich,31000,107973
 Indivisible RI,30000,122993
 Joe Trillo for Governor,29000,129993
 Joe Solomon for Mayor,29000,89982
+Jorge Elorza 2018,28000,114984
 Young Democrats of Rhode Island,28000,104983
 Re-elect Councilman Seth Yurdin,27000,133972
 Auto Alliance,27000,119995
-Jorge Elorza 2018,27000,109985
-Oceana,26407,116547
-Solar Rebate,26002,103990
-Jay Gonzalez,25467,54922
+Jay Gonzalez,26650,60656
+Oceana,26407,116609
 Eastern Bank,24968,64445
 Jason Roias for Ward 4,23829,90629
 Elect David Norton - Mayor of Pawtucket,23000,124976
 Steven Cianci for Ward 5,21000,148906
 Uprise RI,18000,91980
 Ryan Pearson,18000,75994
-VoteTogether,17926,66927
+VoteTogether,17927,66935
 Live Nation Concerts,17319,34936
 Rachel Miller for Providence City Council Ward 13,17000,75990
 Lammis Vargas for Council,15926,83557
@@ -87,14 +87,15 @@ Log Cabin Republicans of Rhode Island,10000,51997
 Frias for Rep,10000,20997
 Sue Stenhouse for Mayor Warwick,9989,35815
 Servants of Christ for Life,9970,30145
-Donald J. Trump,9616,57376
+Donald J. Trump,9752,61699
+Tom Steyer,8653,20621
 Liz Gledhill South Kingstown Town Council,8000,25995
 Bill Degnan democratic candidate District 39,7975,35569
 Anthony Sionni for City Council Ward 14,7000,37990
 Jessica de la Cruz for Senate 23,6999,27911
 Lisa Baldelli-Hunt for Mayor,6999,21992
 Scott Copley for RI Senate District 33,6905,19521
-Beto O'Rourke,6331,14126
+Beto O'Rourke,6402,14481
 Charlestown Citizens Alliance,6000,37986
 Bridget Valverde for RI State Senate - District 35,6000,33990
 Rep. Dan McKiernan,6000,31992
@@ -111,20 +112,20 @@ Paniccia for SK Town Council,5000,9999
 Laufton Ascencao for State Representative,4998,24985
 Freedom Partners,4915,9829
 Sean Kilduff for Smithfield Town Council,4847,9693
-PragerU,4654,10164
-4ocean,4615,11702
+PragerU,4668,10191
+Planned Parenthood,4360,11677
 Kamala Harris,4323,16375
-Planned Parenthood,4297,11452
 Michael Geary for Rhode Island House 38,4212,22055
-Auditor Suzanne Bump,4109,22375
-Kirsten Gillibrand,4087,9306
+Auditor Suzanne Bump,4109,23642
 Luis-Daniel Muñoz for R.I. Governor,4000,26883
 Chuck Pollock for School Committee District 2,4000,20995
-ACLU,4000,12014
+NowThis Politics,3876,8149
 First Quote Health,3759,7750
-Sierra Club,3421,9479
-Concealed Online,3289,8504
+4ocean,3570,9291
+Concealed Online,3402,8991
+Sierra Club,3297,8430
 Professional Fire Fighters of Massachusetts (PFFM),3255,7508
+ACLU,3164,9471
 Fenway Health,3093,6237
 Mark Feinstein for Providence City Council Ward 2,3000,20991
 Sarah Markey for South Kingstown School Committee,3000,17994
@@ -136,13 +137,13 @@ All Def Nation,2949,5897
 Luke Murray For Coventry,2929,20481
 America's Future Foundation,2927,6893
 American AF,2479,6149
+Elizabeth Warren,2438,7797
 Patrick Donovan for Congress,2322,12612
 Democratic Attorneys General Association,2313,13621
 Julie Hall,2207,11035
-International Rescue Committee,2194,5145
 Goodwill of Southern New England,2108,4215
 Israel Summit at Harvard,2106,4212
-Tom Steyer,2084,7314
+Ben Shapiro,2065,5228
 Sherry Roberts RI House Representative District 29,2000,12995
 Tony Jones for Rhode Island,2000,11996
 Hunt for RI District 68,2000,11996
@@ -160,40 +161,37 @@ Congressman David Cicilline,1995,10972
 Ernie Nardolillo for State Rep. District 29,1973,9864
 Stefano V. Famiglietti for North Providence Town Council - District 2,1958,12756
 Al Gizzarelli for Smithfield,1951,10751
+International Rescue Committee,1942,5561
 Care2,1855,5239
-Ben Shapiro,1807,4638
 National Democratic Redistricting Committee,1803,4682
-NowThis Politics,1767,3931
 Circa,1756,5327
 NYMuslims,1703,4258
-Elizabeth Warren,1624,5318
-Democrats,1610,4895
+We The People Holsters,1665,4161
+Democrats,1646,5068
 Bob Massie for Governor,1595,3191
-MoveOn,1574,11533
+MoveOn,1576,11548
+Swing Left,1561,5857
+United States Constitution,1536,3929
 Kevin Kuros,1530,7651
 NEA Today,1450,3590
 Mic,1436,2891
-End Citizens United,1416,3539
 Drug Injury News,1397,2879
 Save Animals Facing Extinction,1396,3499
-United States Constitution,1382,3815
 Donald J. Trump - USA,1365,3536
 Fahrenheit 11/9,1337,3375
 Michael Veri for State Senate,1324,6621
+Kirsten Gillibrand,1303,3257
 SEAL PAC,1300,2598
-The Daily Show,1274,2763
-Sand Cloud,1220,2992
+The Daily Show,1290,2795
 Brut,1187,2599
-Everytown for Gun Safety,1179,3123
 Giffords,1175,4776
+Heidi Heitkamp,1150,3251
 350.org,1149,2298
 Help for Essure Victims,1136,2776
-Environmental Working Group,1088,2929
 Jared Golden for Congress,1081,5405
-NARAL Pro-Choice America,1061,3544
+Everytown for Gun Safety,1056,3262
 ASPCA,1007,2513
 ClearPath Action Fund,1003,2131
-NTD Life,1002,7040
 Bestsolarpowertoday,1001,6976
 Michael Steiner for State Rep,1000,19984
 Rodney A Barber Independent Candidate for Pawtucket City Council At Large,1000,16987
@@ -201,6 +199,7 @@ Sharon Ahern for Town Council Member,1000,11992
 Jesse Pugh for Narragansett Town Council,1000,8995
 Jorge Gil - Independent Candidate for Pawtucket School Committee 2018,1000,7996
 Daniela Abbott for Portsmouth Town Council,1000,7996
+NTD Life,1000,7061
 "Karen Cioffi, Westerly Town Councilor",1000,6997
 "Jamie Bova, Newport City Councilor At-Large",1000,6997
 Forever Endeavor,1000,6997
@@ -226,8 +225,9 @@ Friends of Doug,1000,4999
 Fix Our Schools Now,1000,4999
 Clean Water Action Rhode Island,1000,4999
 Bobby Nardolillo for U.S. Senate,1000,4999
+National Republican Congressional Committee,978,4129
 Michael Earnheart for State Representative,973,4865
-National Republican Congressional Committee,964,4062
+Pela Case,964,2207
 Retirement You Workshops,941,4703
 The 401,930,4650
 Make Healthcare Affordable Coalition,919,4593
@@ -235,27 +235,29 @@ Gee for Senate 35,906,5417
 ATTN:,861,2152
 NowThis,856,2149
 The Harvard Crimson,836,4178
-Americans for Prosperity,807,1709
+Erase The Hate,809,2165
 Energy Citizens,799,2663
-Swing Left,797,3551
+Penzeys Spices,792,2698
 Andrew Janz,765,2244
-Penzeys Spices,764,2536
 Center for Biological Diversity,760,2113
 Direct Expose,753,1888
 Blue Lives Matter,744,1775
 NRATV,734,1659
+Taxotere Lawsuit Information,732,1754
 Tammy Collins for RI House District 26,729,3644
 Be A Hero,727,2774
+ExxonMobil,723,1732
+Proud Right Winger,721,1881
 NRDC,716,5069
 Friends of the Earth U.S.,716,1999
-ExxonMobil,706,1767
 UnitedHealthcare,700,1680
 Ben Ferguson,694,1394
 SEIU,692,1488
-Alliance Defending Freedom,684,1459
+The Wilderness Society,683,1631
 Print For Progress,683,1365
-The Wilderness Society,680,1615
-Ben & Jerry's,675,1699
+Alliance Defending Freedom,682,1616
+End Citizens United,680,2148
+Ben & Jerry's,675,1716
 Bill O'Reilly,672,1738
 Maura Sullivan for NH,652,1707
 Sandy Hook Promise,634,1296
@@ -269,87 +271,88 @@ Patagonia,578,1156
 Disability Over 50,572,1431
 "New England, New Energy",567,13944
 The Young Jurks,567,4407
+Upworthy,561,2051
 Conservative Gear,555,1753
+Breaking Big,553,1307
 Watson Institute for International and Public Affairs,551,2752
 Health Care Workers Rising MA,537,1252
 Lambda Legal,536,1072
+Ocean Conservancy,515,2379
+Boredom Therapy,515,1553
 Viral Motion,509,1273
+Human Rights Campaign,508,1408
 dittymoji,507,1014
-Human Rights Campaign,504,1386
-Parks Project,497,1152
 Up To Boston,493,2500
-Breaking Big,488,1169
 Greenpeace USA,481,1443
 Randy Bryce,481,1310
-Upworthy,475,1620
-Stand for the 2nd Amendment,468,1094
+The Young Turks,479,1458
 Donald J. Trump - Keep America Great,467,1256
+45 Hats,460,1259
 FuzzWeb,459,933
-The Young Turks,458,1846
 Nuclear Energy Institute,452,904
-Turning Point USA,437,1363
+Turning Point USA,439,1373
 Appalachian Mountain Club,436,2225
-UltimateStraw,431,1045
+Patriot Depot,430,1324
 Goods Unite Us,427,2133
+Stand for the 2nd Amendment,426,1111
 Tax March,421,989
 CRTV,420,1078
 Charlie Kirk,417,834
 Cathy For CT State Senate 2018,406,812
 Conservative Corps,403,1008
-Adam Schiff,393,1380
+Adam Schiff,396,1397
+Environmental Working Group,394,1177
 Bellezas de la Vida,391,985
 PETA (People for the Ethical Treatment of Animals),391,894
-Statchen 2018,384,2364
-Young America's Foundation,371,930
+NARAL Pro-Choice America,389,2272
+Statchen 2018,384,2487
 Elizabeth Dole Foundation,365,730
 Alma del Mar Charter School,363,889
 Jeff Merkley,362,2512
-Exclusive Apparel,354,1259
-EMILY's List,352,1345
+Joe Kennedy III,357,1061
 Make the Connection,351,703
 Grunt Style,350,875
 Donald J. Trump - 45th President,349,697
 BookTV,342,685
-Joe Kennedy III,339,986
+Finance Watchdogs,335,1007
 Austin Petersen,334,668
+Conservation International,333,695
 2nd Amendment For Life,332,831
+Patriotic Drop Shop,330,1056
 Progressive Turnout Project,324,777
 Elizabeth Esty,322,797
 People For the American Way,319,639
 Jim McGovern,315,1062
-Amnesty International USA,314,1529
 GreaterHalf.com,314,735
 Dave Rosa 4 Bristol County Commissioner,311,1820
 Shaun King,311,926
-We The People Holsters,309,1004
 Sean Patrick Maloney,309,845
-Stand Up America,306,7047
+Amnesty International USA,307,1387
 Security Finance Initiative,303,694
 Republicans for the Rule of Law,302,646
 Warrior 12,302,604
+World Wildlife Fund,296,791
 Michigan Online,293,586
 The Heritage Foundation,286,716
 Action Against Hunger USA,286,698
 Physicians Grassroots Network,285,569
 Today's Nation,284,584
+Bernie Sanders,282,1210
+Dinesh D'Souza,276,2018
 New York Working Families Party,275,686
 The Tasteless Gentlemen,272,700
-Ocean Conservancy,271,1897
 Peter Tedeschi for Congress,264,1138
 Andrew Gillum,262,681
-Boredom Therapy,256,1008
 Why do We Stand,255,1271
-The Nib,255,663
-Dinesh D'Souza,245,1590
-World Wildlife Fund,237,498
+UltimateStraw,254,713
+EMILY's List,245,1278
 Premium Care For Seniors,236,525
 National Wildlife Federation Action Fund,235,1160
-45 Hats,235,1125
-iCrowdNewswire,230,460
+Stand Up America,232,7014
 iSideWith.com,229,459
-National Network of Abortion Funds,228,871
-Bernie Sanders,226,928
+Liuba Grechen Shirley-Congress,225,1415
 Connector Series,225,1125
+The Nib,224,544
 Cape Cod Women for Change,222,1177
 Gold Strategies For Americans,220,439
 Scoutmasterson,219,438
@@ -364,140 +367,136 @@ NRA - National Rifle Association of America,202,684
 Proud To Be A Republican,201,1007
 Graveyard Shift,200,581
 NRSC,198,757
-Heidi Heitkamp,196,1046
+Defenders of Wildlife,197,955
 Union of Concerned Scientists,196,518
 John Legere,195,390
-PCCC - BoldProgressives.org,192,1157
 Kialo,188,849
 PolicyEd,188,526
 MV Summer Institute,187,933
+National Network of Abortion Funds,185,655
 Armed American Supply,184,1284
 Democratic Climate Action,183,871
 Mickie's Miracles,183,366
 Boxed Water Is Better,181,362
-Taxotere Lawsuit Information,178,954
 The Jim Jefferies Show,178,370
 Synthisophy,171,879
+Sand Cloud,169,682
 "VA Disability Attorneys - Marcari, Russotto, Spencer & Balaban",169,338
-The Western Journal,167,554
 Allison Gilman For Judge,167,397
-Environmental Defense Fund,165,1454
+Environmental Defense Fund,165,1459
 Kurt J Kober,165,431
 Minerals Make Life,160,320
 Vote for Lisa Sparks,159,398
 Cold Dead Hands,159,332
 Showtime Documentary Films,159,319
+Chad Benson Show,158,1469
 HILL TV,158,939
-Liuba Grechen Shirley-Congress,157,939
 Ken Paxton,156,390
 Team Morris,155,309
-Catholic Relief Services,153,339
 Always Home,152,761
+Jacky Rosen for Nevada,151,353
 The Years Project,149,351
 Patients for Affordable Drugs,149,306
 Yes She Can - 2018,149,299
 QuizGriz,148,318
-Finance Watchdogs,147,604
+Oxfam,146,352
 Louder with Crowder,145,449
 I Am An Immigrant,145,409
-Zephyr Teachout,143,720
+Zephyr Teachout,143,749
 Bill Conway for Council,143,309
 National Center for Transgender Equality,141,707
-Patriotic Drop Shop,141,475
 Mayor Philip Levine,141,312
 ASMDSS,140,616
+Giving Brush,139,684
 Picador USA,139,278
 Democratic Socialists of America,138,288
-Giving Brush,136,703
 Shatterproof,136,341
 Paul G. Allen,136,273
 Planned Parenthood Action,133,512
 Complex,133,280
 Hildreth Institute,133,266
-Oxfam,132,394
 Musa-Obregon & Associates NYC Criminal & Immigration Lawyers,131,480
 American Gun Association,131,462
-National Domestic Workers Alliance,129,531
+National Domestic Workers Alliance,129,533
+I Love My Freedom,129,406
+Cathy Myers,128,560
 Fix the Court,126,252
 The Brookings Institution,125,629
 FloridaStrong,125,380
 Patty Murray,125,266
+45th President Donald J. Trump,124,432
 Harper Peterson for NC Senate,124,249
-Cathy Myers,123,534
 No Labels,123,247
 Dennis Prager,123,247
 NTD Television,122,251
 Corey Stewart,122,243
+Parks Project,121,544
+MJ for Texas,120,1595
 political.law,120,239
 Front Page Confidential,120,239
-Proud Right Winger,119,551
 National Retiree Legislative Network,119,240
 Alexandria Ocasio-Cortez,118,612
+Klean Kanteen,117,1436
 Lets Make USA Great Again,117,582
 התכנית הלאומית לתחליפי דלקים ותחבורה חכמה,117,235
-Bird + Stone,116,617
 World Food Program USA,116,512
 Ed Markey,116,429
+America with Eric Bolling,115,1558
 Winning For Women,115,477
 Power In Cooperation,114,499
 Coalition to Protect Patient Safety,114,227
-Democratic Party,113,18130
+Democratic Party,113,18183
 BeKind2TheMind,113,564
-America with Eric Bolling,113,550
 Joe Gruters,113,225
 Abortion On Our Own Terms,111,520
+Democratic Senatorial Campaign Committee (DSCC),111,421
 "I'll go ahead and keep my guns, Thanks",110,280
 Reproaction,108,640
 Strategic Tech Investor,108,217
+Chris Murphy,107,499
 District Attorney Tim Cruz,107,259
 Larry Hogan,107,213
 Feeding America,106,530
 Daily Vine,106,212
-Democratic Senatorial Campaign Committee (DSCC),105,466
-Chris Murphy,104,486
-We Are The Mighty,103,516
 Animal Matters,103,460
-Klean Kanteen,102,1360
-Shield Republic,102,445
 Ted Cruz,102,234
-Michigan Leadership Committee,102,228
+Michigan Leadership Committee,102,230
+Definition.org,101,523
+Catholic Relief Services,100,511
 End Animal Cruelty Club,99,340
-DiversityInc,99,311
 OpsLens,99,303
 We Are Not Trump,98,197
-Human Rights Watch,97,557
 Tee Shirt Palace,96,359
 Eric Swalwell,95,479
 Random House,95,476
 March of Dimes,94,550
-Defenders of Wildlife,94,491
 Conservation Law Foundation,92,1071
 Pennsylvania Chamber of Business and Industry,92,184
+Heifer International,91,525
 The Live Free or Die Alliance,90,180
 My Faith Votes,89,179
-LifeDaily,86,426
+PrintedKicks,86,824
+Independent Voter,85,378
 Dissent Pins,84,346
 artnet,84,189
 Vivify Products,83,417
 Save the Storks,83,383
+Claire McCaskill,82,383
 Abdul El-Sayed,82,315
 Ron Miscavige Blog,82,164
 Millennial Policy Center,81,161
 Penguin Random House,80,160
-Human Coalition,79,362
 National Partnership for Women & Families,79,328
-Conservative Tribune,79,264
 Energy Nation,78,391
 Bob Stefanowski,78,389
+Jewish Voice Ministries International,76,340
 Rant Nation with Graham Allen,76,291
-I Love My Freedom,76,281
 health.online,76,152
-Heifer International,75,562
 USPS Business,75,378
-Lebowski Lovers,74,393
+The Western Journal,74,373
 Donald Trump For President 2020,74,187
+LifeZette,72,3440
 AIPAC,71,356
-Humane Society International,71,254
 NRDC Action Fund,70,381
 Restoration PAC,70,354
 Penguin Kids,70,353
@@ -513,11 +512,11 @@ Rainforest Action Network,68,345
 Oz Griebel,68,345
 Compassion & Choices,68,344
 Weird History,68,303
-UnitedVoice.com,68,236
 Florida Citizens,68,175
 Zero Waste Produce Bags,67,283
 National Council on Aging,67,279
 Joe Courtney for Congress,66,332
+We Are The Mighty,66,302
 Your Trump Shop,66,249
 32BJ SEIU,65,326
 Pulso Boricua,65,325
@@ -525,21 +524,17 @@ Ammar Campa for Congress,64,327
 Conservative Institute,64,322
 Committee to Rebuild Maine's Middle Class,64,318
 YouGov,64,294
-Independent Voter,64,275
+Bill Nelson,64,275
 Nine Line Apparel,64,208
-LifeZette,63,3667
 Jacobin Magazine,63,317
 Department of Homeland Security,63,313
-Patriot Depot,63,295
 Yes On B: Build the Veterans Cemetery,63,126
 The Cato Institute,62,310
 Mary Geren for Congress,62,308
-45th President Donald J. Trump,62,198
 Newsweek,61,1651
+CREDO Mobile,61,1384
 Gates Foundation,61,337
-Chad Benson Show,60,1327
 FCTRY,60,298
-PrintedKicks,59,488
 Independent Women's Voice,59,295
 Better With Age,59,163
 Institute for New Economic Thinking,58,291
@@ -553,11 +548,10 @@ Guardian Labs,55,269
 Demand Justice,55,240
 Reform Austin,55,117
 Likewise Media,55,112
-Pela Case,54,271
 SlutBox,54,194
-Erase The Hate,53,275
 Public Citizen,53,264
 Political Institute for Women,53,264
+DiversityInc,53,220
 Axios,53,201
 Take On America With OZY,52,266
 Ben Swann,52,259
@@ -574,6 +568,7 @@ Charlie Baker,50,101
 National Democratic Training Committee,49,254
 Chuck Schumer D-NY,49,249
 Acorn TV,49,248
+UnitedVoice.com,49,247
 We Are ALPA,49,244
 "AARP Medicare Supplement Plans, insured by UnitedHealthcare Insurance Co.",49,243
 Republican Party of Texas,49,122
@@ -582,18 +577,18 @@ Clone Evolution,48,239
 Matt Lesser for State Senate,48,218
 With Honor,48,97
 Pioneer Institute for Public Policy Research,48,97
+PCCC - BoldProgressives.org,47,264
+The Trump Prophecy Movie,47,227
 LCV Victory Fund,47,215
 Democratic Coalition Against Trump,46,237
 ArtProfileratx,46,230
-Definition.org,46,173
-Jewish Voice Ministries International,46,167
 Congressional Leadership Fund,46,123
 Thomas P. DiNapoli,46,92
 Danny O'Connor for Congress,45,233
+Climate Reality,45,232
 ACP - Accelerated Care Plus,45,226
 Lizzie Pannill Fletcher for Congress,45,225
 LGBTQ Victory Fund,45,199
-Tony Evers,45,173
 War On Our Future,44,221
 Wolf-PAC,44,220
 United Way of Massachusetts Bay,44,218
@@ -607,30 +602,32 @@ Truth Initiative,43,212
 Electric Nation: Powered By Wind,43,173
 "Kris Aleksov for Norfolk, Bristol and Middlesex MA State Senate",42,333
 Martha McSally,42,211
+Human Coalition,42,210
 National Audubon Society,42,208
 Unite America,42,109
 Mike Kelly for Congress,42,101
+Earth.com,41,208
 MassMutual,41,206
 U.S. Chamber of Commerce,41,205
 Medals Of America,41,205
 Animal Petitions,41,203
-CREDO Mobile,40,1545
+Distractify,40,1729
 Rob Davidson for Congress,40,206
 Kathleen Davies for Delaware State Auditor,40,201
 Paramount Network,40,200
 Covenant House International,40,199
 Pat Boyd,40,197
 Dick Harpootlian for SC State Senate,40,79
+Exclusive Apparel,39,415
 Mic Dispatch,39,195
 Medscape,39,195
 Future Generations Advocacy Project,39,195
 New Jersey Education Association,39,78
 Serve America,38,193
 Point Source Youth,38,192
-Earth.com,38,191
 Audible,38,191
-Morgan Freeman's Voice,38,190
 Global Wildlife Conservation,38,188
+Shield Republic,38,168
 Nathan Fletcher for County Supervisor 2018,38,99
 Facing Addiction with NCADD,37,188
 For America,37,186
@@ -641,12 +638,10 @@ Ron DeSantis,37,128
 Dave Dodson for Senate,37,83
 Public Service Proud,37,74
 Know Colorado,37,73
-Bill Nelson,36,296
 Kevin de León for U.S. Senate,36,187
 Libertarian Country,36,179
 Free to Be Kids,36,179
 Commemorate Number 45,36,131
-Claire McCaskill,36,103
 Jess King for Congress,36,84
 Jewish Journal,36,73
 Tina Smith,35,283
@@ -654,7 +649,6 @@ Naukabout,35,177
 Home Ownership Matters,35,176
 GOP Gifts,35,175
 Joe Radinovich,35,174
-Kaniela Ing,34,175
 Janet Garrett for Congress,34,170
 ConservativeOpinion.com,34,170
 Pam Staneski,34,168
@@ -662,14 +656,18 @@ The Devil We Know,34,167
 Democratic Legislative Campaign Committee - DLCC,34,167
 Kyrsten Sinema,34,137
 Barbara Lee,34,89
+Science for Humans and Freedom Institute,33,3052
+The Leadership Conference on Civil and Human Rights,33,365
+Auto Wise,33,169
 Personal Liberty,33,167
 Michelle Foreman for State Executive Committee,33,167
 World Animal Protection USA,33,164
+Need To Impeach,33,164
 Aftab Pureval,33,163
 Better Financez,33,162
 Dana Nessel for Michigan Attorney General,33,84
-Shellist Lazarz Slobin LLP,33,67
 The Undercurrent,33,66
+Hello Resistance,33,65
 UsAgainstAlzheimer’s,32,170
 Justice Democrats,32,170
 The Atlas Society,32,162
@@ -680,6 +678,7 @@ Rebecca Negron,32,158
 Informed Immigrant,32,137
 The N.C. Star,32,65
 Center for Reproductive Rights,31,354
+CARE,31,234
 Grabien,31,161
 The Palestine Institute for Public Diplomacy,31,158
 Tom Udall,31,156
@@ -687,10 +686,10 @@ Franco's Comedy For Your Cause,31,156
 Between the Scenes,31,155
 Epimonia,31,154
 Cory Booker,31,153
-CARE,31,142
+Bird + Stone,31,108
 Smart Customer,31,88
+John F. Kennedy Presidential Library and Museum,31,81
 UPROXX,31,80
-No Kid Hungry,30,130
 The Fighting Forces,30,114
 Wake Up World & Smell the Coffee,30,83
 The Arena,30,77
@@ -698,6 +697,7 @@ New York State AFL-CIO,30,61
 Cornerstone Credit Union League,30,60
 Bruce Crochetiere,30,60
 Katie Toomey Register of Deeds,30,59
+LifeDaily,29,184
 Southern Poverty Law Center,29,147
 Skull Society,29,146
 RepublicEn,29,145
@@ -714,6 +714,7 @@ William Tong,28,141
 Message,28,141
 Gell.com,28,141
 Seas Lyfe,28,138
+Dianne Feinstein,28,138
 CAPP USA,28,138
 Andrew Cuomo,28,72
 Communist Party USA,28,56
@@ -726,7 +727,6 @@ One Nation Design,27,136
 BESE,27,136
 Green Matters,27,134
 Dropkick Memes,27,132
-Democratic Governors Association (DGA),27,71
 Presidential Collections,27,57
 Dr. Donna Campbell,27,55
 Dan Koh,26,205
@@ -750,7 +750,6 @@ Howstuffworks,25,53
 Citizens for Tobacco Rights,25,51
 Cintas Corporation,25,50
 International Fund for Animal Welfare - IFAW,25,49
-The Trump Prophecy Movie,24,166
 North Carolina Citizens,24,126
 Alessandra Biaggi,24,123
 Happy Turtle Today,24,120
@@ -758,8 +757,8 @@ D.H.,24,120
 Steven Crowder,24,119
 On Your 6 Designs,24,119
 J.B. Handley,24,119
-Gavin Newsom,23,157
-Strong Women Society,23,146
+Tony Evers,24,68
+Strong Women Society,23,277
 Justin Nelson,23,116
 Help for Ovarian Cancer Victims,23,116
 Vic Berger Presents,23,113
@@ -779,10 +778,10 @@ Two Flags,22,45
 Independent Liberty,22,45
 American Bird Conservancy,22,45
 Pancreatic Cancer Action Network,22,44
-MJ for Texas,21,1068
 Better Roads for San Benito,21,107
 VPIRG,21,106
 Trumpatwar,21,105
+Humane Society International,21,103
 "Farm Credit East, ACA",21,103
 Courage Campaign,21,95
 Senate Majority PAC,21,59
@@ -791,10 +790,11 @@ The People For Bernie Sanders,21,56
 National Clean Energy Week,21,42
 American Wild Horse Campaign,21,42
 Henry Holt,21,41
+Sharice for Congress,20,690
 Tactical Pro Supply,20,128
 IPVM,20,101
 American Hate: Survivors Speak Out,20,99
-Tim Walz for Governor,20,65
+Josh Gottheimer for Congress,20,78
 2atees1,20,63
 Committee to Elect Tom Merolli For State Senator,20,57
 Globe Trotter Travels,20,41
@@ -813,14 +813,13 @@ Coastside Buzz,19,39
 Scribe Apparel,19,38
 Rock the Earth,19,37
 Greg Palast,19,37
-CRTV Tonight with Gavin McInnes,18,213
+CRTV Tonight with Gavin McInnes,18,215
 Working Families Party,18,152
 Connecticut HDCC,18,94
 Voter RX,18,92
 Michael Medved,18,90
 Reform,18,88
 Pursuit,18,88
-Online Carry Course,18,86
 Build With Strength,18,45
 Idiocracy News Media,18,41
 Mike Coffman,18,36
@@ -828,19 +827,16 @@ Kathleen Passidomo,18,36
 Art Swann,18,36
 Martin Heinrich,18,35
 1st Amendment Partnership,18,35
+Liftable Engagement Services,17,91
 Racetraitor,17,85
-FreedomWorks,17,84
 Defend Birth Control,17,45
 Judge Dan Hinde,17,42
 PhRMA,17,35
 Change.org,17,35
 CALL TO ACTIVISM,17,35
 PowerThru Consulting,17,33
-Science for Humans and Freedom Institute,16,3002
 Blue Wave,16,1568
-22 Words,16,820
-Sharice for Congress,16,681
-Support The 2nd Amendment,16,158
+Lebowski Lovers,16,210
 Pfizer,16,157
 Survival Life,16,89
 PushBlack,16,83
@@ -850,19 +846,17 @@ Earthjustice,16,40
 Justin Hughey,16,37
 Wildlife Conservation Society,16,32
 Blockchain World Conference,16,31
+Human Rights Watch,15,452
 USA for UNHCR,15,104
 Allie on CRTV,15,84
-Liftable Engagement Services,15,79
-Conservation International,15,79
 Proud American Hunter,15,77
 Topic,15,76
 Christine Johnson for D6 Supervisor,15,76
 Le Murarmy,15,75
 The News Literacy Project,15,61
-Patriot Powered Products,15,57
 Casey Research,15,48
-The News and Why It Matters,15,45
 House Majority PAC,15,44
+The News and Why It Matters,15,41
 Ralph Nader Radio Hour,15,31
 New American Leaders,15,31
 World Jubilee,15,30
@@ -870,10 +864,13 @@ The Tilted Glass,15,30
 Dan Kildee,15,30
 Made In America Tax,15,29
 Garden State CARES,15,29
+Water Lifestyle Co.,14,193
 Mike Soter for State Representative,14,111
 Janet Mills,14,75
 "Menna, Triggiano and Yassin for Red Bank Council",14,72
 Prompt News,14,71
+Jetties Bracelets,14,71
+NewsBusters.org,14,70
 President Donald Trump Fan Club,14,69
 Antonio Delgado,14,64
 Riverside County Sheriff Stan Sniff,14,35
@@ -881,28 +878,29 @@ Protect Our National Parks,14,35
 American Heart Association: You're the Cure,14,29
 KNX 1070 NEWSRADIO,14,28
 Julia Brownley for Congress,14,27
+22 Words,13,796
 The Daily Signal,13,66
 High Ground,13,66
 Dave Delloso For State Rep,13,64
-Josh Gottheimer for Congress,13,63
+Shareblue Media,13,62
 Donald Trump Is My President,13,31
 Anybody seen my slippers ?,13,30
 No on SoccerCity,13,25
+CANVAS Unplugged,12,294
+Young America's Foundation,12,74
 Union Patriots,12,68
 2nd Amendment Rights,12,42
 The Committee to Defend the President,12,30
 Open Primaries,12,29
-YES on 127: Clean Energy for a Healthy Arizona,12,25
 Innocence Project,12,25
-NewsBusters.org,12,24
 Melanin,12,24
 Right Stuff,12,23
-Distractify,11,1596
 Jo's Style,11,1052
 Vote New York State Senate,11,66
 The Collective PAC,11,66
 PowerLabs,11,57
 Upstream Ideas,11,56
+Mayor Matt Hall,11,56
 Jeff Mann for State House,11,56
 Jamie Kirchick for Yale Trustee,11,55
 J.M. Lozano,11,55
@@ -911,8 +909,8 @@ Newsmax,11,53
 FOUR PAWS USA,11,53
 FEE,11,53
 Trey Terry for State Representative,11,49
-John F. Kennedy Presidential Library and Museum,11,42
 DC Statesman,11,38
+James Thompson for Kansas,11,37
 Tommy Gregory,11,23
 Expectant Mother Care-EMC FrontLine Pregnancy Centers,11,23
 Bill Day,11,23
@@ -920,6 +918,7 @@ Love Drinking Beer,11,22
 Bored Panda,11,22
 John Symcox,11,21
 Protect The Harvest,11,20
+Online Carry Course,10,117
 Adventures of a Modern Day Church Lady,10,71
 In the Woods with Phil,10,69
 Kevin McCarthy,10,61
@@ -956,27 +955,29 @@ Makeamericatees,9,45
 The Federal Practice Group Worldwide Service,9,44
 Save the Children US,9,44
 Proxymate Cause,9,44
+Conservative Tribune,9,44
 Andrew Dolberg for State House,9,44
 Abdullah Hammoud,9,44
+Tim Walz for Governor,9,43
 TNTP,9,43
 UNICEF USA,9,41
+Finish the Ballot,9,36
 Alliance for a Better Minnesota,9,35
 Gentner Drummond,9,34
-Finish the Ballot,9,28
 Gesslein & Luttrell for Monmouth County Freeholder,9,21
 The Decline and Fall of America Starring Jim Greenfield,9,20
 Aili McKeen for State Senate,9,19
 The Giving Keys,9,18
 Judicial Watch,9,18
 EDM Maniac,9,18
-Dan Crenshaw,9,18
-Friends of the IDF (FIDF),8,1328
+Friends of the IDF (FIDF),8,1828
 Long Island Wins,8,65
 Environmental Voter Project,8,52
 We are mitú,8,42
 David Richardson for Congress,8,42
 "Nick Josefowitz for Supervisor, San Francisco, District 2",8,41
 News and News,8,41
+Kaniela Ing,8,41
 Dave Myers,8,41
 Connecticut Education Association (CEA),8,41
 Tom Basile for State Senate,8,40
@@ -985,19 +986,21 @@ Orange County Desal Coalition,8,40
 Blue Minnesota,8,40
 Health Care Voter,8,37
 Fipple,8,37
+Americans for Prosperity,8,18
 Brian 'BAM' McClendon,8,17
 Right Now USA Superpac,8,15
 RedefinED,8,15
+Askov Finlayson,7,726
+Indivisible Guide,7,90
 Maria Weekes For Judge,7,75
 LevinTV,7,47
-James Thompson for Kansas,7,41
+Mary Barzee Flores for Congress,7,45
 Stand,7,37
 National Park Foundation,7,37
 Shoreline Green Party,7,36
 RSCC,7,36
 Political Icons,7,36
 Lancaster Stands Up,7,36
-Jetties Bracelets,7,36
 Spurlock For Congress,7,35
 Josh Lowenthal,7,35
 Women Up,7,34
@@ -1010,7 +1013,6 @@ Flip Texas-32,7,33
 Chris Thomas - Probate Court Clerk,7,33
 Patients For Affordable Drugs Action,7,30
 Corazon Coqui,7,26
-Joe Donnelly,7,18
 Nathan Dahm,7,15
 Healthy Choice For Nevada,7,15
 E. Michael Isaak for Judge,7,14
@@ -1039,7 +1041,6 @@ NIAC,6,30
 Great American Politics,6,30
 The Climate Museum,6,29
 Senator Tim Neville,6,29
-Proud Americans Supply,6,29
 Libertarianism.org,6,29
 Keep Abortion Safe,6,29
 John Haste,6,29
@@ -1052,16 +1053,16 @@ Janice Schakowsky,6,28
 CWA District 1,6,28
 Bamdable,6,28
 AMA Patients’ Action Network,6,28
+Rick Green,6,27
 Elect Republicans Everywhere,6,27
-Rick Green,6,22
 FrackFeed,6,15
 Institute for Southern Studies,6,13
 The Philadelphia Trumpet,6,12
 Ross Ford,6,11
 Kellie Julia for State Senate District 15,6,11
-Mike Pence,5,2177
 Democratic Association of Secretaries of State,5,1035
 Shireen for Congress,5,134
+Patriot Powered Products,5,80
 Americans for Food and Beverage Choice,5,74
 Progress NC Votes,5,53
 Sarasota citizen Martin Hyde,5,49
@@ -1087,9 +1088,9 @@ Immigrant Report,5,26
 Docs 4 Patient Care Foundation,5,26
 Carolyn Bourdeaux for Congress,5,26
 Captains for Clean Water,5,26
+Buffy Wicks,5,26
 AARP AAPI Community,5,26
 State of Great MN,5,25
-Rashida Tlaib For Congress,5,25
 Principally Uncertain,5,25
 No Cuts to Care: No on Measure 106,5,25
 Marggie Castellano for State Senate 36th District,5,25
@@ -1104,7 +1105,6 @@ Mad Dog PAC,5,24
 Kate Brophy McGee - State Senate,5,24
 Free Rally Sign Art 11x17,5,24
 The Better World Campaign,5,23
-Scribd - Reading Subscription,5,23
 Politikal Junkie,5,23
 NextTribe,5,23
 Newseum,5,23
@@ -1118,14 +1118,14 @@ LevinTV on CRTV,5,22
 Steve McKay 4 Frederick County,5,20
 MyRoar,5,20
 BoyerAZ,5,11
-Shareblue Media,5,10
 Save Kansas Coalition,5,10
 Karen Smythe for NYS Senate,5,10
 United Moms,5,9
 Let Them Live,5,9
 Eastern State Penitentiary,4,128
+No Kid Hungry,4,89
 White Coat Waste Project,4,84
-CANVAS Unplugged,4,77
+Phil Bredesen,4,69
 Soi Dog Foundation,4,49
 act.tv,4,36
 Define American,4,34
@@ -1162,7 +1162,6 @@ Public Lands Conservancy,4,20
 Philadelphians for a Fair Future,4,20
 Old North State Patriots,4,20
 Millennials For Revolution,4,20
-Matavita - Save The Elephants,4,20
 Janessa Leoné,4,20
 IOOGO,4,20
 Elect Kristin Dybvig-Pawelko,4,20
@@ -1193,6 +1192,7 @@ Congressman Ami Bera,4,18
 Brianna Westbrook for AZ State Senate / LD22,4,18
 Advance California,4,18
 A Case for Women,4,18
+Joe Donnelly,4,17
 Colorado Values Project,4,16
 Everytown for Lucy McBath,4,12
 iAmerica Action,4,11
@@ -1200,8 +1200,11 @@ Kyle Yamashita,4,8
 Fairness Campaign,4,8
 "Ph: 312-363-9661 Lawyers at Adesina Law Firm, P.C.",4,7
 Ed Soliday,4,7
-Water Lifestyle Co.,3,55
+GOP,3,4490
+Mike Pence,3,3023
+Support The 2nd Amendment,3,69
 Essure Birth Control Claim,3,35
+Ayanna Pressley,3,27
 Speech Moves,3,26
 David Stockman,3,23
 Steve Sisolak,3,21
@@ -1234,7 +1237,6 @@ New Mexico Voices for Children,3,16
 "Main Street Law Firm, PLLC",3,16
 Harley Rouda,3,16
 HISTORY,3,16
-Geoff Diehl,3,16
 Doug Schneider 2018,3,16
 Brittany M. Hughes,3,16
 Brent Ackerson for Jefferson County Attorney,3,16
@@ -1286,7 +1288,6 @@ Andy Kim for Congress,3,13
 Amida Care,3,13
 American Values Apparel,3,13
 Al Lawson for Congress,3,13
-Mayor Matt Hall,3,11
 "Arizona State Representative Regina E. Cobb, DDS",3,11
 Colin Allred,3,9
 Lesley for CU Regent,3,8
@@ -1306,7 +1307,6 @@ Alexandra Chandler for Congress,3,5
 Shared,2,178
 Block Bronx Bolshevik,2,52
 Florida Democratic Party,2,38
-Indivisible Guide,2,36
 Open Doors USA,2,31
 Ho'ola Na Pua,2,21
 The Rutherford Institute,2,19
@@ -1325,11 +1325,9 @@ Vote For Michael Ketterer To Win AGT 2018,2,12
 Vote For A Better California,2,12
 The International Fellowship of Christians and Jews,2,12
 Raymond Mueller for Alum Rock Trustee 2018,2,12
-Phil Bredesen,2,12
 NYSUT - A Union of Professionals,2,12
 Mike Collier,2,12
 Jonathan Lewis for Congress 2018,2,12
-Jen Casey,2,12
 David Holden 2018,2,12
 Barbara Lee Family Foundation,2,12
 Andy Manar,2,12
@@ -1350,6 +1348,7 @@ Civic Shout,2,11
 Ben Pogue for SC House 110,2,11
 Animal Help Now,2,11
 A Place At The Table,2,11
+The Story Exchange,2,10
 Summer T-Shirts,2,10
 SPELLCHEk,2,10
 Rudy Garza,2,10
@@ -1393,15 +1392,17 @@ Pocket Politics,2,9
 Laureus Sport for Good USA,2,9
 Jacob Ventura for State Senate 2018,2,9
 Hillsdale College Online Courses,2,9
+FreedomWorks,2,9
 Draft Judge Andrew Napolitano for America,2,9
 David Schapira for Superintendent,2,9
+Dave Matthews Band,2,9
 Congressman Peter King,2,9
-Civic Action Network,2,9
 Boucher For CT,2,9
 America First Action,2,9
 Al Stirpe NYS Assembly,2,9
 Abertooth Lincoln,2,9
 6N The Morning,2,9
+Terri Legrand for NC House 2018,2,8
 Senator Elaine Phillips,2,8
 Opportunity First,2,8
 OnX Hunt,2,8
@@ -1418,7 +1419,6 @@ Black and Boujee,2,8
 Becket,2,8
 Dana Young,2,7
 Collin Warren for State Representative,2,7
-Buffy Wicks,2,7
 Stephanie Murphy for Congress,2,5
 Jonathan Ingram: Re-Elect Ingram for Murrieta City Council,2,5
 Jim Crawford for Alaska State Senate,2,5
@@ -1440,13 +1440,12 @@ Save the Boundary Waters,2,3
 Kasey Reynolds for Chico City Council,2,3
 Jason Rittereiser for Congress,2,3
 Change vs. More of the Same,2,3
-GOP,1,1480
+Renee Hoagenson for Congress,1,340
 Jeff Brandes,1,58
 Republicans Fighting Tariffs,1,38
 Dana Balter for Congress,1,36
 Mikie Sherrill,1,23
 Fight for $15,1,23
-Mary Barzee Flores for Congress,1,14
 Association of Young Americans,1,14
 Kathy Hoffman,1,12
 Social Math® Initiative,1,11
@@ -1470,14 +1469,15 @@ Conservative Writers,1,7
 Better SF 2018,1,7
 Warrenton-Hammond SD,1,6
 Veterans of Foreign Wars VFW,1,6
-The Story Exchange,1,6
 The Oak Initiative of Arizona,1,6
 The Barrett Brigade,1,6
+Support Our Schools,1,6
 Solar Rebate Today,1,6
 Sevigny for Congress,1,6
 Senator Jim Rosapepe,1,6
 Roby Smith for Iowa,1,6
 Reclaim The American Dream,1,6
+No on Prop C,1,6
 Matt Haney,1,6
 Marc Lucio for Chino City Council,1,6
 LendingTree,1,6
@@ -1501,6 +1501,7 @@ Jackie Toledo,1,5
 HeadCount,1,5
 Family Policy Alliance,1,5
 Dr. Kim Schrier,1,5
+Dean Johansson for District Attorney,1,5
 CultureMap Dallas,1,5
 Community Advocate Newspaper,1,5
 Carolyn McCaffrey For Probate Judge,1,5
@@ -1531,6 +1532,7 @@ Elect Dan Miller Florence County Sheriff,1,4
 Doug Arnold,1,4
 Delegate Christian Miele for State Senate,1,4
 David Stemerman,1,4
+Dallas Safari Club,1,4
 Courtney Watson -  Howard County,1,4
 Chris West,1,4
 Bridget Ziegler,1,4
@@ -1554,6 +1556,7 @@ Kathryn Mathes for Auditor-Controller,1,3
 Kathleen Riebe  Senate 8,1,3
 JD Wooten for NC Senate,1,3
 Interwest Energy Alliance,1,3
+Home Energy Guide,1,3
 Gold Asset Information Group,1,3
 George Scott for Congress,1,3
 Cynthia Kaump for WI State Treasurer,1,3
@@ -1576,14 +1579,14 @@ Coqui Aqui,1,2
 Coalition to Stop Local Food and Beverage Taxes,1,2
 Austin Quinn-Davidson for Anchorage Assembly,1,2
 Prop 3: Utah Decides,1,1
-MedicareSupplement.com,0,19980
+MedicareSupplement.com,0,24975
 "James J. Lombardi III, North Smithfield School Committee Chairman",0,9990
 Andrew Benn for Bristol Warren Regional School Committee,0,6610
 The Gordon School,0,6385
 Richmond RI Democrats,0,5994
+Truth Examiner,0,4198
 Renu Englehart for E.G. Town Council,0,3996
 Deborah Ruggiero,0,3996
-Truth Examiner,0,3973
 VOTE David A. Quiroa State Representative District 73,0,2997
 Terri Cortvriend for RI State Representative  District 72,0,2997
 Rep. Bill O'Brien,0,2997
@@ -1601,6 +1604,7 @@ Medicare Supplement Plans,0,1998
 Bill Bartholomew,0,1850
 Dr. Michael Fine,0,1107
 SupChina,0,1080
+OZY FEST,0,1023
 Population Connection,0,1004
 Women's Resource Center,0,999
 Witman For Mayor,0,999
@@ -1614,7 +1618,6 @@ Rep. Lucille Roybal-Allard,0,999
 RI Representative Bob Quattrocchi,0,999
 RI Center for Freedom and Prosperity,0,999
 Protect Our Healthcare Coalition RI,0,999
-OZY FEST,0,999
 News Break,0,999
 Nature's Trust Rhode Island,0,999
 Lessons from Military History,0,999
@@ -1640,18 +1643,16 @@ Burrillville Land Trust,0,744
 Shaun for State Rep 2018,0,639
 Conversations with Bill Kristol,0,502
 Jane Raybould,0,500
-Mallory Hagan for Congress,0,492
-Renee Hoagenson for Congress,0,346
-Askov Finlayson,0,344
 Patriot Style,0,333
+Katie Porter,0,266
 Stonington Democratic Town Committee,0,264
 Jeff Roy for State Rep,0,244
 Maurahealey.exposed,0,236
 Elders Climate Action - Massachusetts Chapter,0,236
 Rise Up Mystic,0,221
 David Baria for Mississippi,0,207
-The Leadership Conference on Civil and Human Rights,0,200
 Knero,0,200
+Mallory Hagan for Congress,0,187
 United States Holocaust Memorial Museum,0,186
 WhyHunger,0,178
 Alec Ross,0,138
@@ -1661,6 +1662,7 @@ Vincent for Boston,0,133
 Military Officers Association of America (MOAA),0,133
 Politicon,0,125
 Carole Fiola,0,115
+Gavin Newsom,0,111
 Trump - the Opera,0,100
 Stand with Parkland,0,100
 EnergyBoom,0,95
@@ -1689,6 +1691,7 @@ Kitchen Online Gadgets,0,45
 NORML,0,43
 Keith Ellison for Attorney General,0,43
 Maura Healey,0,42
+Aspire Fashion,0,42
 Southern Environmental Law Center,0,40
 Vote Frenzy,0,38
 The Dean Obeidallah Show,0,38
@@ -1696,6 +1699,7 @@ Joanne Powell for Worcester County Clerk of Courts,0,38
 Divided We Stand,0,38
 Erika For Supervisor 2019,0,36
 I Love Crazy Deals,0,35
+Coverage of the Trump Presidency by The Epoch Times,0,34
 ServeKindness,0,33
 Ipsos Public Affairs,0,32
 "Tactical Air USA, LLC",0,31
@@ -1703,9 +1707,10 @@ Jason Adler for State Representative,0,31
 Tom Falter for State Senate,0,29
 Legalize Maine,0,29
 Funny Nurse,0,29
-Coverage of the Trump Presidency by The Epoch Times,0,29
+Chris Pappas for Congress,0,29
 Animal Lives Matter,0,28
 New Mexico House Democratic Campaign Committee,0,27
+WERS 88.9FM,0,26
 Johnathan S. Perkins,0,26
 Kevin Brown,0,25
 Theresa Gasper for Congress,0,24
@@ -1728,6 +1733,7 @@ Sophia Fromell - Executive Coach,0,18
 Michelle Ciccolo for State Rep,0,18
 Mercy Corps,0,18
 LGBTQ Victory Institute,0,18
+How to Help,0,18
 Hot Air,0,18
 Crowdpac,0,18
 TaxAct,0,17
@@ -1749,8 +1755,8 @@ TrumpRussia2018 .com,0,14
 Politicallyincorrecthumor.com,0,14
 Newton Residents for Fairness,0,14
 Mycarkit,0,14
-Climate Reality,0,14
 Alex Heeren,0,14
+Prolife Across America,0,13
 "Mike Alvarez for State Representative, D-62",0,13
 Matt Longjohn,0,13
 Liberal SpecialTees,0,13
@@ -1762,12 +1768,11 @@ Team Trump 2020,0,12
 Tape Daily,0,12
 Robert Burns,0,12
 Melissa Cross Vocal Studio,0,12
-How to Help,0,12
 Helen Probst Mills,0,12
-Ayanna Pressley,0,12
 VICELAND,0,11
 Tony Guerrera,0,11
 Planned Parenthood Advocates of Ohio,0,11
+Kanew for Congress,0,11
 Inspiration Ministries,0,11
 Heritage Africa Safaris,0,11
 Daily Kos,0,11
@@ -1822,7 +1827,6 @@ POW Action Fund,0,7
 No Nuclear Bailout,0,7
 Modern Times,0,7
 Madam President The Secret Presidency of Edith Wilson,0,7
-Liberty or Death Project,0,7
 Jeff Sheehy,0,7
 Jay Ruderman,0,7
 Jackie Speier,0,7
@@ -1847,6 +1851,7 @@ Race and Grace,0,6
 Portside,0,6
 Naomi Levin,0,6
 Mainers for Accountable Leadership,0,6
+Maine Coast Heritage Trust,0,6
 Linda Coleman,0,6
 Left Action,0,6
 Keeping Your Man Happy,0,6
@@ -1890,7 +1895,6 @@ Exposing the American College of Pediatricians,0,5
 Emerge America,0,5
 David Pechefsky,0,5
 Dan Henry,0,5
-Chris Pappas for Congress,0,5
 Aaron Day,0,5
 Who Stole the American Dream?,0,4
 The Lyrical Elitist,0,4
@@ -1910,7 +1914,6 @@ Liberty Radio,0,4
 Kevin Sutton Show,0,4
 Jeff Triplett for Sanford Mayor,0,4
 Isaac Durrance for Highlands County School Board,0,4
-Independent Republicans of Wyoming,0,4
 Huru International,0,4
 Houston Airport Marriott at George Bush Intercontinental,0,4
 Go Patriotic,0,4
@@ -1949,7 +1952,6 @@ New Hampshire Republican State Committee,0,3
 "Marchon Tatmon, Mayor of Oakland 2018",0,3
 Jeremy Zellner ECDC Chair,0,3
 Jay Inslee,0,3
-Jacky Rosen for Nevada,0,3
 JJ for JP,0,3
 J Street,0,3
 Impeach Trump Run,0,3
@@ -1966,7 +1968,6 @@ Downtown for Democracy,0,3
 Diane Seaman for Ky House,0,3
 Dan Milleson for Ohio's 95th,0,3
 Bay Harbor Vision,0,3
-Aspire Fashion,0,3
 Annie Rabbitt for Senate,0,3
 American Kidney Fund,0,3
 Alexander Brangman,0,3
@@ -2018,8 +2019,6 @@ Families Belong Together,0,2
 Elect Lori Saldaña for Supervisor,0,2
 Elect Ivette Hernandez,0,2
 Dr. Jen Campbell for San Diego City Council,0,2
-Designs For Victory,0,2
-Dave Matthews Band,0,2
 Credit Score Squad,0,2
 Craig Huey,0,2
 Council Member Rory I. Lancman,0,2
@@ -2040,12 +2039,15 @@ Tom Simmons for NC House,0,1
 "Re-Elect Charles Allen, Ward 6",0,1
 Our Kids 1st - Our Schools Now,0,1
 Nikkei Asian Review,0,1
+Nate for State,0,1
 NRA Institute for Legislative Action,0,1
 Kerry Ferguson for City Council 2018,0,1
 Jeff Pravato for Senate,0,1
 HomeGrown Tees,0,1
 Haunters Against Hate,0,1
 Hancock-Wood Electric Cooperative at Kelleys Island,0,1
+Galvanize America,0,1
+Fentrice For Florida House District 63,0,1
 Elect Will Chandler,0,1
 Dreamshop0007,0,1
 Daily Quotes,0,1

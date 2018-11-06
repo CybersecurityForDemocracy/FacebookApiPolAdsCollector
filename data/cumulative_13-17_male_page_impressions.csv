@@ -1,4 +1,4 @@
-4ocean,238175,476350
+4ocean,42066,105165
 Blueprint Kansas,39464,78928
 249 Steakhouse,36626,73252
 Lambda Legal,33507,83767
@@ -16,6 +16,7 @@ HEAVENDROPt,4543,22715
 CAMERA on Campus,4518,9036
 Thorn,4515,9030
 Woven Teaching,4348,21741
+NowThis Morning,3736,7471
 Roar हिन्दी,3256,8140
 Drake University,2987,14934
 Super Deluxe,2814,5628
@@ -57,6 +58,7 @@ The Law Office of Carolina C. Gomez,668,1335
 Circa Pop Live,649,3242
 Tave Getem,629,3145
 Alliance for Climate Education,627,3134
+Civiqs,622,3112
 Matt Zerrusen,608,3042
 Sampson County Republican Party,588,1177
 Zak Ringelstein,587,2935
@@ -70,7 +72,6 @@ Tobacco Is Nasty,524,2620
 Congressman Clay Higgins,523,2617
 Fast Black,515,2574
 Miranda Bike Parts,490,2452
-NowThis Morning,487,2435
 Duke Energy,483,2413
 Turning Point USA,483,967
 Speech Moves,468,2340
@@ -114,6 +115,7 @@ Pay Our Interns,209,1046
 Know the Risks MoCo,207,1036
 The Years Project,201,402
 Clean Power Virginia,199,997
+Coverage of the Trump Presidency by The Epoch Times,198,990
 GOE Digital,192,962
 America's Navy,192,959
 Marc Elrich for County Executive,187,375
@@ -154,9 +156,8 @@ UPROXX News,91,454
 Luna Negra,88,442
 Lewis Center Sharks,88,177
 Anna For Florida,86,172
-Unite America,85,423
 Burke-Paine Society,83,417
-Coverage of the Trump Presidency by The Epoch Times,81,405
+Everytown for Gun Safety,83,167
 The Deplorable Deck,81,403
 Texans For Stovall,81,163
 The Hate U Give,79,396
@@ -219,7 +220,6 @@ Jeff Riddle for Stoddard County Presiding Commissioner,43,86
 Wholesome Culture,41,205
 Cory Creel,41,203
 Dangerous Documentaries,41,82
-Animal Matters,41,82
 Peter Smith Independent for SD 32,40,202
 Upper Eastern Shore Libertarians,40,201
 Operation Gratitude,40,198
@@ -318,6 +318,7 @@ FerrariFoxx,14,71
 Christine Svenson,14,70
 Merritt Hamilton Allen for NM,14,69
 Sashka Co.,14,68
+Sand Cloud,14,68
 Washington Community Action Network,13,67
 Harper YES,13,66
 Christina Zacny for State Representative,13,66
@@ -373,6 +374,7 @@ John B. Larson,8,38
 "Brian N. Thomas, Clark County Attorney",8,38
 Pono Hawai'i Initiative,8,15
 Paul Canepa,8,15
+Travis Allen,7,37
 Doug LaMalfa for US Representative,7,36
 Democratic Attorneys General Association,7,36
 Forbes,7,35
@@ -383,6 +385,7 @@ John Huot for Minnesota House,7,34
 Andrew Proctor for Ward 5 Alderman,7,34
 We are mitú,7,33
 LGBT Equality Alliance of Chester County,7,33
+Independent Voter,7,33
 Natalia Hussey-Burdick,7,14
 Gerry  Serrano,7,14
 Dr. Mike Kennedy,7,14
@@ -473,7 +476,6 @@ Did You Know California Congressional District 1,2,9
 Councilman John Moss,2,9
 Charters for Change,2,9
 Adam DeMarco for Congress,2,9
-Young America's Foundation,2,8
 Tiffany Ackley for Aliso Viejo City Council,2,8
 Raymond Clements for Sheriff,2,8
 OMGFacts,2,8
@@ -494,7 +496,6 @@ Allison Galbraith,1,6
 Serino4NY,1,5
 Penguin Teen,1,5
 Our Children's Trust,1,5
-Mayor Matt Hall,1,5
 Buffy Wicks,1,5
 "Aliso Viejo: Integrity, Diversity, Prosperity",1,5
 Alexandria Ocasio-Cortez,1,5
@@ -509,8 +510,8 @@ Kind to Kids Foundation,1,3
 Jane Nelson,1,3
 Care2,1,3
 Tom Weber for State Representative,1,2
+Mayor Matt Hall,1,2
 Use Your Voice - Use Your Vote,0,999
-Travis Allen,0,999
 The Citizens Mandate,0,999
 SelflessEra,0,999
 Kash Jackson for Governor,0,999
@@ -554,6 +555,7 @@ The Joe Cozzo Show,0,400
 2KUSA,0,385
 The New Wave,0,374
 Residents for a Just EPA for Measure HH,0,335
+Young America's Foundation,0,333
 Keep Judge Rezabek,0,333
 Clone Evolution,0,333
 Celebrity Voice Changer,0,333
@@ -641,7 +643,6 @@ Coty Roberts,0,85
 FFL,0,83
 Survivors Lead,0,82
 Pensacola SOS,0,80
-Everytown for Gun Safety,0,79
 Urban Peace Movement,0,78
 DIFA: WSU,0,75
 The Claremont Independent,0,71
@@ -678,6 +679,7 @@ Rising Young Minds,0,49
 Joshua for Arvada,0,49
 Clinton Inc. The Movie,0,48
 Sean A. Thom,0,47
+Ayanna Pressley,0,45
 The Climate Museum,0,44
 Anthony Beckford For State Assembly,0,44
 Gabriel A Gomez for State Assembly,0,42
@@ -719,7 +721,6 @@ Babur Lateef School Board Chair Prince William County,0,27
 Pasco Democratic Party,0,26
 "Doug & Mary Jane Rickles, MHA",0,26
 "Steve Holt, Iowa House of Representatives District 18",0,25
-Civiqs,0,25
 WorldLifestyle,0,24
 SD47 DFL,0,24
 Maresh For House,0,24
@@ -768,11 +769,9 @@ Shem Hanks For Idaho,0,12
 NorCal Resist,0,12
 LaDonte Murphy Exploratory Committee,0,12
 James Field,0,12
-Ayanna Pressley,0,12
 Vote Sarah Kovoor Family Court Judge,0,11
 Tyler Hamilton - Page,0,11
 Save The Mid-Reach,0,11
-Sand Cloud,0,11
 Rutland County Democrats,0,11
 Julie Jordan for Georgia,0,11
 Citizens for Responsible Government,0,11
@@ -787,6 +786,7 @@ Rob Sand,0,9
 Lisa Hunter for Ward 6,0,9
 "Jason C. Stephens, Lawrence County Auditor",0,9
 Coconino County Democratic Party,0,9
+Animal Matters,0,9
 Weston For House,0,8
 West Whiteland Democrats,0,8
 Steve Dutner For IL Secretary of State,0,8
@@ -795,9 +795,9 @@ Rex for Manassas,0,8
 Rep. Jack Patrick Lewis,0,8
 Ramsey for County Attorney,0,8
 Pasco Young Democrats,0,8
+Mikie Sherrill,0,8
 Michelle Figueredo-Wilson for City Council,0,8
 Linda Thomas for Judge 2018,0,8
-Independent Voter,0,8
 Husky Environmental Action Team,0,8
 Elect Madison County Circuit Judge David W. Dugan,0,8
 Chris Suarez for Alexandria School Board District A,0,8
@@ -805,6 +805,7 @@ Balanced News,0,8
 Aric Chen 曉天,0,8
 Alessandra Biaggi,0,8
 Viviana Janer for Osceola,0,7
+TheRichest,0,7
 Rob Walker for Ky House,0,7
 Mayor Philip Levine,0,7
 Kevin Sullivan for Chatham Township,0,7
@@ -852,6 +853,7 @@ OpsLens,0,3
 "MedCamps of Louisiana, Inc",0,3
 John C. Ackerman for Tazewell County Clerk,0,3
 Elect Carla J Neal for CA Assembly District 5,0,3
+Unite America,0,2
 Texans for Traffic Relief,0,2
 Senator Jim Tedisco,0,2
 Representative Jim Dotson,0,2

@@ -50,6 +50,7 @@ Civiqs,10000
 Change Course CT IEC PAC. This message was made independent of any candidate or political party.,10000
 "Champagne for the 35th. Jordan Chamberlin, Treasurer. Approved by Dan Champagne.",10000
 Carney 2018. John Bykso Treasurer. Approved by Devin Carney.,10000
+CT Working Families Federal PAC,10000
 "Brenda 2018 – Kathrine Murray, Treasurer; approved by Brenda Falusi",10000
 "Bosak for Senate.  Rashmi Patel, Treasurer.  Approved by Gerald R. Bosak",10000
 Bob for Governor,10000
@@ -109,6 +110,8 @@ Future Generations Advocacy Project,4706
 "Leone for Senate, Moria Lyons Treasurer",4626
 Protect Our Care,4451
 NRDC,4082
+Swing Left. Not authorized by any candidate or candidate's committee.,3500
+Everytown for Gun Safety Action Fund,3250
 Mic,2802
 World Animal Protection,2704
 The Whiskey Patriots,2512
@@ -120,6 +123,7 @@ UltraViolet,2034
 60 Plus Association,1818
 "Winning For Women, Inc.",1769
 NTK Network,1764
+Parks Project,1743
 Law Offices of Vaughan de Kirby A.P.C.,1739
 AFL-CIO,1692
 "American Center for Law and Justice, a d/b/a for Christian Advocates Serving Evangelism, Inc.",1644
@@ -128,6 +132,7 @@ NRATV,1582
 Job Creators Network (“JCN”),1493
 Empower Mississippi,1467
 American Action News,1455
+MJ for Texas,1277
 2A4LIFE LLC,1249
 Anime NYC,1225
 "the International Union, United Automobile, Aerospace, and Agricultural Implement Workers of America (UAW).  Not authorized by any candidate.",1177
@@ -141,6 +146,7 @@ Sounds True,1014
 "the Committee to Elect Mitch for Newtown John D. Godin, Treasurer. Approved by Mitch Bolinsky.",1000
 "the Committee to Elect McKenney for CT 37th District, Janet Griggs, Treasurer",1000
 Yankee Institute for Public Policy,1000
+"Working Families Action CT. This message was made independent of any candidate or political party. Top donors; Connecticut UAW PAC Council, AFSCME Special Account, and AFT Connecticut. Additional information about Working Families Action CT may be found on the State Elections Enforcement Commission's Internet website.",1000
 WomanPresident4USA,1000
 Will Haskell for CT,1000
 WTNH News 8,1000
@@ -166,7 +172,6 @@ Shaban for AG,1000
 "Senate Republican Campaign Committee, Michael Cronin Treasurer - Approved by Heather Somers.",1000
 "Sampson for CT, Barbara Roberts, Treasurer, Approved by Rob Sampson",1000
 "Sally Connolly for State Representative, Loretta Chory Treasurer, Approved by Sally Connolly",1000
-SOLAR ENERGY TODAY,1000
 "Rutigliano for Trumbull, Loretta Chory Treasurer.  Approved by Dave Rutigliano",1000
 "Reyes 75 for Re-Election, Aaron Schrag, Treasurer, Approved by Geraldo Reyes Jr.",1000
 "Rebekah for Newtown, Alan Clavette, Treasurer.  Approved by Rebekah Harriman-Stites.",1000
@@ -280,7 +285,6 @@ Aaron for Senate,1000
 YouGov,995
 The National Foster Youth Institute ,986
 the Clinton Charter Reform Coalition.,984
-Humane Society International,966
 "The Washington Democratic Town Committee, Susan Branson Treasurer",965
 Public Citizen,953
 the WNBA,950
@@ -298,6 +302,7 @@ Independent Driver's Guild,861
 Always Home,853
 Cup of Joe Politics Podcast,849
 "Chapman for Secretary of the State, Daniel R. McDermott, Treasurer",846
+Future in America,834
 "John Scott 2018, Matt Morton Treasurer, Approved by John Scott",829
 Freeman Ng,819
 "CTMT. David Desjardins, Treasurer. Approved by Raghib Allie-Brennan.",791
@@ -308,15 +313,14 @@ Volunteers for Nehlen,677
 Paramount Network,668
 PragerU ,663
 Tony for Wisconsin. ,647
-Proud Americans Supply,641
 TBS Network,639
 the National League of Cities,634
 "Affordable Housing for All, Yes on D",624
 St. Martin's Press,606
+League of Conservation Voters,585
 314 Action.,579
 Connecticut River Conservancy,542
 Brut,542
-MJ for Texas,532
 Cheddar,518
 Student Loans News for Certified Enrollment Center,515
 Kinetic Affect,498
@@ -340,7 +344,6 @@ X Social Media LLC,342
 Hotel Workers for Stronger Communities,331
 STAND FLAG POLES,323
 Spectrum News,319
-DrugJustice,314
 Centesimus Annus Pro Pontifice - CAPP USA,314
 Friends of Sherrod Brown,313
 Girls Inc.,311
@@ -370,7 +373,6 @@ Global Trade Watch,188
 Mussab Ali for JCBOE,186
 The Coalition to Protect Patient Safety,181
 Seas Lyfe on behalf of San Diego Sailing Tours,181
-Freedom United,179
 Committee to Elect Tahirah Amatul-Wadud,179
 Be a Hero PAC,179
 TIDAL,178
@@ -395,13 +397,13 @@ Maple+Twig,161
 Military Officers Association of America (MOAA),158
 Generator Collective,158
 Friends of Susan Collins,158
+the Environmental Working Group,157
 "Giffords, a section 501(c)(4) issue advocacy organization, and Giffords PAC, a federal political committee. Not authorized by any candidate or candidate's committee.",156
 Giffords,156
 Barbara Lee Family Foundation,154
 Committee to Elect Forrest Bradford,152
 "School of International Service, AU",151
 Rhinebeck Republican Committeee,151
-NARAL Pro-Choice America,151
 FCTRY,151
 Common Defense / Beyond the Choir Action Fund and not authorized by any candidate or candidate's committee.,151
 ShareBetter,150
@@ -409,14 +411,12 @@ O’Connor for Congress,148
 Mercedes Monitor,148
 LCV Victory Fund,146
 Yale Environment 360,145
-the ACLU Foundation,143
 Right Wing News ,142
-Democratic Action.,142
-"MoveOn.org Political Action, not authorized by any candidate or candidate's committee.",135
 "Lion Technology, Inc.",135
 Friends of John Delaney,135
 Alan Wilson for Attorney General,135
 the National Democratic Training Committee,134
+International Rescue Committee,133
 VICELAND,132
 Healthcare Workers Rising Massachusetts ,131
 Foundation for Economic Education,131
@@ -431,14 +431,14 @@ World Politics Review,126
 Tim Aalders for US Senate,126
 Save Animals Facing Extinction,124
 EveryLibrary | FEIN 46-1534149,124
+"MoveOn.org Political Action, pol.moveon.org, not authorized by any candidate or candidate's committee.",123
 Homes For Our Troops ,123
-Good Media Group,123
 Pew Research Center,122
 Janet Garrett for Congress,122
-Amnesty International USA,122
 African Wildlife Foundation,122
 The Innocence Project,120
 Rock Steady Ecommerce,119
+No Kid Hungry,118
 American Medical Association,118
 Tom Woods,116
 Trauner for the People of Wyoming,114
@@ -450,10 +450,10 @@ Proxy Vote,111
 Boredom Therapy LLC,109
 Children International,108
 Friends of Melissa Cordeiro,107
-the ACLU,104
 Steve Phillips,104
 STARZ Shows,104
 The Mercatus Center at George Mason University,102
+Alliance Defending Freedom,102
 Taking Action Suffolk County,101
 All Out,101
 "the International Union, United Automobile, Aerospace, and Agricultural Implement Workers of America (UAW). Not authorized by any candidate.",100
@@ -461,7 +461,6 @@ Texans for Natural Gas,100
 The People's Trumpet LLC,99
 Tee Shirt Palace,98
 Bill O'Reilly Staff,98
-The Epoch Times,97
 Ryan Hampton,97
 Out of Context Games LLC,97
 Meraki Journey,97
@@ -474,7 +473,6 @@ Great America PAC,94
 "Voters Not Politicians | PO Box 8362 Grand Rapids, MI 49518",93
 DiNicola for Congress,93
 New York State Nurses Association,92
-Giving Brush LLC,91
 Carson Smith for NC House,91
 CHC BOLD PAC,91
 For Our Future (ForOurFuturePAC.org). Not authorized by any candidate or candidate’s committee. ,90
@@ -490,21 +488,18 @@ American Engagement Technologies,87
 350 ,85
 32BJ SEIU,85
 Security Finance Initiative,84
-Media Research Center,84
 The Brookings Institution,83
+Save the Children Action Network ,83
 Billy Carr for NYS Assembly,83
 Medals of America,82
 DisabilityOver50,82
 Acción Revolución - VotoMigrante - Jorge Miranda,82
-"4Ocean, LLC",82
 LeadingResponse,81
 William E. Hammer,80
 Gold Asset Information Group,80
-Defenders of Wildlife,80
-WeThePeopleHolsters ,79
-We Are The Mighty,79
 Friends of the Earth,79
 Scott Wagner For Governor,78
+Proud Americans Supply,78
 Judicial Watch,78
 Serve America Movement,77
 Maloney for New York,77
@@ -513,9 +508,9 @@ Union of Concerned Scientists,76
 The American Friends Service Committee (AFSC),76
 Simon & Schuster,76
 Sentinel Books,76
+Giving Brush LLC,76
 Dan David for Congress. ,76
 the American Military Partner Association (AMPA),75
-Keep and Bear,75
 Jay for Suffolk,75
 Human Rights Campaign,75
 Financial Advisory For A Better Tomorrow ,75
@@ -526,7 +521,6 @@ Bill Cassidy for U.S. Senate,74
 Axios,73
 #VoteTogether | A project of Civic Nation,73
 United We Dream Action,72
-Proud Right Winger,72
 "Main Street Law Firm, PLLC",72
 Institute for Southern Studies,72
 Flanders for U.S. Senate,72
@@ -541,18 +535,19 @@ Tim Ryan for Congress,67
 Fuel Freedom Foundation,67
 FWD.us Education Fund,67
 Change Now and not authorized by any candidate or candidate’s committee.,67
+Keep and Bear,66
 Georgetown Law,66
 David Koch,66
 Clarion Project,66
 Topic,65
-Patriotic Drop Shop,65
 FirstQuoteHealth,65
 314 Action Fund,65
 "iSideWith, LLC",64
 She the People,64
-Human Coalition,64
 Rebuild Maine PAC,63
+Media Research Center,63
 Jordan B. Rickards,63
+Democratic Action.,63
 Laborers Building a Better New York,62
 FRIENDS OF SCOTT WALKER,62
 Thrasher Coffee,61
@@ -577,28 +572,32 @@ The Beat,57
 Michael Bailey,57
 Ashley Powell,57
 The Committee to Defend The President,56
+Patriot Depot,56
 Gaynor for Secretary of State. Authorized by Steve Gaynor.,56
 Smart Customer,55
 National Constitution Center ,55
+45th President Donald J. Trump,55
 NEW YORKERS TOGETHER. NOT EXPRESSLY AUTHORIZED OR REQUESTED BY ANY CANDIDATE OR BY ANY CANDIDATE’S POLITICAL COMMITTEE OR ANY OF ITS AGENTS. ,54
 Gilda's Club Chicago,54
 G.I. Jobs Magazine,54
 Friends of Matt Pinnell 2018,54
 American Jewish World Service,54
 the North Carolina Democratic Party. Authorized by Committee to Elect Vernon Moore NC State Senate District 10,53
+the ACLU,53
 Military-Veterans Advocacy,53
 "Community KNOTS Foundation, Inc.",53
 Wind Energy Foundation,52
-Great America Alliance,52
 1199SEIU Federal Political Action Fund,52
 Generation 180,51
 Friends of Amanda Fiedler; Samuel Long Treasurer,51
+Feinstein For Senate 2018,51
 California Democratic Party,51
 Republican State Leadership Committee,50
 NowThis,50
 Tax March,49
 Grabien,49
 Earth,49
+Sierra Club,48
 Committee to Elect John Hine,48
 American Liver Foundation,48
 PATHWATER - The First Purified Water in a BPA Free Reusable Aluminum Bottle,47
@@ -620,7 +619,6 @@ Mitchell Hall and Sean Callahan,44
 John Cox for Governor 2018,44
 Hornet,44
 Bill Holt's Dreamies®,44
-Unite Colorado Election Fund,43
 Pride for Youth,43
 Youth Progressive Action Catalyst,42
 Washington National Cathedral,42
@@ -630,7 +628,7 @@ Lujan for Assembly ,42
 Jack Morman Campaign,42
 Daily Wire,42
 "Committee to Re-Elect Treanor for Trustee, Marin Community College District 2018 FPPC#970816",42
-,41
+OuterGoods LLC,40
 Michigan Leadership Committee. Not authorized by any candidate.,40
 Christian Care Ministry,40
 Campaign Corps LLC,40
@@ -644,6 +642,7 @@ RTBiQ,38
 "John Ward for Congress, Inc.",38
 Brindisi for Congress,38
 Sharon Quirk-Silva,37
+Patriotic Drop Shop,37
 Friends of Karen Hagstrom,37
 Energy Citizens,37
 Dutchess County Young Democrats,37
@@ -651,6 +650,7 @@ Build Trump's Wall PC,37
 the Committee to Elect Kate Campanale,36
 The Committee to Elect David McCarty,36
 Public Service Proud,36
+IVN News,36
 Patty Murray for Senate,35
 Friends of James Skoufis,35
 New York State Democratic Senate Campaign Committee,34
@@ -665,7 +665,9 @@ Arthur Winter,33
 State Innovation Exchange,32
 Stephanie Murphy for Congress,31
 Spectrum Report,31
+SFT2 Tactical Supply,31
 Rick Scott for Florida,31
+Proud Right Winger,31
 "Political advertisement paid for and approved by Bridget Ziegler for Sarasota County School Board, District 1",31
 Climate One,31
 Chesapeake Bay Foundation,31
@@ -685,6 +687,7 @@ LGBT Network,28
 John Catsimatidis,28
 JOE NEGUSE FOR CONGRESS,28
 David Chiu for Assembly 2018,28
+the Committee to Elect Ayanna Pressley,27
 "and approved in advance by  Linda Marie Leali, non-partisan for Broward Circuit Court Judge, Group 38. ",27
 "In Shifra's Arms, Inc.",27
 Hometown Freedom Action Network,27
@@ -692,7 +695,6 @@ Chris Grisolia,27
 California Republican Party,27
 "BAXTER TROUTMAN, REPUBLICAN, FOR COMMISSIONER OF AGRICULTURE",27
 "Allison Gilman for Broward County Court Judge, Group 19, Non Partisan",27
-the National Institute for Reproductive Health,26
 Turning Point USA,26
 Rebuild Maine,26
 Point Source Youth,26
@@ -702,13 +704,13 @@ Firearms Policy Coalition,26
 Federation of American Hospitals,26
 "Dennis For Alaska 1712 E Rezanoff, Kodiak, AK 99615",26
 Committee to Elect Janet St. Clair,26
-Charles Thorud,26
 CARE Action Now. Not authorized by any candidate or candidate’s committee.,26
 Author Events,26
 Union Patriots,25
 National Audubon Society,25
 McCurdy for Judge 2018,25
 KWTV News 9,25
+Jetties Bracelets,25
 Friends of Eric Roe,25
 Friends of Amanda Septimo,25
 Colin Schmitt for State Assembly,25
@@ -721,14 +723,13 @@ Elect Patricia Morgan,24
 Conservatives for Toma,24
 Republican Party of Texas,23
 Kevin de León for U.S. Senate,23
+Gavin Newsom for Governor,23
 Friends of Kate Harper,23
 Cornerstone Television Network,23
 Save The Storks,22
 Rick Kennedy for Congress,22
 Protect The Harvest,22
-Matt Hall for Mayor 2018,22
 Joshua Putnam for Secretary of State,22
-Heidi for North Dakota,22
 Florida Strong Action PAC independently of any candidate.,22
 Citizens for Brandon McClain,22
 Blumenauer for Congress,22
@@ -746,12 +747,12 @@ PACRONYM. Not authorized by any candidate or candidate’s committee,20
 Ohio Senate Democrats,20
 New Hampshire Republican State Committee,20
 "Marsy’s Law for Wisconsin, LLC",20
-International Rescue Committee,20
 Hudson County Chamber of Commerce,20
 HeadCount,20
 Gilbert Romero for Arizona,20
 Friends of Marie Poulson for House District 46,20
 Friends of Christine Pellegrino,20
+Framed Tweets Inc,20
 Ed Gallo for Escondido City Council,20
 City Journal,20
 Avey for Assembly 2018,20
@@ -759,6 +760,7 @@ Avey for Assembly 2018,20
 Sandy Hook Promise,19
 Linsey Fagan for Texas,19
 Let Africa Live,19
+Kanew For Congress,19
 Friends of Dronenburg for Assessor 2018,19
 Donald Trump Dog Poop Bags,19
 Care2,19
@@ -783,8 +785,6 @@ Old Row,17
 Mercy For Animals,17
 Dorothy Gasque For Congress,17
 Courage Campaign,17
-Bill Nelson for U.S. Senate,17
-the Progressive Change Campaign Committee PAC (BoldProgressives.org) and not authorized by any candidate or candidate's committee. Contributions to the PCCC are not deductible as charitable contributions for federal income tax purposes.,16
 Trustees For the Protection and Restoration of our Constitutional Freedoms,16
 The Surfrider Foundation,16
 The Moscow Project,16
@@ -802,24 +802,21 @@ Citizens for Richard Brown,16
 Beto for Texas,16
 Best Friends Animal Society,16
 AHIP,16
-the Committee to Elect Ayanna Pressley,15
 Unite America Inc.,15
-Save the Children Action Network ,15
+The Leadership Conference Education Fund,15
+"RASHIDA TLAIB FOR CONGRESS  |  P.O. BOX 32777, DETROIT, MI 48232",15
 Planned Parenthood Action Fund.,15
 National Media Distribution Services,15
-"MoveOn.org Political Action, pol.moveon.org, not authorized by any candidate or candidate's committee.",15
 Marla Livengood for Congress 2018,15
 Making Every Vote Count,15
 Invested Interests,15
-IVN News,15
+Hello Resistance,15
 "Free-Range Entertainment, LLC",15
 "Equality Florida Action PAC, P.O. Box 13184, Saint Petersburg, FL 33733",15
-Elizabeth for MA,15
 DoSomething,15
 ｐｕｂｌｉｃｓｐａｃｅ,14
 and Authorized by  Andrew Janz for Congress.,14
 The Lawrence Goldfarb Judicial Reform Foundation,14
-TYT Network,14
 Sold Blue Strategies - a liberal media and video content company,14
 Retail Politics LLC,14
 Ranker,14
@@ -827,11 +824,10 @@ Principlly Uncertain | Independent research and analysis to edify and entertain!
 Population Connection,14
 NY Times Bestselling Author Andrew Shaffer,14
 "Left Over Rights LLC, an independent grassroots movement that receives absolutely zero funding from any political entity  ",14
-League of Conservation Voters,14
 LGBTQ Victory Fund ,14
 Jim Francis for Congress,14
-Gillibrand for Senate,14
 Friends of Matt Gaetz,14
+End Citizens United,14
 Emerge America,14
 Elizabeth Pannill Fletcher for Congress,14
 Angie Craig for Congress,14
@@ -839,25 +835,27 @@ the Organization of Iranian American Communities - OIAC,13
 the DC Fiscal Policy Institute,13
 the Committee to Elect Steven R. Hall,13
 World of Children,13
+UltimateStraw,13
 USA for UNHCR,13
 The Gonzalez Committee,13
 The Committee to Elect Suraj Patel,13
+The Climate Reality Project,13
 Rettig for Assembly,13
 Radinovich for Congress,13
 Puerto Rican Women's Council ,13
 "PredictIt is a political prediction market, a stock market for politics. A project of Victoria University of Wellington, PredictIt has been established to research the way markets can forecast future events. Our job is to study the wisdom of the crowd, yours is to use your skill and knowledge to get ahead.",13
-Parks Project,13
 Paid for by Be a Hero PAC,13
 Military History Working Group at the Hoover Institution,13
 Future Now Fund,13
 Friends of Dana Gee,13
 Friends of Ari Espinal,13
-DCCC,13
 "Committee to Elect Allan Kittleman; Bradley Myers, Treasurer",13
+Chad Benson,13
 the NRCC and not authorized by any candidate or candidate's committee. www.nrcc.org,12
 Yes She Can,12
 The Conservative Caucus Foundation,12
 The Collective PAC; not authorized by any candidate or any candidate's committee.,12
+TYT Network,12
 Shout Your Abortion,12
 Scamazon,12
 "Save Kansas Coalition, Inc.",12
@@ -869,20 +867,23 @@ Libertarian Country,12
 LaunchGood,12
 "Kuebler for EMWD Director 2018, Re-Elect",12
 Kialo,12
-Hello Resistance,12
+James Thompson for Kansas,12
+Human Rights Watch,12
+Good Media Group,12
 Florida Senatorial Campaign Committee,12
 "Dianne Williams-Cox, Candidate for Tallahassee City Commission Seat 5",12
 "Delaware Ohio News, a division of Subvertical Limited, an Ohio Limited Liability Company",12
+Defenders of Wildlife,12
 Defend Our Constitution,12
 Carbonated TV,12
 Campbell 4 Maryland,12
 Andrew Yang,12
 the Foundation for Constitutional Government,11
 myself,11
+Young America's Foundation,11
 World Food Program USA,11
 "Working Assets Funding Service, Inc. on behalf of itself and its affiliate, CREDO Mobile, Inc.",11
 "The Story Exchange, a nonprofit independent news organization that covers female leadership and entrepreneurship. We are nonpartisan and subscribe to the highest journalistic standards. We do not endorse political candidates or positions. ",11
-The Climate Reality Project,11
 State Employees Association of North Carolina,11
 Sinclair Broadcast Group,11
 "Positive Women's Network - USA, a fiscally sponsored project of Movement Strategy Center",11
@@ -909,7 +910,6 @@ the Committee to Elect Michelle Ciccolo.,10
 WomenStrong International,10
 WNYC,10
 "Tom Sherman for State Senate, Karen Oliver, Fiscal Agent ",10
-The Nib,10
 "Team Stava-Murray, the candidate committee to elect Anne Stava-Murray to the General Assembly of the State of Illinois in District 81",10
 Right Rising Media LLC,10
 Replicant,10
@@ -946,8 +946,6 @@ US Lending Marketplace,9
 The Conservative Cook,9
 The Committee to Elect Alessandra Biaggi,9
 Stanton for Congress,9
-Shareblue Media,9
-SFT2 Tactical Supply,9
 RNY Initiative,9
 Paul Mahon,9
 OD Action,9
@@ -969,7 +967,6 @@ Committee to Elect Teri Grier,9
 Citizen Action of New York,9
 CCIAOR,9
 "Bliss Publishers, LLC",9
-"Beachside Media, Inc.",9
 мои личные средства в рекламу моей компании,8
 the DSCC,8
 the Bump Committee,8
@@ -978,7 +975,6 @@ Vote Mesnard,8
 Truth in Annapolis,8
 Thomas Batten,8
 TheWrap,8
-The Western Journal,8
 SumOfUs,8
 Stanley Charles Kimer,8
 Sasha for State,8
@@ -1023,9 +1019,12 @@ Alliance San Diego Mobilization Fund - For Educational Purposes.,8
 #1 Real News Page,8
 private citizens supporting conservative policies,7
 jeff davis,7
+"Zen Brands International, LLC",7
 Wilkow!,7
+We Are The Mighty,7
+"VERV EXP, LLC",7
+Unite Colorado Election Fund,7
 UnidosUS,7
-UltimateStraw,7
 Truth In Between,7
 Tom Steyer,7
 The Democratic Coalition,7
@@ -1043,19 +1042,20 @@ Mi Familia Vota,7
 "Marin Crops, Inc",7
 Jackson for US Senate,7
 Independent Democrats of America. Not authorized by any candidate or candidate’s committee.,7
-I Love My Freedom,7
+Human Coalition,7
 Friends of Mark Pinsley,7
 Friends of Didi Barrett for Assembly,7
 Friends of Beth Liston,7
 Friends To Elect Mike Doyle,7
 Friends Kevin Thomas For Senate,7
 Fix the Court,7
-Feinstein For Senate 2018,7
 FRIENDS OF NADER J. SAYEGH ,7
 Curt Benson for Kent County Circuit Judge,7
 Culture Shocked,7
+Conservative Tribune,7
 "Committee for John Lovick - 2403 157th Pl SE, Mill Creek, WA 98012",7
 Coffman for Congress 2018,7
+"Beachside Media, Inc.",7
 Avaaz,7
 A Concerned U.S. Citizen,7
 2atees1,7
@@ -1079,9 +1079,8 @@ Progress Virginia,6
 Pigeon Media USA,6
 Philadelphians for a Fair Future,6
 PETE OLSON FOR CONGRESS,6
-"No Plan, No Accountability, No on Prop C",6
+National Rural Electric Association,6
 Mike 4 House,6
-McCaskill for Missouri,6
 Massachusetts Parents United.,6
 Mary for Wyoming,6
 Lidkings,6
@@ -1090,13 +1089,13 @@ Justice Cindy O. Bourland Campaign,6
 Judd Matheny for Congress,6
 John Valdivia,6
 Jodi McCredo for NYSA104,6
-James Thompson for Kansas,6
 "HARP Mortgage Relief is not a mortgage broker or lender, HARP Mortgage Relief acts as an independent advertising publisher. ",6
 Gesslein and Luttrell for Freeholder,6
 Friends of Robert Kesten,6
 Friends of Kirby Delauter,6
 Florida Federation for Children,6
 DumpPotus45 PAC,6
+Dinesh D'Souza,6
 "Democrats for Congress/ John Dupont, Treasurer",6
 DD Adams for Congress,6
 CultureMap Dallas,6
@@ -1112,29 +1111,28 @@ the North Carolina Democratic Party and The Committee to Elect Joe Fowler.,5
 the American Kidney Fund,5
 Weston Lindemann,5
 Welcome.us,5
+WeThePeopleHolsters ,5
 WILLIAMS FOR MONTANA,5
 Two Saints Films,5
 "Trump 2020 Wear - Apparel Store not associated with the Trump campaign.  This is not a political page directly, we just sell shirts, hats etc.   Our ads will not relate directly to politics or an issue or national importance, just promoting products.  Thx",5
 TheBlaze,5
+The Nib,5
 The Long Island Coalition for Healthy Lawn and Water,5
 Tactical Pro Supply,5
 "Strong Economy for All, a fiscally sponsored project of Center for Popular Democracy",5
 Stephen Brown,5
 South Florida Wildlands Association,5
 Reform California,5
-Oxfam America,5
 No Labels. Not Authorized by Any Candidate or Candidate Committee.,5
 New Yorkers Together.,5
 New American Media Group LLC,5
 Muratsuchi for Assembly 2018.,5
 Montera for CU Regent,5
 Matt Rosendale for Montana,5
-Matt Brown for Governor,5
+Matt Hall for Mayor 2018,5
 Majority Lost,5
-LifeZette Inc.,5
 Lead the Change Now,5
 LD 15 Democrats. Authorized by Kristin Dybvig-Pawelko.,5
-Kaniela Ing for Congress,5
 "Friends of Wesley Bell, Stephanie Hughes, Treasurer",5
 Friends of Scooter Park for House 2018,5
 Friends of Nicholas Mattiello ,5
@@ -1157,7 +1155,6 @@ the Trump Make America Great Again Committee,4
 the Re-Elect McGovern Committee,4
 the North Carolina Democratic Party and Linda Bennett for NC House 26.,4
 the Communications Workers of America,4
-"Zen Brands International, LLC",4
 YWCA Southern Arizona,4
 Waterkeeper Alliance,4
 Vote Yes! for Success,4
@@ -1173,7 +1170,9 @@ Shane Stolarczyk for Justice Campaign in compliance with the voluntary limits of
 SMU,4
 Personal Liberty,4
 "Paid for by Public Land, Public Benefit, a coalition of San Diego taxpayers, community planners, local business, and education, park and environmental advocates, opposed to SoccerCity. Supported by Mission Valley property owners. Major funding by H.G. Fenton Company and Sudberry Properties.",4
+"No Plan, No Accountability, No on Prop C",4
 Neighbors for Irene,4
+McCaskill for Missouri,4
 Main Street Investors Coalition,4
 Libby Fischer Hellmann,4
 Kulkarni for Congress,4
@@ -1185,13 +1184,13 @@ Friends of Mark Gordon,4
 For Our Future PAC. Not authorized by any candidate or candidate’s committee,4
 Family Survival,4
 Facts and Logic about the Middle East (FLAME),4
+FRIENDS OF RENEE HOAGENSON,4
 FRIENDS OF GENTNER DRUMMOND 2018,4
 Elect Mark Finchem 2018-House,4
 Education Voters of PA,4
 Deanna Frazier for State Representative,4
 Dave Yost for Ohio,4
 DC Statesman,4
-Concealed Online,4
 "Citizens to Elect Steve Schuh; Daria Shaw, Treasurer",4
 BettyLou DeCroce for Assembly,4
 Beth Lindstrom for U.S. Senate Committee,4
@@ -1214,7 +1213,6 @@ The Committee to Elect Diana Szynal ,3
 The Auto Alliance,3
 The American Journal of Managed Care,3
 Sondra Miller,3
-SoCal Daily Media,3
 Smashbutton Media LLC,3
 Safari Club International Foundation,3
 Ron Paul Institute for Peace and Prosperity,3
@@ -1238,7 +1236,6 @@ Hallie Thompson for Congress,3
 "Gray Chynoweth for New Hampshire, Jeremy Hitchcock Treasurer",3
 Friends of Karen Heggen,3
 Family Policy Alliance,3
-FRIENDS OF RENEE HOAGENSON,3
 Derrick Crowe,3
 Dairymen for Arizona,3
 Crisp and Associates Military Law,3
@@ -1274,10 +1271,8 @@ SEIU Healthcare Illinois & Indiana,2
 Rick Green for Congress,2
 PubTalks,2
 "Paid for by Mantovani for STL, Tim Fogerty, Treasurer",2
-"PACRONYM. 611 Pennsylvania Ave SE #143 Washington, DC 20003. Not authorized by any candidate or candidate’s committee.",2
 Open Primaries Inc.,2
 NextGen Climate Action,2
-National Rural Electric Association,2
 Mike Smith for Delaware,2
 "Mike Crimi, Republican, for Marion County Commission District 2",2
 Mariah Phillips for Congress,2
@@ -1290,7 +1285,6 @@ Julie Brixie for State Rep,2
 Jonathan Lewis for Congress 2018,2
 Joe McBride for State Supreme Court Judge,2
 Jeff Beals for Congress,2
-JVMI,2
 Ian Haight for State Senate,2
 ITV Gold,2
 Healthy Nevada PAC,2
@@ -1303,14 +1297,17 @@ Gareth Rhodes for Congress,2
 Friends of Sam Bell,2
 Friends of Kareem Gongora,2
 Friends of Joy Silver for Senate 2018,2
+"Friends of Joel Rubin - Samuel Agger, Treasurer",2
 Friends of Joel Abelove,2
 Friends of Jeremy Shaffer,2
+Friends of Gina Raimondo.,2
 "Friends of David Ryden. Taylor Gomez, Treasurer.",2
 Friends of Craig Wismer,2
 "Friends of Clarence Lam; Pat Payne, Treasurer.",2
 Friends of Amber Little Turner,2
 Friends for Stefanski,2
 Ferrentino for School Board,2
+"Fentrice Driskell, Democrat, for Florida House District 63.",2
 Evan Glass for Montgomery County Council ,2
 Environmental League of Massachusetts Action Fund,2
 Elect Richard David for District Leader,2
@@ -1323,12 +1320,15 @@ Discover Charter Schools,2
 Debbie Deere for State Representative,2
 "David Trone For Congress, Inc. ",2
 Dane Eagle for State Representative. ,2
+DCCC,2
 Congressional Leadership Fund,2
+Committee to Elect Kristen Arute,2
 "Committee to Elect Joe Perkins for Circuit Judge, Group 25.   ",2
 Christi Craddick Campaign,2
 "Chris Paradies, Republican, for Hillsborough County Commission District 2",2
 Carlisle for Senate. Approved by Wade Carlisle. ,2
 Cannabis News Update,2
+Bredesen for Senate. Approved by Phil Bredesen.,2
 Bob Casey for Senate,2
 Beverly Powell Campaign,2
 Berkeley Police Association PAC,2
@@ -1363,12 +1363,15 @@ TRAVIS ALLEN FOR GOVERNOR 2018,1
 THE ANGUS KING FOR U.S. SENATE CAMPAIGN,1
 Susan Ellenberg for Santa Clara County Supervisor FPPC# 1394541,1
 Stitt for Governor 2018,1
+Steven Scrivner for School Board,1
 Steven Buccini for State House,1
 Sponsored By The Florida Republican Senatorial Campaign Committee,1
 South Texas Advocacy Group,1
 Smart Cities Prevail.,1
+Shareblue Media,1
 Saul Cohen,1
 San Diego County Democratic Party,1
+SOLAR ENERGY TODAY,1
 SEIU on behalf of SEIU Florida,1
 SC Club for Growth,1
 Raybould for US Senate,1
@@ -1379,6 +1382,7 @@ Platta for New York,1
 Pete Harckham for Senate,1
 Patriot Majority USA,1
 Paid for by Mike Eng for Senate 2018,1
+Paid for by Jeff Irwin for State Senate ,1
 PAID FOR BY FAIR SHARE PITTSBURGH ACTION FUND  ,1
 PADILLA FOR SECRETARY OF STATE 2018,1
 Our Lives Our Vote,1
@@ -1396,9 +1400,9 @@ McShane LLC,1
 Matt Haney for Supervisor 2018,1
 Matt Haggman for Congress,1
 Mary Jane Caylor for City Council,1
-Mary Barzee Flores for Congress.,1
 MAST FOR CONGRESS,1
 Lane for West Virginia,1
+Kulkarni For Congress,1
 Kristen Browde,1
 Kevin Powers for Congress,1
 Kennedy for Senate,1
@@ -1447,7 +1451,6 @@ Diane Lewis for Utah House,1
 Demand Justice,1
 Delaware County GOP,1
 "Dave Myers For Sheriff, 2018",1
-Crenshaw for Congress,1
 "Congressman Neal Dunn, M.D.",1
 "Committee to Elect Keri Ingle, Kenneth Ingle, Treasurer",1
 Committee to Elect Collin Warren,1
@@ -1468,7 +1471,6 @@ Bredesen for Senate,1
 Blue America PAC,1
 "Ben Albritton, Republican, for State Senate District 26",1
 Arizonans for Effective Leadership. Not authorized by any candidate. ,1
-"Arizona Democratic Legislative Campaign Committee, a project of the Arizona Democratic Party. Not authorized by any candidate or candidates campaign committee.",1
 Alliance for a Better Minnesota Action Fund. Not Coordinated With Or Approved By Any Candidate Nor Is Any Candidate Responsible For It.,1
 "All electoral content on this account is prepared by the SEIU Minn State Council Political Fund, 2233 University Ave W, #422, St. Paul, MN 55114, as an independent expenditure, and is not approved by any candidate nor is any candidate responsible for its content.",1
 Alan McMillan for Escambia County Commissioner - District 2,1
@@ -1489,6 +1491,7 @@ the United States Holocaust Memorial Museum ,0
 "the Steve Obsitnik for Governor Committee, Joseph Sledge, Treasurer; Approved by Steve Obsitnik.",0
 "the Steve Obsitnik for Governor Committee, Christopher B. Russo, Treasurer; Approved by Steve Obsitnik.",0
 the Republican National Committee,0
+the Progressive Change Campaign Committee PAC (BoldProgressives.org) and not authorized by any candidate or candidate's committee. Contributions to the PCCC are not deductible as charitable contributions for federal income tax purposes.,0
 the Office of Congresswoman Nita Lowey,0
 "the North Haven Democratic Town Committee.  Lori Mansur, Treasurer",0
 the North Carolina Democratic Party and Wiles for House,0
@@ -1513,15 +1516,14 @@ the North Carolina Democratic Party and Campbell for NC Senate.,0
 the North Carolina Democratic Party and Bobbie Richardson for NC House.,0
 the North Carolina Democratic Party and Barbara S. Yates-Lockamy NC House.,0
 "the New Fairfield Democratic Town Committee, Ed Glanz – Treasurer",0
+the National Institute for Reproductive Health,0
 the NRCC and not authorized by any candidate or candidate's committee.,0
 "the Middletown Republican Town Committee. Treasurer, Linda Salafia.",0
 "the Keith Ellison for Attorney General committee, PO Box 80824, Minneapolis, MN 55408",0
 the Kathleen Clyde Committee,0
 "the House Democratic Campaign Committee. P.O. Box 1925, Austin, TX 78767.",0
 the Gordon School,0
-the Foundation for Independent Voter Education,0
 the Florida Democratic Party. Not authorized by any candidate or candidate's committee.,0
-the Environmental Working Group,0
 "the Elianor Vessali Campaign, Tap Bentz, Treasurer. ",0
 the Democratic Women of Westport,0
 "the Democratic Senate Majority PAC. Vincent Mauro, JR  Treasurer.",0
@@ -1554,7 +1556,6 @@ Zeldin's Record,0
 Yuko Social LLC,0
 Your Trump Shop,0
 Your Energy Connecticut,0
-Young America's Foundation,0
 Yale Program on Climate Change Communication,0
 XSTRAW,0
 "World Health Clinicians, Inc. ",0
@@ -1590,7 +1591,6 @@ Vera Institute of Justice (501c3),0
 Valencia for Orange City Council 2018,0
 Valdez for Colorado,0
 UsAgainstAlzheimer's,0
-"Upend, Inc.",0
 United We Can. Not authorized by any candidate or candidate’s committee.,0
 United Way of Greater New Haven,0
 United States Association for UNHCR,0
@@ -1621,6 +1621,7 @@ This page is created and maintained by the Committee to elect Camille Coolidge-S
 The Yerman Group,0
 The Windsor/North County Democratic Club,0
 The Westport Democratic Town Committee,0
+The Western Journal,0
 The University of Chicago,0
 The Suffolk County Conservative Committee,0
 The Principled Libertarian,0
@@ -1642,7 +1643,6 @@ The Leadership Conference on Civil and Human Rights ,0
 The International Fellowship of Christians and Jews,0
 The International Christian Embassy Jerusalem,0
 The Indiana Republican State Committee,0
-"The Independent Republicans of Wyoming, a registered 501(c)(4). The Independent Republicans of Wyoming is not affiliated with any political campaign and this website was not authorized by any candidate or candidate's committee.",0
 The Hill,0
 The Heritage Foundation ,0
 The Halfway Post,0
@@ -1652,6 +1652,7 @@ The Friends Of Steve Dutner,0
 The Fortune Society,0
 The Fighting Forces,0
 The Family Protection Association,0
+The Epoch Times,0
 The East Granby Democratic Town Committee 2018/ Caroline White Treasurer,0
 The Dump Trump Store,0
 The Dude's Designs,0
@@ -1680,7 +1681,6 @@ Tammy Baldwin for Senate,0
 TV Neslusan Campaign Committee,0
 TAS Apparel,0
 Synthisophy,0
-Swing Left. Not authorized by any candidate or candidate's committee.,0
 Susie Lee for Congress,0
 Susan Morris,0
 Susan Kaiser Greenland ,0
@@ -1720,7 +1720,6 @@ Sister District Project,0
 Sinema for Arizona,0
 "Simasnki 2018, Mark Neumann Treasurer. Approved by Bill Simanski",0
 Silvio Palermo for Sheriff,0
-Sierra Club,0
 Shireen for Congress,0
 "Shaun for State Rep 2018. Approved by Shaun Mastroianni, Blunt White, Treasurer.",0
 Sharice for Congress,0
@@ -1766,6 +1765,8 @@ Republican Party of Texas and not authorized by any candidate or candidates comm
 Republican Committee of Lancaster County,0
 Regina Cobb 2018 ,0
 Reform,0
+Reason To Believe PAC,0
+Reason Foundation,0
 "Re-elect Carol Hall - 59th, Bart Giustina, Treasurer.  ",0
 "Re-Elect Peter Barrett, Probate Judge, Louis Federici Treasurer",0
 "Re-Elect Lisa Wexler for Probate Judge Committee, Carolyn Armbrust, Treasurer",0
@@ -1816,7 +1817,6 @@ Pearson for CT,0
 Pay Our Interns,0
 Paul Davis for Kansas,0
 Patriot Powered Products and Publications,0
-Patriot Depot,0
 Pantsuit Nation Action,0
 Pam Staneski,0
 Palzewicz For Wisconsin,0
@@ -1832,10 +1832,11 @@ PUG Media Group,0
 PI Yoga Pants,0
 PEACEbuttons,0
 PASA (Pan African Sanctuary Alliance),0
+"PACRONYM. 611 Pennsylvania Ave SE #143 Washington, DC 20003. Not authorized by any candidate or candidate’s committee.",0
+Oxfam America,0
 "Owen Charles, Chair",0
 Outvote Inc,0
 Outrider Foundation,0
-OuterGoods LLC,0
 Organizing for Action,0
 OpsLens. ,0
 Opportunity First,0
@@ -1853,7 +1854,6 @@ OZY Media,0
 Not My NRA,0
 Norgaard4AZ,0
 Nobody Leaves Mid-Hudson,0
-No Kid Hungry,0
 Nine Line Apparel,0
 Newsom for California Governor 2018,0
 News and News,0
@@ -1879,8 +1879,10 @@ Nancy Guy for Bismarck City Commission,0
 NYS Laborers' LECET,0
 NRA,0
 NASPA - Student Affairs Administrators in Higher Education,0
+NARAL Pro-Choice America,0
 NAACP Legal Defense Fund,0
 My Child. My Choice. ,0
+"MoveOn.org Political Action, not authorized by any candidate or candidate's committee.",0
 MoveOn.org Civic Action.,0
 "Mothers Against Police Brutality, Inc.",0
 "Morrisey for Senate, Inc.",0
@@ -1911,7 +1913,9 @@ Maxwell Barrile,0
 Maura Sullivan for Congress,0
 Maura Healey Exposed,0
 "Matt Spritz, Republican, for State Representative",0
+Matt Rinaldi Campaign,0
 Matt Longjohn for Congress,0
+Matt Brown for Governor,0
 MasterClass,0
 Massoumi Web Holdings LLC,0
 "Maryland Campaign for Liberty Inc. paid for this communication and is solely responsible for its content. Maryland Campaign for Liberty Inc. is an IRS 501(c)4 non-profit organization. Maryland Campaign for Liberty Inc. does not endorse, support or oppose any candidate or public office holder.",0
@@ -1943,8 +1947,10 @@ Little Dictator Game,0
 Lion Recovery Fund,0
 Lincoln Land Wind,0
 "Linares for Treasurer, Harry Ruppenicker, Treasurer. Approved by Art Linares.",0
+LifeZette Inc.,0
 LifeDaily,0
 Libra Group,0
+Liberty or Death Project,0
 Liberal SpecialTees,0
 Let Us Vote For A Balanced Budget Amendment Citizen's Campaign,0
 "Len in 2018, Christine Mulligan, Treasurer. Approved by Len Fasano",0
@@ -1967,8 +1973,11 @@ Kevin Sutton ,0
 Kentucky Family Values,0
 Kenny Marchant for Congress,0
 Kaul for Attorney General,0
+Katie Porter for Congress,0
 "Kasich for America, not authorized by any candidate or candidate's committee.",0
 Kansas Values Institute,0
+Kaniela Ing for Congress,0
+Kanew for Congress,0
 Kamala Harris for Senate,0
 KYI-a grassroots powered PAC,0
 "Justice San Diego supporting Genévieve Jones-Wright for District Attorney 2018, sponsored by Alliance San Diego Mobilization Fund. Committee major funding from: Quinn Delaney",0
@@ -1984,7 +1993,6 @@ Joe Messerli,0
 "Joe Hannoush, Libertarian, for Florida State Representative District 25",0
 Jimmy Neal Putnam County Commission 9th District,0
 Jim & Madelyn Meyer,0
-Jetties Bracelets,0
 Jessica Morse for Congress,0
 Jena Griswold for Colorado,0
 Jeff Merkley for Oregon,0
@@ -1998,6 +2006,7 @@ James Joseph Connolly (2397134148072),0
 James Joseph Connolly,0
 Jack Burkman,0
 Jacek Zurada,0
+JVMI,0
 JMA Enterprises,0
 "JFK REF PAC 2018 Treasurer, M. Gourley",0
 JAM INT'L LLC,0
@@ -2011,8 +2020,8 @@ Indivisible Project,0
 Immigrant Report,0
 Ian Todd for Congress,0
 IOOGO INC.,0
+I Love My Freedom,0
 Huru International,0
-Human Rights Watch,0
 Human Rights Campaign New England,0
 HowStuffWorks,0
 Hoover Institution,0
@@ -2025,6 +2034,7 @@ Here TV,0
 "Henrie for 61st, Tom Frenaye, Treasurer",0
 Henderson For Missouri ,0
 Heifer International,0
+Heidi for North Dakota,0
 "Healthy Montana, Dr. Steven Bailey, Treasurer, PO Box 1614, Helena, MT 59624",0
 Healthy Living Initiative ,0
 Headline Shirts,0
@@ -2051,6 +2061,7 @@ GoVote Media Project,0
 Go Africa Network Inc & Go Africa LLC ,0
 "Global Innovations Coterie, LLC",0
 Giving Care ,0
+Gillibrand for Senate,0
 "Gilchrest 2018, Judith Lohman, Treasurer, Approved by Jillian Gilchrest",0
 Giffords PAC.,0
 "Giacomi for State Rep, Eileen Conard, Treasurer; Approved by Steve Giacomi.",0
@@ -2076,6 +2087,7 @@ Friends of Stan Sniff 2018,0
 "Friends of Robin Comey, Anthony Giardiello, Treasurer ",0
 Friends of Rachel May,0
 Friends of Nick Autiello,0
+"Friends of Nate Loewentheil, Guy Tawney, Treasurer.",0
 Friends of Naomi,0
 Friends of Michael Fine,0
 Friends of Mary Elizabeth Coleman,0
@@ -2091,7 +2103,6 @@ Friends of Julian Ivey,0
 "Friends of Jonathan Porter; Brenden Carlson, Treasurer",0
 "Friends of John-Michael, Joan Walker, Treasurer. Approved by John-Michael Parker.",0
 Friends of John Olszewski Jr.,0
-"Friends of Joel Rubin - Samuel Agger, Treasurer",0
 "Friends of Joe Polletta, Joann Murray, Treasurer. Approved by Joseph Polletta.",0
 Friends of Joe Fain,0
 Friends of Jeff Waldstreicher; Treasurer: Michael Shulman.,0
@@ -2129,22 +2140,20 @@ Fleming for Putnam,0
 Fire Ted Cruz PAC,0
 Fipple,0
 Fighting for Our Future. This communication was not expressly authorized or requested by any candidate or by any candidate's political committees or any of its agents.,0
-"Fentrice Driskell, Democrat, for Florida House District 63.",0
 Fashionarchista,0
 "Faith in Minnesota Fund, 2356 University Ave W St. Paul, MN",0
 Facts For Working People,0
 FFEU ,0
 Eye Heart World,0
 Everytown for Gun Safety Support Fund,0
-Everytown for Gun Safety Action Fund,0
 Environmental Voter Project,0
 Environmental Defense Fund,0
 Environmental Defense Action Fund,0
 EnergyBoom,0
 Energy Nation,0
-End Citizens United,0
 "Emily Randall for Senate | PO Box 1883 Port Orchard, WA 98366",0
 "Ellen Russell Beatty 2018, Peg Kearney, Treasurer",0
+Elizabeth for MA,0
 Elizabeth Baker for District 2,0
 "Elect Tiffany Thiele for the 55th, Malcolm Leichter, Treasurer. Approved by Tiffany Thiele.",0
 Elect Kathy Hoffman for Superintendent,0
@@ -2158,6 +2167,7 @@ E.O. Wilson Biodiversity Foundation,0
 Dusk to Dusk,0
 "Dunsby 2018; John Allan, Treasurer. Approved by Adam Dunsby.",0
 "Dunsby 2018; John Allan, Treasurer ",0
+DrugJustice,0
 Dr. Marty Perez For Congress.,0
 "Doug for CT, Lisa Rose, Treasurer. Approved by Doug Dubitsky.",0
 Donovan for State Senate,0
@@ -2170,7 +2180,6 @@ Don Huffines for Texas Senate,0
 Dom Pascual,0
 Diversity Incorporated,0
 Distractify,0
-Dinesh D'Souza,0
 "Diana Arezzo, Ph.D., concerned private citizen, solely for the purpose of increasing post reach",0
 "Desmarais 2018. Cristina Hassinger, Treasurer. Approved by Jeff Desmarais.",0
 Designs For Victory,0
@@ -2214,7 +2223,6 @@ Council for Responsible Nutrition,0
 Cory Booker for Senate ,0
 Cort Vanostran for Congress,0
 "Cook 2018, Glenn McLeod Treasurer",0
-Conservative Tribune,0
 Conservative Investor Daily,0
 Conservative Gear,0
 Conservation International,0
@@ -2231,6 +2239,7 @@ Connected Commerce Council (3C),0
 Concerned Citizens of Virginia Beach,0
 Concerned Citizens Of America,0
 Concerned Citizen David Townsend,0
+Concealed Online,0
 Compassion & Choices,0
 Common Ground Committee,0
 Committee to elect Pramilla Malick,0
@@ -2267,7 +2276,6 @@ Charles Catania,0
 Change to Win,0
 Change The Date Sarasota,0
 Change PAC. This message was made independent of any candidate or political party. Top donors are Republican Governors Association. Additional information about Change PAC may be found on the State Elections Enforcement Commission’s Internet website.,0
-Chad Benson,0
 Center for Reproductive Rights,0
 Center for Biological Diversity,0
 Center for Arizona Policy,0
@@ -2318,8 +2326,8 @@ Block Bronx Bolshevik,0
 Blackburn Tennessee Victory Fund,0
 Bird + Stone ,0
 Bill Schuette for Governor,0
+Bill Nelson for U.S. Senate,0
 Bill & Melinda Gates Foundation,0
-Big Lie LLC,0
 Betsy Rader for Congress,0
 "Beth Bye 2018, Linda Levin Treasurer, Approved by Beth Bye.",0
 Best Care Tax & Insurance,0
@@ -2355,6 +2363,7 @@ Anera,0
 Andy Kim for Congress,0
 Andy For Kendall County Judge Campaign,0
 "Andrew Gillum, Democrat, for Governor",0
+Amnesty International USA,0
 Amie Hoeber for Congress,0
 "American Possibilities, not authorized by any candidate or candidate’s committee",0
 American Heart Association,0
@@ -2367,7 +2376,6 @@ America First Reporting,0
 America Fighting Back PAC,0
 Alyse for Alaska,0
 Alliance for a Better Minnesota,0
-Alliance Defending Freedom,0
 Alexandria Ocasio-Cortez 2018,0
 "Alex for CT. Dianna Kulmacz, Treasurer. Approved by Alex Tiktinsky.",0
 "Alerta Politica LLC, an independently owned media company that covers politics in the U.S. and receives zero outside funding ",0
@@ -2393,6 +2401,7 @@ ACCE Action,0
 AARP ,0
 A Whole Lot Of People For Grijalva Congressional Committee,0
 A Case for Women LLC,0
+"4Ocean, LLC",0
 45 Hats,0
 "36campaigns, Inc.",0
 2A4LIFELLC,0
@@ -2401,3 +2410,4 @@ A Case for Women LLC,0
 #VOTEPROCHOICE,0
  The Committee To Elect Judge Martinelli,0
  Penguin Young Readers,0
+,0
