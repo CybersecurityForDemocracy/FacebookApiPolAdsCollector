@@ -186,11 +186,12 @@ class LocalFileSystemCollector:
 		for filename in self.getAllFilenames():
 			response_body = self.readResponseBody(filename)
 			creation_time = self.readCreationTime(filename)
-			self.parseResponseBody(response_body, creation_time)
+			creation_date = str(creation_time.date())
+			self.parseResponseBody(response_body, creation_date)
 		self.previewNewNonAds()
 		self.insertNewNonAds()
 		self.previewNewAds()
-		self.insertNewAds()
+		self.insertNewAds(creation_date)
 		self.disconnectFromNYUDatabase()
 		
 	def connectToNYUDatabase(self):
@@ -260,8 +261,8 @@ class LocalFileSystemCollector:
 		return None
 	
 	def readCreationTime(self, filename):
-		timestamp = os.path.getctime(filename)
-		print("    Timestamp = {}".format(datetime.fromtimestamp(timestamp)))
+		timestamp = datetime.fromtimestamp(os.path.getctime(filename))
+		print("    Timestamp = {}".format(timestamp))
 		return timestamp
 	
 	def parseResponseBody(self, results, crawl_date):
@@ -432,7 +433,7 @@ class LocalFileSystemCollector:
 		print("            Ads = {:6d}".format(len(self.new_ads)))
 		print("    Impressions = {:6d}".format(len(self.new_impressions)))
 
-	def insertNewAds(self):
+	def insertNewAds(self, crawl_date):
 		if not self.executeInserts:
 			print("PREVIEW ONLY")
 			print("DO NOT insert new ads and impressions...")
@@ -441,7 +442,7 @@ class LocalFileSystemCollector:
 		print("Inserting new ads and impressions...")
 			
 		#write new ads to our database
-		print("    writing " + str(len(self.new_ads)) + " to db")
+		print("    writing " + str(len(self.new_ads)) + " ads to db")
 		ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES "
 		ad_count = 0
 		for ad in self.new_ads:
@@ -486,7 +487,7 @@ class LocalFileSystemCollector:
 
 		impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
 		impression_count = 0
-		for impression in new_ad_demo_impressions:
+		for impression in self.new_ad_demo_impressions:
 			impression_demo_insert_query += self.cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, self.existing_demo_groups[impression.gender + impression.age_range], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
 			impression_count += 1
 
@@ -506,7 +507,7 @@ class LocalFileSystemCollector:
 
 		impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
 		impression_count = 0
-		for impression in new_ad_region_impressions:
+		for impression in self.new_ad_region_impressions:
 			impression_region_insert_query += self.cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, self.existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
 			impression_count += 1
 
