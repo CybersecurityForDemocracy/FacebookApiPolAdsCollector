@@ -227,7 +227,7 @@ class LocalFileSystemCollector:
 		self.new_ad_demo_impressions = set()
 		print("    Initialized.")
 
-	def selectExistingAds(self, debugEmptySets = False):
+	def selectExistingAds(self):
 		print("Selecting existing ads, regions, demo groups, pages, and ad sponsors...")
 		(self.ad_ids, self.active_ads) = existing_ads(self.cursor)
 		self.existing_regions = existing_region(self.cursor)
