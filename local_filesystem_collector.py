@@ -441,6 +441,9 @@ class LocalFileSystemCollector:
 		if not self.executeCommits:
 			print("PREVIEW ONLY")
 			print("DO NOT commit to database")
+			print("Rolling back all changes...")
+			self.connection.rollback()
+			print("    Rolled back.")
 		else:
 			print("Committing to database...")
 			self.connection.commit()
@@ -572,6 +575,9 @@ class LocalFileSystemCollector:
 		if not self.executeCommits:
 			print("PREVIEW ONLY")
 			print("DO NOT commit to database")
+			print("Rolling back all changes...")
+			self.connection.rollback()
+			print("    Rolled back.")
 		else:
 			print("Committing to database...")
 			self.connection.commit()
