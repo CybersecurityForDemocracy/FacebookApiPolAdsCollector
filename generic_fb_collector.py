@@ -162,8 +162,8 @@ def main(search_term, connection):
     new_demo_groups = {}
     new_regions = set()
     new_impressions = set()
-    new_ad_region_impressions = set()
-    new_ad_demo_impressions = set()
+    new_ad_region_impressions = {}
+    new_ad_demo_impressions = {}
 
     #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
     (ad_ids, active_ads) = existing_ads(cursor)
@@ -178,6 +178,7 @@ def main(search_term, connection):
     already_seen = False
     next_cursor = ""
     print(datetime.datetime.now())
+
     print(search_term)
     request_count = 0
     while has_next and not already_seen and request_count < 30:
@@ -192,7 +193,7 @@ def main(search_term, connection):
                                                ad_reached_countries=country_code, 
                                                ad_type='POLITICAL_AND_ISSUE_ADS',
                                                ad_active_status='ALL',
-                                               limit=2000,
+                                               limit=800,
                                                search_terms=search_term,
                                                fields=",".join(field_list))
                 else:
@@ -202,7 +203,7 @@ def main(search_term, connection):
                                                ad_reached_countries=country_code, 
                                                ad_type='POLITICAL_AND_ISSUE_ADS',
                                                ad_active_status='ALL',
-                                               limit=2000,
+                                               limit=800,
                                                search_terms=search_term,
                                                fields=",".join(field_list),
                                                after=next_cursor)
@@ -215,7 +216,7 @@ def main(search_term, connection):
                                                ad_reached_countries=country_code, 
                                                ad_type='POLITICAL_AND_ISSUE_ADS',
                                                ad_active_status='ALL',
-                                               limit=2000,
+                                               limit=800,
                                                search_page_ids=search_term,
                                                fields=",".join(field_list))
                 else:
@@ -225,7 +226,7 @@ def main(search_term, connection):
                                                ad_reached_countries=country_code, 
                                                ad_type='POLITICAL_AND_ISSUE_ADS',
                                                ad_active_status='ALL',
-                                               limit=2000,
+                                               limit=800,
                                                search_page_ids=search_term,
                                                fields=",".join(field_list),
                                                after=next_cursor)
@@ -357,25 +358,48 @@ def main(search_term, connection):
                     if demo_key not in existing_demo_groups:
                         new_demo_groups[demo_key] = (demo_result['gender'], demo_result['age'])
 
-                    new_ad_demo_impressions.add(SnapshotDemoRecord(archive_id,
+                    if archive_id in new_ad_demo_impressions:
+                        if demo_result['age'] + demo_result['gender'] not in new_ad_demo_impressions[archive_id]:
+                            new_ad_demo_impressions[archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(archive_id,
                                                                    demo_result['age'], 
                                                                    demo_result['gender'], 
                                                                    float(demo_result['percentage']) * int(min_impressions), 
                                                                    float(demo_result['percentage']) * int(max_impressions), 
                                                                    float(demo_result['percentage']) * int(min_spend), 
                                                                    float(demo_result['percentage']) * int(max_spend), 
-                                                                   crawl_date))
+                                                                   crawl_date)
+                    else:
+                        new_ad_demo_impressions[archive_id] = {demo_result['age'] + demo_result['gender']: SnapshotDemoRecord(archive_id,
+                                                                   demo_result['age'], 
+                                                                   demo_result['gender'], 
+                                                                   float(demo_result['percentage']) * int(min_impressions), 
+                                                                   float(demo_result['percentage']) * int(max_impressions), 
+                                                                   float(demo_result['percentage']) * int(min_spend), 
+                                                                   float(demo_result['percentage']) * int(max_spend), 
+                                                                   crawl_date)}
                     
                 for region_result in result['region_distribution']:
                     if region_result['region'] not in existing_regions:
                         new_regions.add(region_result['region'])
-                    new_ad_region_impressions.add(SnapshotRegionRecord(archive_id,
+                    if archive_id in new_ad_region_impressions:
+                        if region_result['region'] not in new_ad_region_impressions[archive_id]:
+                            new_ad_region_impressions[archive_id][region_result['region']] = SnapshotRegionRecord(archive_id,
                                                                        region_result['region'], 
                                                                        float(region_result['percentage']) * int(min_impressions), 
                                                                        float(region_result['percentage']) * int(max_impressions), 
                                                                        float(region_result['percentage']) * int(min_spend), 
                                                                        float(region_result['percentage']) * int(max_spend), 
-                                                                       crawl_date))
+                                                                       crawl_date)
+
+
+                    else:
+                        new_ad_region_impressions[archive_id] = {region_result['region']: SnapshotRegionRecord(archive_id,
+                                                                       region_result['region'], 
+                                                                       float(region_result['percentage']) * int(min_impressions), 
+                                                                       float(region_result['percentage']) * int(max_impressions), 
+                                                                       float(region_result['percentage']) * int(min_spend), 
+                                                                       float(region_result['percentage']) * int(max_spend), 
+                                                                       crawl_date)}
 
             if archive_id not in ad_ids:
                 new_ads.add(curr_ad)
@@ -415,7 +439,7 @@ def main(search_term, connection):
 
         if ad_count >= 250:
             ad_insert_query = ad_insert_query[:-1]
-            ad_insert_query += ";"
+            ad_insert_query += " on conflict on constraint unique_ad_archive_id do nothing;"
             #print(cursor.mogrify(ad_insert_query))
             cursor.execute(ad_insert_query)
             ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES "
@@ -423,7 +447,7 @@ def main(search_term, connection):
 
     if ad_count > 0:
         ad_insert_query = ad_insert_query[:-1]
-        ad_insert_query += ";"
+        ad_insert_query += " on conflict on constraint unique_ad_archive_id do nothing;"
         #print(cursor.mogrify(ad_insert_query))
         cursor.execute(ad_insert_query)
 
@@ -437,7 +461,8 @@ def main(search_term, connection):
 
         if impression_count >= 250:
             impressions_insert_query = impressions_insert_query[:-1]
-            impressions_insert_query += ";"
+            impressions_insert_query += "on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
             #print(cursor.mogrify(impressions_insert_query))
             cursor.execute(impressions_insert_query)
             impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES "
@@ -445,19 +470,22 @@ def main(search_term, connection):
 
     if impression_count > 0:
         impressions_insert_query = impressions_insert_query[:-1]
-        impressions_insert_query += ";"
+        impressions_insert_query += "on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
         #print(cursor.mogrify(impressions_insert_query))
         cursor.execute(impressions_insert_query)
 
     impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
     impression_count = 0
-    for impression in new_ad_demo_impressions:
-        impression_demo_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_demo_groups[impression.gender + impression.age_range], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
-        impression_count += 1
+    for archive_id, demo_impression_dict in new_ad_demo_impressions.items():
+        for demo_key, impression in demo_impression_dict.items():
+            impression_demo_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_demo_groups[impression.gender + impression.age_range], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
+            impression_count += 1
 
         if impression_count >= 250:
             impression_demo_insert_query = impression_demo_insert_query[:-1]
-            impression_demo_insert_query += ";"
+            impression_demo_insert_query += "on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
             #print(cursor.mogrify(impression_demo_insert_query))
             cursor.execute(impression_demo_insert_query)
             impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
@@ -465,27 +493,31 @@ def main(search_term, connection):
 
     if impression_count > 0:
         impression_demo_insert_query = impression_demo_insert_query[:-1]
-        impression_demo_insert_query += ";"
+        impression_demo_insert_query += "on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+            min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
         #print(cursor.mogrify(impression_demo_insert_query))
         cursor.execute(impression_demo_insert_query)
 
     impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
     impression_count = 0
-    for impression in new_ad_region_impressions:
-        impression_region_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
-        impression_count += 1
+    for archive_id, region_impression_dict in new_ad_region_impressions.items():
+        for region, impression in region_impression_dict.items():
+            impression_region_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
+            impression_count += 1
 
-        if impression_count >= 250:
-            impression_region_insert_query = impression_region_insert_query[:-1]
-            impression_region_insert_query += ";"
-            #print(cursor.mogrify(impression_region_insert_query))
-            cursor.execute(impression_region_insert_query)
-            impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
-            impression_count = 0
+            if impression_count >= 250:
+                impression_region_insert_query = impression_region_insert_query[:-1]
+                impression_region_insert_query += "on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                    min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+                #print(cursor.mogrify(impression_region_insert_query))
+                cursor.execute(impression_region_insert_query)
+                impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
+                impression_count = 0
 
     if impression_count > 0:
         impression_region_insert_query = impression_region_insert_query[:-1]
-        impression_region_insert_query += ";"
+        impression_region_insert_query += "on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+            min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
         #print(cursor.mogrify(impression_region_insert_query))
         cursor.execute(impression_region_insert_query)
 
@@ -493,8 +525,8 @@ def main(search_term, connection):
 
 
 #get page data
-page_ids = []
-page_names = []
+page_ids = set()
+page_names = set()
 input_TYPE = config['INPUT']['TYPE']
 if input_TYPE == 'file':
    input_FILES = config['INPUT']['FILES']
@@ -503,7 +535,7 @@ if input_TYPE == 'file':
    for file_name in file_list:
        with open(file_name) as input:
            for row in input:
-               page_names.append(row.strip())
+               page_ids.add(row.strip())
 else:
     input_HOST = config['INPUT']['HOST']
     input_DBNAME = config['INPUT']['DBNAME']
@@ -534,9 +566,9 @@ else:
         input_cursor.execute(this_week_pages_query)
         for row in input_cursor:
             if row['fb_id']:
-                page_ids.append(int(row['fb_id']))
+                page_ids.add(int(row['fb_id']))
             else:
-                page_names.append(row['page_name'])
+                page_names.add(row['page_name'])
 
 
 #setup our db cursor
@@ -553,6 +585,8 @@ cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 all_ids = list(page_ids)
 random.shuffle(all_ids)
 print(len(all_ids))
+
+print(len(page_names))
 
 #data structures to hold new ads
 AdRecord = namedtuple('AdRecord', ['archive_id', 
