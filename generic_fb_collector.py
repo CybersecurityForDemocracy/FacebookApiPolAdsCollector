@@ -154,6 +154,70 @@ def insert_demos(cursor, new_demo_groups):
         #print(cursor.mogrify(insert_demo_groups))
         cursor.execute(insert_demo_groups)
 
+
+def write_ads_to_db(new_ads, country_code, currency, existing_ad_sponsors):
+    ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES %s on conflict on constraint unique_ad_archive_id do nothing;"
+    insert_template = '(%(archive_id)s, %(creation_date)s, %(start_date)s, %(end_date)s, %(currency)s, %(page_id)s, %(image_url)s, %(text)s, %(ad_sponsor_id)s, %(is_active)s, %(ad_creative_link_caption)s, %(ad_creative_link_description)s, %(ad_creative_link_title)s, %(country_code)s)'
+    new_ad_list = []
+    for ad in new_ads:
+        ad_dict = ad._asdict()
+        ad_dict['country_code'] = country_code
+        ad_dict['ad_sponsor_id'] = existing_ad_sponsors[ad.sponsor_label]
+        ad_dict['currency'] = currency
+        new_ad_list.append(ad_dict)
+
+    psycopg2.extras.execute_values(
+        cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
+
+
+def write_impressions_to_db(new_impressions, crawl_date):
+    impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES \
+        on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+
+    insert_template = '(%(archive_id)s, %(crawl_date)s , %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s)'
+    new_impressions_list = []
+    for impression in new_impressions:
+        impression = impression._asdict()
+        impression['crawl_date'] = crawl_date
+        new_impressions_list.append(impression)
+
+    psycopg2.extras.execute_values(
+        cursor, impressions_insert_query, new_impressions_list, template=insert_template, page_size=250)
+
+
+def write_demo_impressions_to_db(new_ad_demo_impressions, crawl_date, existing_demo_groups):
+    impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
+            on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+            min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+    insert_template = '(%(archive_id)s, %(demo_id)s, %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s, %(crawl_date)s)'
+    new_impressions_list = []
+    for unused_archive_id, impression in new_ad_demo_impressions():
+        impression = impression._asdict()
+        impression['crawl_date'] = crawl_date
+        impression['demo_id'] = existing_demo_groups[impression['gender'] +
+                                                     impression['age_range']]
+        new_impressions_list.append(impression)
+    
+    psycopg2.extras.execute_values(
+        cursor, impression_demo_insert_query, new_impressions_list, template=insert_template, page_size=250)
+
+
+def write_region_impressions_to_db(new_ad_region_impressions, existing_regions):
+        impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
+                        on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                        min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+        insert_template = "(%(archive_id)s, %(region_id)s, %(min_impressions)s, %(min_spend)s, %(max_impressions)s, %(max_spend)s)"
+        region_impressions_list = []
+        for unused_archive_id, region_impression_dict in new_ad_region_impressions.values():
+            for unused_region, impression in region_impression_dict.items():
+                impression = impression._asdict()
+                impression['region_id'] = existing_regions[impression.name]
+                region_impressions_list.append(impression)
+        psycopg2.extras.execute_values(
+            cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
+
+
 def main(search_term, connection):
     #structures to hold all the new stuff we find
     new_ads = set()
@@ -431,96 +495,17 @@ def main(search_term, connection):
 
     #write new ads to our database
     print("writing " + str(len(new_ads)) + " to db")
-    ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES "
-    ad_count = 0
-    for ad in new_ads:
-        ad_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s),", (ad.archive_id, ad.creation_date, ad.start_date, ad.end_date, currency, ad.page_id, ad.image_url, ad.text, existing_ad_sponsors[ad.sponsor_label], ad.is_active, ad.ad_creative_link_caption, ad.ad_creative_link_description, ad.ad_creative_link_title, country_code)).decode('utf-8')
-        ad_count += 1
-
-        if ad_count >= 250:
-            ad_insert_query = ad_insert_query[:-1]
-            ad_insert_query += " on conflict on constraint unique_ad_archive_id do nothing;"
-            #print(cursor.mogrify(ad_insert_query))
-            cursor.execute(ad_insert_query)
-            ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES "
-            ad_count = 0
-
-    if ad_count > 0:
-        ad_insert_query = ad_insert_query[:-1]
-        ad_insert_query += " on conflict on constraint unique_ad_archive_id do nothing;"
-        #print(cursor.mogrify(ad_insert_query))
-        cursor.execute(ad_insert_query)
+    write_ads_to_db(new_ads, country_code, currency, existing_ad_sponsors)
 
 
-    impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES "
-    impression_count = 0
     print("writing " + str(len(new_impressions)) + " impressions to db")
-    for impression in new_impressions:
-        impressions_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s),", (impression.archive_id, crawl_date, impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
-        impression_count += 1
+    write_impressions_to_db(new_impressions, crawl_date)
 
-        if impression_count >= 250:
-            impressions_insert_query = impressions_insert_query[:-1]
-            impressions_insert_query += "on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-            #print(cursor.mogrify(impressions_insert_query))
-            cursor.execute(impressions_insert_query)
-            impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES "
-            impression_count = 0
+    print("writing new_ad_demo_impressions to db")
+    write_demo_impressions_to_db(new_impressions, crawl_date, existing_demo_groups)
 
-    if impression_count > 0:
-        impressions_insert_query = impressions_insert_query[:-1]
-        impressions_insert_query += "on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-        #print(cursor.mogrify(impressions_insert_query))
-        cursor.execute(impressions_insert_query)
-
-    impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
-    impression_count = 0
-    for archive_id, demo_impression_dict in new_ad_demo_impressions.items():
-        for demo_key, impression in demo_impression_dict.items():
-            impression_demo_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_demo_groups[impression.gender + impression.age_range], impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
-            impression_count += 1
-
-        if impression_count >= 250:
-            impression_demo_insert_query = impression_demo_insert_query[:-1]
-            impression_demo_insert_query += "on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-            #print(cursor.mogrify(impression_demo_insert_query))
-            cursor.execute(impression_demo_insert_query)
-            impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
-            impression_count = 0
-
-    if impression_count > 0:
-        impression_demo_insert_query = impression_demo_insert_query[:-1]
-        impression_demo_insert_query += "on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-            min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-        #print(cursor.mogrify(impression_demo_insert_query))
-        cursor.execute(impression_demo_insert_query)
-
-    impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
-    impression_count = 0
-    for archive_id, region_impression_dict in new_ad_region_impressions.items():
-        for region, impression in region_impression_dict.items():
-            impression_region_insert_query += cursor.mogrify("(%s, %s, %s, %s, %s, %s, current_date),", (impression.archive_id, existing_regions[impression.name],  impression.min_impressions, impression.min_spend, impression.max_impressions, impression.max_spend)).decode('utf-8')
-            impression_count += 1
-
-            if impression_count >= 250:
-                impression_region_insert_query = impression_region_insert_query[:-1]
-                impression_region_insert_query += "on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-                    min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-                #print(cursor.mogrify(impression_region_insert_query))
-                cursor.execute(impression_region_insert_query)
-                impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES "
-                impression_count = 0
-
-    if impression_count > 0:
-        impression_region_insert_query = impression_region_insert_query[:-1]
-        impression_region_insert_query += "on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
-            min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-        #print(cursor.mogrify(impression_region_insert_query))
-        cursor.execute(impression_region_insert_query)
-
+    print("writing new_ad_region_impressions to db")
+    write_region_impressions_to_db(new_ad_region_impressions, existing_regions)
     connection.commit()
 
 
