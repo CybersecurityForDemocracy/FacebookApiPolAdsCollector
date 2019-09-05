@@ -2,7 +2,7 @@ from urllib.parse import urlparse, parse_qs
 import json
 import random
 import configparser
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from time import sleep
 import datetime
 import time
@@ -23,6 +23,7 @@ config.read(sys.argv[1])
 #data structures to hold new ads
 AdRecord = namedtuple('AdRecord', ['archive_id', 
                                    'page_id', 
+                                   'page_name',
                                    'image_url', 
                                    'text',
                                    'sponsor_label',
@@ -54,291 +55,257 @@ PORT = config['POSTGRES']['PORT']
 DBAuthorize = "host=%s dbname=%s user=%s password=%s port=%s" % (HOST, DBNAME, USER, PASSWORD, PORT)
 connection = psycopg2.connect(DBAuthorize)
 
+class SearchRunner():
+
+    def __init__(self, crawl_date, country_code, connection, db):
+        self.crawl_date = crawl_date
+        self.country_code = country_code
+        self.connection = connection
+        self.db = db
+
+    def get_ad_from_result(self, result):
+        image_url = result['ad_snapshot_url']
+        url_parts = urlparse(image_url)
+        archive_id = int(parse_qs(url_parts.query)['id'][0])
+        page_id = result['page_id']
+        page_name = result['page_name']
+        start_date = result['ad_delivery_start_time']
+        currency = result['currency']
+        ad_text = ''
+        if 'ad_creative_body' in result:
+            ad_text = result['ad_creative_body']
+        ad_sponsor_label = ''
+        if 'funding_entity' in result:
+            ad_sponsor_label = result['funding_entity']
+
+        is_active = True
+        end_date = None
+        if 'ad_delivery_stop_time' in result:
+            end_date = result['ad_delivery_stop_time']
+            is_active = False
+
+        min_impressions = 0
+        max_impressions = 0
+        min_spend = 0
+        max_spend = 0
+        if 'impressions' in result:
+            min_impressions = result['impressions']['lower_bound']
+            max_impressions = result['impressions']['upper_bound']
+        if 'spend' in result:
+            min_spend = result['spend']['lower_bound']
+            max_spend = result['spend']['upper_bound']
+
+        link_caption = ''
+        if 'ad_creative_link_caption' in result:
+            link_caption = result['ad_creative_link_caption']
+        link_description = ''
+        if 'ad_creative_link_description' in result:
+            link_description = result['ad_creative_link_description']
+        link_title = ''
+        if 'ad_creative_link_title' in result:
+            link_description = result['ad_creative_link_title']
 
 
-def run_search(search_term, connection, db):
-    crawl_date = datetime.date.today() 
-    country_code = config['SEARCH']['COUNTRY_CODE']
+        curr_ad = AdRecord(archive_id, 
+                        page_id, 
+                        page_name,
+                        image_url, 
+                        ad_text,
+                        ad_sponsor_label,
+                        start_date, 
+                        start_date, 
+                        end_date, 
+                        is_active, 
+                        min_impressions, 
+                        max_impressions, 
+                        min_spend, 
+                        max_spend,
+                        currency,
+                        link_caption,
+                        link_description,
+                        link_title)
+        return curr_ad
 
-    #structures to hold all the new stuff we find
-    new_ads = set()
-    new_ad_sponsors = set()
-    new_pages = set()
-    new_demo_groups = {}
-    new_regions = set()
-    new_impressions = set()
-    new_ad_region_impressions = {}
-    new_ad_demo_impressions = {}
+    def run_search(self, page_id=None, page_name=None):
+        self.crawl_date = datetime.date.today() 
+        self.country_code = config['SEARCH']['self.country_code']
 
-    #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
-    (ad_ids, active_ads) = db.existing_ads()
-    existing_regions = db.existing_region()
-    existing_demo_groups = db.existing_demos()
-    existing_pages = db.existing_page()
-    existing_ad_sponsors = db.existing_sponsors()
+        #structures to hold all the new stuff we find
+        new_ads = set()
+        new_ad_sponsors = set()
+        new_pages = set()
+        new_demo_groups = {}
+        new_regions = set()
+        new_impressions = set()
+        new_ad_region_impressions = defaultdict(dict)
+        new_ad_demo_impressions = defaultdict(dict)
 
-    #get ads
-    graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
-    has_next = True
-    already_seen = False
-    next_cursor = ""
-    print(datetime.datetime.now())
+        #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
+        (ad_ids, active_ads) = self.db.existing_ads()
+        existing_regions = self.db.existing_region()
+        existing_demo_groups = self.db.existing_demos()
+        existing_pages = self.db.existing_page()
+        existing_ad_sponsors = self.db.existing_sponsors()
 
-    print(search_term)
-    request_count = 0
-    while has_next and not already_seen and request_count < 30:
-        request_count += 1
-        try:
-            results = None
-            if type(search_term) == str:
-                print("making search term request for " + search_term)
-                if not next_cursor:
-                    sleep(SLEEP_TIME)
-                    results = graph.get_object(id='ads_archive', 
-                                               ad_reached_countries=country_code, 
-                                               ad_type='POLITICAL_AND_ISSUE_ADS',
-                                               ad_active_status='ALL',
-                                               limit=800,
-                                               search_terms=search_term,
-                                               fields=",".join(field_list))
-                else:
+        #get ads
+        graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+        has_next = True
+        already_seen = False
+        next_cursor = ""
+        print(datetime.datetime.now())
+
+        print(page_id, page_name)
+        request_count = 0
+        # TODO: Remove the request_count limit
+        while has_next and not already_seen and request_count < 30:
+            request_count += 1
+            try:
+                results = None
+                if page_name:
+                    print(f"making search term request for {page_name}")
                     sleep(SLEEP_TIME * 2)
-                    print("making request")
+                    print(f"making request {request_count}")
                     results = graph.get_object(id='ads_archive', 
-                                               ad_reached_countries=country_code, 
-                                               ad_type='POLITICAL_AND_ISSUE_ADS',
-                                               ad_active_status='ALL',
-                                               limit=800,
-                                               search_terms=search_term,
-                                               fields=",".join(field_list),
-                                               after=next_cursor)
-            else:
-                print("making page_id request for " + str(search_term))
-                if not next_cursor:
-                    sleep(SLEEP_TIME)
-                    print("making request")
-                    results = graph.get_object(id='ads_archive', 
-                                               ad_reached_countries=country_code, 
-                                               ad_type='POLITICAL_AND_ISSUE_ADS',
-                                               ad_active_status='ALL',
-                                               limit=800,
-                                               search_page_ids=search_term,
-                                               fields=",".join(field_list))
+                                            ad_reached_countries=self.country_code, 
+                                            ad_type='POLITICAL_AND_ISSUE_ADS',
+                                            ad_active_status='ALL',
+                                            limit=800,
+                                            search_terms=page_name,
+                                            fields=",".join(field_list),
+                                            after=next_cursor)
                 else:
+                    print(f"making page_id request for {page_id}")
                     sleep(SLEEP_TIME * 2)
-                    print("making request")
+                    print(f"making request {request_count}")
                     results = graph.get_object(id='ads_archive', 
-                                               ad_reached_countries=country_code, 
-                                               ad_type='POLITICAL_AND_ISSUE_ADS',
-                                               ad_active_status='ALL',
-                                               limit=800,
-                                               search_page_ids=search_term,
-                                               fields=",".join(field_list),
-                                               after=next_cursor)
-        except facebook.GraphAPIError as e:
-            print("Graph Error")
-            print(e.code)
-            print(e)
-            if results:
-                print(results)
-            else:
-                print("No results")
-            if e.code == 4: # this means we've gotten to the FB max results per query
-                sleep(240)
-                has_next = False
-                continue
-            else:
+                                            ad_reached_countries=self.country_code, 
+                                            ad_type='POLITICAL_AND_ISSUE_ADS',
+                                            ad_active_status='ALL',
+                                            limit=800,
+                                            search_page_ids=page_id,
+                                            fields=",".join(field_list),
+                                            after=next_cursor)
+            except facebook.GraphAPIError as e:
+                print("Graph Error")
+                print(e.code)
+                print(e)
+                if results:
+                    print(results)
+                else:
+                    print("No results")
+                if e.code == 4: # this means we've gotten to the FB max results per query
+                    sleep(240)
+                    has_next = False
+                    continue
+                else:
+                    print("resetting graph")
+                    graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+                    continue
+            except OSError as e:
+                print("OS error: {0}".format(e))
+                print(datetime.datetime.now())
+                sleep(60)
                 print("resetting graph")
                 graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
                 continue
-        except OSError as e:
-            print("OS error: {0}".format(e))
-            print(datetime.datetime.now())
-            sleep(60)
-            print("resetting graph")
-            graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
-            continue
 
-        except SSL.SysCallError as e:
-            print("resetting graph")
-            graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
-            continue
+            except SSL.SysCallError as e:
+                print("resetting graph")
+                graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+                continue
 
 
-        old_ad_count = 0 
-        total_ad_count = 0
-        for result in results['data']:
-            total_ad_count += 1
-            image_url = result['ad_snapshot_url']
-            url_parts = urlparse(image_url)
-            archive_id = int(parse_qs(url_parts.query)['id'][0])
-            page_id = result['page_id']
-            page_name = result['page_name']
-            start_date = result['ad_delivery_start_time']
-            currency = result['currency']
-            ad_text = ''
-            if 'ad_creative_body' in result:
-                ad_text = result['ad_creative_body']
-            ad_sponsor_label = ''
-            if 'funding_entity' in result:
-                ad_sponsor_label = result['funding_entity']
+            old_ad_count = 0 
+            total_ad_count = 0
+            for result in results['data']:
+                total_ad_count += 1
+                curr_ad = self.get_ad_from_result(result)
+                if curr_ad.sponsor_label not in existing_ad_sponsors:
+                    new_ad_sponsors.add(curr_ad.sponsor_label)
+                if int(curr_ad.page_id) not in existing_pages:
+                    new_pages.add(PageRecord(curr_ad.page_id, curr_ad.page_name))
 
-            if ad_sponsor_label not in existing_ad_sponsors:
-                new_ad_sponsors.add(ad_sponsor_label)
+                if not curr_ad.is_active and curr_ad.archive_id in ad_ids:
+                        old_ad_count += 1
 
-            is_active = True
-            end_date = None
-            if 'ad_delivery_stop_time' in result:
-                end_date = result['ad_delivery_stop_time']
-                is_active = False
-
-            min_impressions = 0
-            max_impressions = 0
-            min_spend = 0
-            max_spend = 0
-            if 'impressions' in result:
-                min_impressions = result['impressions']['lower_bound']
-                max_impressions = result['impressions']['upper_bound']
-            if 'spend' in result:
-                min_spend = result['spend']['lower_bound']
-                max_spend = result['spend']['upper_bound']
-
-            link_caption = ''
-            if 'ad_creative_link_caption' in result:
-                link_caption = result['ad_creative_link_caption']
-            link_description = ''
-            if 'ad_creative_link_description' in result:
-                link_description = result['ad_creative_link_description']
-            link_title = ''
-            if 'ad_creative_link_title' in result:
-                link_description = result['ad_creative_link_title']
-
-            if int(page_id) not in existing_pages:
-                new_pages.add(PageRecord(page_id, page_name))
-
-            if not is_active and archive_id in ad_ids:
-                    old_ad_count += 1
-
-            curr_ad = AdRecord(archive_id, 
-                               page_id, 
-                               image_url, 
-                               ad_text,
-                               ad_sponsor_label,
-                               start_date, 
-                               start_date, 
-                               end_date, 
-                               is_active, 
-                               min_impressions, 
-                               max_impressions, 
-                               min_spend, 
-                               max_spend,
-                               currency,
-                               link_caption,
-                               link_description,
-                               link_title)
-
-
-            if is_active or archive_id in active_ads or archive_id not in ad_ids:
-                new_impressions.add(curr_ad)
-                if 'demographic_distribution' not in result:
-                    print("no demo information in:")
-                    print(result)
-                    continue
-                   
-                if 'region_distribution' not in result:
-                    print("no region information in:")
-                    print(result)
-                    continue
-                   
-                for demo_result in result['demographic_distribution']:
-                    demo_key = demo_result['gender']+demo_result['age']
-                    if demo_key not in existing_demo_groups:
+                if curr_ad.is_active or curr_ad.archive_id in active_ads or curr_ad.archive_id not in ad_ids:
+                    new_impressions.add(curr_ad)
+                    if 'demographic_distribution' not in result:
+                        print("no demo information in:")
+                        print(result)
+                        continue
+                    
+                    if 'region_distribution' not in result:
+                        print("no region information in:")
+                        print(result)
+                        continue
+                    
+                    for demo_result in result['demographic_distribution']:
+                        demo_key = demo_result['gender']+demo_result['age']
                         new_demo_groups[demo_key] = (demo_result['gender'], demo_result['age'])
 
-                    if archive_id in new_ad_demo_impressions:
-                        if demo_result['age'] + demo_result['gender'] not in new_ad_demo_impressions[archive_id]:
-                            new_ad_demo_impressions[archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(archive_id,
-                                                                   demo_result['age'], 
-                                                                   demo_result['gender'], 
-                                                                   float(demo_result['percentage']) * int(min_impressions), 
-                                                                   float(demo_result['percentage']) * int(max_impressions), 
-                                                                   float(demo_result['percentage']) * int(min_spend), 
-                                                                   float(demo_result['percentage']) * int(max_spend), 
-                                                                   crawl_date)
-                    else:
-                        new_ad_demo_impressions[archive_id] = {demo_result['age'] + demo_result['gender']: SnapshotDemoRecord(archive_id,
-                                                                   demo_result['age'], 
-                                                                   demo_result['gender'], 
-                                                                   float(demo_result['percentage']) * int(min_impressions), 
-                                                                   float(demo_result['percentage']) * int(max_impressions), 
-                                                                   float(demo_result['percentage']) * int(min_spend), 
-                                                                   float(demo_result['percentage']) * int(max_spend), 
-                                                                   crawl_date)}
-                    
-                for region_result in result['region_distribution']:
-                    if region_result['region'] not in existing_regions:
-                        new_regions.add(region_result['region'])
-                    if archive_id in new_ad_region_impressions:
-                        if region_result['region'] not in new_ad_region_impressions[archive_id]:
-                            new_ad_region_impressions[archive_id][region_result['region']] = SnapshotRegionRecord(archive_id,
-                                                                       region_result['region'], 
-                                                                       float(region_result['percentage']) * int(min_impressions), 
-                                                                       float(region_result['percentage']) * int(max_impressions), 
-                                                                       float(region_result['percentage']) * int(min_spend), 
-                                                                       float(region_result['percentage']) * int(max_spend), 
-                                                                       crawl_date)
+                        if demo_result['age'] + demo_result['gender'] not in new_ad_demo_impressions[curr_ad.archive_id]:
+                            new_ad_demo_impressions[curr_ad.archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(curr_ad.archive_id,
+                                                                demo_result['age'], 
+                                                                demo_result['gender'], 
+                                                                float(demo_result['percentage']) * int(curr_ad.min_impressions), 
+                                                                float(demo_result['percentage']) * int(curr_ad.max_impressions), 
+                                                                float(demo_result['percentage']) * int(curr_ad.min_spend), 
+                                                                float(demo_result['percentage']) * int(curr_ad.max_spend), 
+                                                                self.crawl_date)
+                        
+                    for region_result in result['region_distribution']:
+                        if region_result['region'] not in existing_regions:
+                            new_regions.add(region_result['region'])
+                            new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(curr_ad.archive_id,
+                                                                    region_result['region'], 
+                                                                    float(region_result['percentage']) * int(curr_ad.min_impressions), 
+                                                                    float(region_result['percentage']) * int(curr_ad.max_impressions), 
+                                                                    float(region_result['percentage']) * int(curr_ad.min_spend), 
+                                                                    float(region_result['percentage']) * int(curr_ad.max_spend), 
+                                                                    self.crawl_date)
+
+                if curr_ad.archive_id not in ad_ids:
+                    new_ads.add(curr_ad)
+                    ad_ids.add(curr_ad.archive_id)
 
 
-                    else:
-                        new_ad_region_impressions[archive_id] = {region_result['region']: SnapshotRegionRecord(archive_id,
-                                                                       region_result['region'], 
-                                                                       float(region_result['percentage']) * int(min_impressions), 
-                                                                       float(region_result['percentage']) * int(max_impressions), 
-                                                                       float(region_result['percentage']) * int(min_spend), 
-                                                                       float(region_result['percentage']) * int(max_spend), 
-                                                                       crawl_date)}
+            #we finished parsing each result
+            print(f"old ads={old_ad_count}")
+            print(f"total ads={total_ad_count}")
+            if total_ad_count > 0 and float(old_ad_count) / float(total_ad_count) > .75:
+                already_seen = True
 
-            if archive_id not in ad_ids:
-                new_ads.add(curr_ad)
-                ad_ids.add(archive_id)
+            if "paging" in results and "next" in results["paging"]:
+                next_cursor = results["paging"]["cursors"]["after"]
+            else:
+                has_next = False
 
+        #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
+        self.db.insert_ad_sponsors(new_ad_sponsors)
+        self.db.insert_pages(new_pages)
+        self.db.insert_regions(new_regions)
+        self.db.insert_demos(new_demo_groups)
 
-        #we finished parsing each result
-        print(old_ad_count)
-        print("total ads=" + str(total_ad_count))
-        if total_ad_count > 0 and float(old_ad_count) / float(total_ad_count) > .75:
-            already_seen = True
+        self.connection.commit()
+        existing_regions = self.db.existing_region()
+        existing_demo_groups = self.db.existing_demos()
+        existing_pages = self.db.existing_page()
+        existing_ad_sponsors = self.db.existing_sponsors()
 
-        if "paging" in results and "next" in results["paging"]:
-            next_cursor = results["paging"]["cursors"]["after"]
-        else:
-            has_next = False
+        #write new ads to our database
+        print("writing " + str(len(new_ads)) + " to db")
+        self.db.insert_new_ads(new_ads, self.country_code, curr_ad.currency, existing_ad_sponsors)
 
-    #write new pages, regions, and demo groups to db first so we can update our caches before writing ads
-    db.insert_ad_sponsors(new_ad_sponsors)
-    db.insert_pages(new_pages)
-    db.insert_regions(new_regions)
-    db.insert_demos(new_demo_groups)
+        print("writing " + str(len(new_impressions)) + " impressions to db")
+        self.db.insert_new_impressions(new_impressions, self.crawl_date)
 
-    connection.commit()
-    existing_regions = db.existing_region()
-    existing_demo_groups = db.existing_demos()
-    existing_pages = db.existing_page()
-    existing_ad_sponsors = db.existing_sponsors()
+        print("writing new_ad_demo_impressions to db")
+        self.db.insert_new_impression_demos(new_impressions, self.crawl_date, existing_demo_groups)
 
-    #write new ads to our database
-    print("writing " + str(len(new_ads)) + " to db")
-    db.write_ads_to_db(new_ads, country_code, currency, existing_ad_sponsors)
-
-    print("writing " + str(len(new_impressions)) + " impressions to db")
-    db.write_impressions_to_db(new_impressions, crawl_date)
-
-    print("writing new_ad_demo_impressions to db")
-    db.write_demo_impressions_to_db(new_impressions, crawl_date, existing_demo_groups)
-
-    print("writing new_ad_region_impressions to db")
-    db.write_region_impressions_to_db(new_ad_region_impressions, existing_regions)
-    connection.commit()
+        print("writing new_ad_region_impressions to db")
+        self.db.insert_new_impression_regions(new_ad_region_impressions, existing_regions)
+        self.connection.commit()
 
 
 
@@ -384,11 +351,12 @@ def main():
     random.shuffle(all_ids)
     print(f"Page ID count: {len(all_ids)}")
     print(f"Page Name count: {len(page_names)}")
+    search_runner = SearchRunner(datetime.date.today(), config['SEARCH']['self.country_code'], connection, db)
     for page_id in all_ids:
-        run_search(page_id, connection, db)
+        search_runner.run_search(page_id=page_id)
 
-    for page in page_names:
-        run_search(page, connection, db)
+    for page_name in page_names:
+        search_runner.run_search(page_name=page_name)
     connection.close()
 
 
