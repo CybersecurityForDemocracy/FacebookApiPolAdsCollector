@@ -1,67 +1,103 @@
-from urllib.parse import urlparse, parse_qs
-import json
-import random
 import configparser
-from collections import namedtuple, defaultdict
-from time import sleep
 import datetime
-import time
+import json
 import os
+import random
 import sys
+import time
+from collections import defaultdict, namedtuple
+from time import sleep
+from urllib.parse import parse_qs, urlparse
+
+import facebook
 import psycopg2
 import psycopg2.extras
-import facebook
 from OpenSSL import SSL
 
 from db_functions import DBInterface
 
 if len(sys.argv) < 2:
-    exit("Usage:python3 generic_fb_collector.py generic_fb_collector.cfg")
-config = configparser.ConfigParser()
-config.read(sys.argv[1])
+    exit(f"Usage:python3 {sys.argv[1]} generic_fb_collector.cfg")
 
 #data structures to hold new ads
-AdRecord = namedtuple('AdRecord', ['archive_id', 
-                                   'page_id', 
-                                   'page_name',
-                                   'image_url', 
-                                   'text',
-                                   'sponsor_label',
-                                   'creation_date', 
-                                   'start_date', 
-                                   'end_date', 
-                                   'is_active', 
-                                   'min_impressions', 
-                                   'max_impressions', 
-                                   'min_spend', 
-                                   'max_spend',
-                                   'currency',
-                                   'ad_creative_link_caption',
-                                   'ad_creative_link_description',
-                                   'ad_creative_link_title'])
-PageRecord = namedtuple('PageRecord', ['id', 'name'])
-SnapshotRegionRecord = namedtuple('SnapshotRegionRecord', ['archive_id', 'name', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
-SnapshotDemoRecord = namedtuple('SnapshotDemoRecord', ['archive_id', 'age_range', 'gender', 'min_impressions', 'max_impressions', 'min_spend', 'max_spend', 'crawl_date'])
-FB_ACCESS_TOKEN = config['FACEBOOK']['TOKEN']
-SLEEP_TIME = int(config['SEARCH']['SLEEP_TIME'])
-field_list = ["ad_creation_time","ad_delivery_start_time","ad_delivery_stop_time","ad_snapshot_url", "currency", "demographic_distribution", "impressions", "page_id", "page_name", "region_distribution", "spend", "ad_creative_body", "funding_entity", "ad_creative_link_caption", "ad_creative_link_description", "ad_creative_link_title"]
+AdRecord = namedtuple(
+    "AdRecord",
+    [
+        "archive_id",
+        "page_id",
+        "page_name",
+        "image_url",
+        "text",
+        "sponsor_label",
+        "creation_date",
+        "start_date",
+        "end_date",
+        "is_active",
+        "min_impressions",
+        "max_impressions",
+        "min_spend",
+        "max_spend",
+        "currency",
+        "ad_creative_link_caption",
+        "ad_creative_link_description",
+        "ad_creative_link_title",
+    ],
+)
+PageRecord = namedtuple("PageRecord", ["id", "name"])
+SnapshotRegionRecord = namedtuple(
+    "SnapshotRegionRecord",
+    [
+        "archive_id",
+        "name",
+        "min_impressions",
+        "max_impressions",
+        "min_spend",
+        "max_spend",
+        "crawl_date",
+    ],
+)
+SnapshotDemoRecord = namedtuple(
+    "SnapshotDemoRecord",
+    [
+        "archive_id",
+        "age_range",
+        "gender",
+        "min_impressions",
+        "max_impressions",
+        "min_spend",
+        "max_spend",
+        "crawl_date",
+    ],
+)
 
-#setup our db cursor
-HOST = config['POSTGRES']['HOST']
-DBNAME = config['POSTGRES']['DBNAME']
-USER = config['POSTGRES']['USER']
-PASSWORD = config['POSTGRES']['PASSWORD']
-PORT = config['POSTGRES']['PORT']
-DBAuthorize = "host=%s dbname=%s user=%s password=%s port=%s" % (HOST, DBNAME, USER, PASSWORD, PORT)
-connection = psycopg2.connect(DBAuthorize)
+FIELDS_TO_REQUEST = [
+    "ad_creation_time",
+    "ad_delivery_start_time",
+    "ad_delivery_stop_time",
+    "ad_snapshot_url",
+    "currency",
+    "demographic_distribution",
+    "impressions",
+    "page_id",
+    "page_name",
+    "region_distribution",
+    "spend",
+    "ad_creative_body",
+    "funding_entity",
+    "ad_creative_link_caption",
+    "ad_creative_link_description",
+    "ad_creative_link_title",
+]
 
 class SearchRunner():
 
-    def __init__(self, crawl_date, country_code, connection, db):
+    def __init__(self, crawl_date, country_code, connection, db, fb_access_token, sleep_time):
         self.crawl_date = crawl_date
         self.country_code = country_code
         self.connection = connection
         self.db = db
+        self.fb_access_token = fb_access_token
+        self.sleep_time = sleep_time * 2
 
     def get_ad_from_result(self, result):
         image_url = result['ad_snapshot_url']
@@ -105,30 +141,29 @@ class SearchRunner():
         if 'ad_creative_link_title' in result:
             link_description = result['ad_creative_link_title']
 
-
-        curr_ad = AdRecord(archive_id, 
-                        page_id, 
-                        page_name,
-                        image_url, 
-                        ad_text,
-                        ad_sponsor_label,
-                        start_date, 
-                        start_date, 
-                        end_date, 
-                        is_active, 
-                        min_impressions, 
-                        max_impressions, 
-                        min_spend, 
-                        max_spend,
-                        currency,
-                        link_caption,
-                        link_description,
-                        link_title)
+        curr_ad = AdRecord(
+            archive_id,
+            page_id,
+            page_name,
+            image_url,
+            ad_text,
+            ad_sponsor_label,
+            start_date,
+            start_date,
+            end_date,
+            is_active,
+            min_impressions,
+            max_impressions,
+            min_spend,
+            max_spend,
+            currency,
+            link_caption,
+            link_description,
+            link_title)
         return curr_ad
 
     def run_search(self, page_id=None, page_name=None):
-        self.crawl_date = datetime.date.today() 
-        self.country_code = config['SEARCH']['self.country_code']
+        self.crawl_date = datetime.date.today()
 
         #structures to hold all the new stuff we find
         new_ads = set()
@@ -148,7 +183,7 @@ class SearchRunner():
         existing_ad_sponsors = self.db.existing_sponsors()
 
         #get ads
-        graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+        graph = facebook.GraphAPI(access_token=self.fb_access_token)
         has_next = True
         already_seen = False
         next_cursor = ""
@@ -163,27 +198,27 @@ class SearchRunner():
                 results = None
                 if page_name:
                     print(f"making search term request for {page_name}")
-                    sleep(SLEEP_TIME * 2)
+                    sleep(self.sleep_time)
                     print(f"making request {request_count}")
-                    results = graph.get_object(id='ads_archive', 
-                                            ad_reached_countries=self.country_code, 
+                    results = graph.get_object(id='ads_archive',
+                                            ad_reached_countries=self.country_code,
                                             ad_type='POLITICAL_AND_ISSUE_ADS',
                                             ad_active_status='ALL',
                                             limit=800,
                                             search_terms=page_name,
-                                            fields=",".join(field_list),
+                                            fields=",".join(FIELDS_TO_REQUEST),
                                             after=next_cursor)
                 else:
                     print(f"making page_id request for {page_id}")
-                    sleep(SLEEP_TIME * 2)
+                    sleep(self.sleep_time)
                     print(f"making request {request_count}")
-                    results = graph.get_object(id='ads_archive', 
-                                            ad_reached_countries=self.country_code, 
+                    results = graph.get_object(id='ads_archive',
+                                            ad_reached_countries=self.country_code,
                                             ad_type='POLITICAL_AND_ISSUE_ADS',
                                             ad_active_status='ALL',
                                             limit=800,
                                             search_page_ids=page_id,
-                                            fields=",".join(field_list),
+                                            fields=",".join(FIELDS_TO_REQUEST),
                                             after=next_cursor)
             except facebook.GraphAPIError as e:
                 print("Graph Error")
@@ -199,23 +234,23 @@ class SearchRunner():
                     continue
                 else:
                     print("resetting graph")
-                    graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+                    graph = facebook.GraphAPI(access_token=self.fb_access_token)
                     continue
             except OSError as e:
                 print("OS error: {0}".format(e))
                 print(datetime.datetime.now())
                 sleep(60)
                 print("resetting graph")
-                graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+                graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
             except SSL.SysCallError as e:
                 print("resetting graph")
-                graph = facebook.GraphAPI(access_token=FB_ACCESS_TOKEN)
+                graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
 
-            old_ad_count = 0 
+            old_ad_count = 0
             total_ad_count = 0
             for result in results['data']:
                 total_ad_count += 1
@@ -226,7 +261,7 @@ class SearchRunner():
                     new_pages.add(PageRecord(curr_ad.page_id, curr_ad.page_name))
 
                 if not curr_ad.is_active and curr_ad.archive_id in ad_ids:
-                        old_ad_count += 1
+                    old_ad_count += 1
 
                 if curr_ad.is_active or curr_ad.archive_id in active_ads or curr_ad.archive_id not in ad_ids:
                     new_impressions.add(curr_ad)
@@ -234,41 +269,44 @@ class SearchRunner():
                         print("no demo information in:")
                         print(result)
                         continue
-                    
+
                     if 'region_distribution' not in result:
                         print("no region information in:")
                         print(result)
                         continue
-                    
+
                     for demo_result in result['demographic_distribution']:
                         demo_key = demo_result['gender']+demo_result['age']
                         new_demo_groups[demo_key] = (demo_result['gender'], demo_result['age'])
 
                         if demo_result['age'] + demo_result['gender'] not in new_ad_demo_impressions[curr_ad.archive_id]:
-                            new_ad_demo_impressions[curr_ad.archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(curr_ad.archive_id,
-                                                                demo_result['age'], 
-                                                                demo_result['gender'], 
-                                                                float(demo_result['percentage']) * int(curr_ad.min_impressions), 
-                                                                float(demo_result['percentage']) * int(curr_ad.max_impressions), 
-                                                                float(demo_result['percentage']) * int(curr_ad.min_spend), 
-                                                                float(demo_result['percentage']) * int(curr_ad.max_spend), 
-                                                                self.crawl_date)
-                        
+                            new_ad_demo_impressions[
+                                curr_ad.archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(
+                                    curr_ad.archive_id,
+                                    demo_result['age'],
+                                    demo_result['gender'],
+                                    float(demo_result['percentage']) * int(curr_ad.min_impressions),
+                                    float(demo_result['percentage']) * int(curr_ad.max_impressions),
+                                    float(demo_result['percentage']) * int(curr_ad.min_spend),
+                                    float(demo_result['percentage']) * int(curr_ad.max_spend),
+                                    self.crawl_date)
+
                     for region_result in result['region_distribution']:
                         if region_result['region'] not in existing_regions:
                             new_regions.add(region_result['region'])
-                            new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(curr_ad.archive_id,
-                                                                    region_result['region'], 
-                                                                    float(region_result['percentage']) * int(curr_ad.min_impressions), 
-                                                                    float(region_result['percentage']) * int(curr_ad.max_impressions), 
-                                                                    float(region_result['percentage']) * int(curr_ad.min_spend), 
-                                                                    float(region_result['percentage']) * int(curr_ad.max_spend), 
-                                                                    self.crawl_date)
+                            new_ad_region_impressions[
+                                curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
+                                    curr_ad.archive_id,
+                                    region_result['region'],
+                                    float(region_result['percentage']) * int(curr_ad.min_impressions),
+                                    float(region_result['percentage']) * int(curr_ad.max_impressions),
+                                    float(region_result['percentage']) * int(curr_ad.min_spend),
+                                    float(region_result['percentage']) * int(curr_ad.max_spend),
+                                    self.crawl_date)
 
                 if curr_ad.archive_id not in ad_ids:
                     new_ads.add(curr_ad)
                     ad_ids.add(curr_ad.archive_id)
-
 
             #we finished parsing each result
             print(f"old ads={old_ad_count}")
@@ -310,7 +348,7 @@ class SearchRunner():
 
 
 #get page data
-def get_page_data(input_connection):
+def get_page_data(input_connection, config):
     page_ids = set()
     page_names = set()
     input_TYPE = config['INPUT']['TYPE']
@@ -328,12 +366,13 @@ def get_page_data(input_connection):
         weekly_table = config['INPUT']['WEEKLYTABLE']
         search_limit = config['SEARCH']['LIMIT']
         for row in input_cursor:
-            this_week_pages_query = f'select page_name, {general_table}.fb_id, total_ads from {weekly_table} join {general_table} \
-            on {weekly_table}.nyu_id = {general_table}.nyu_id \
-            where week in \
-            (select max(week) from {weekly_table}) \
-            order by total_ads desc \
-            limit({search_limit});'
+            this_week_pages_query = f'select page_name, {general_table}.fb_id, total_ads from \
+                {weekly_table} join {general_table} \
+                on {weekly_table}.nyu_id = {general_table}.nyu_id \
+                where week in \
+                (select max(week) from {weekly_table}) \
+                order by total_ads desc \
+                limit({search_limit});'
             input_cursor.execute(this_week_pages_query)
             for row in input_cursor:
                 if row['fb_id']:
@@ -343,15 +382,34 @@ def get_page_data(input_connection):
     return page_ids, page_names
 
 
+def get_db_connection(config):
+    host = config['POSTGRES']['HOST']
+    dbname = config['POSTGRES']['DBNAME']
+    user = config['POSTGRES']['USER']
+    password = config['POSTGRES']['PASSWORD']
+    port = config['POSTGRES']['PORT']
+    dbauthorize = "host=%s dbname=%s user=%s password=%s port=%s" % (
+        host, dbname, user, password, port)
+    return psycopg2.connect(dbauthorize)
 
 def main():
+    config = configparser.ConfigParser()
+    config.read(sys.argv[1])
+    sleep_time = int(config['SEARCH']['SLEEP_TIME'])
+    connection = get_db_connection(config)
     db = DBInterface(connection)
-    page_ids, page_names = get_page_data(connection)
+    page_ids, page_names = get_page_data(connection, config)
     all_ids = list(page_ids)
     random.shuffle(all_ids)
     print(f"Page ID count: {len(all_ids)}")
     print(f"Page Name count: {len(page_names)}")
-    search_runner = SearchRunner(datetime.date.today(), config['SEARCH']['self.country_code'], connection, db)
+    search_runner = SearchRunner(
+        datetime.date.today(),
+        config['SEARCH']['self.country_code'],
+        connection,
+        db,
+        config['FACEBOOK']['TOKEN'],
+        sleep_time)
     for page_id in all_ids:
         search_runner.run_search(page_id=page_id)
 
