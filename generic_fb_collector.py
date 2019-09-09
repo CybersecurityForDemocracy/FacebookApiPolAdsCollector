@@ -190,8 +190,10 @@ class SearchRunner():
         print(datetime.datetime.now())
 
         print(page_id, page_name)
+        request_count = 0
         # TODO: Remove the request_count limit
         while has_next and not already_seen:
+            request_count += 1
             try:
                 results = None
                 if page_name is not None:
@@ -202,7 +204,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=800,
+                        limit=10,
                         search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
