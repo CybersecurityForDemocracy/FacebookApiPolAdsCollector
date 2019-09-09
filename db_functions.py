@@ -188,16 +188,16 @@ class DBInterface():
                 on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
                 min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
         insert_template = '(%(archive_id)s, %(demo_id)s, %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s, %(crawl_date)s)'
-        new_impressions_list = []
-        for impression in new_ad_demo_impressions:
-            impression = impression._asdict()
-            impression['crawl_date'] = crawl_date
-            impression['demo_id'] = existing_demo_groups[impression['gender'] +
-                                                         impression['age_range']]
-            new_impressions_list.append(impression)
+        new_impressions_demos_list = []
+        for unused_archive_id, impression_demos in new_ad_demo_impressions.items():
+            for demo, snapshot_record in impression_demos.items():
+                snapshot_record = snapshot_record._asdict()
+                snapshot_record['crawl_date'] = crawl_date
+                snapshot_record['demo_id'] = existing_demo_groups[demo]
+                new_impressions_demos_list.append(snapshot_record)
 
         psycopg2.extras.execute_values(
-            cursor, impression_demo_insert_query, new_impressions_list, template=insert_template, page_size=250)
+            cursor, impression_demo_insert_query, new_impressions_demos_list, template=insert_template, page_size=250)
 
     def insert_new_impression_regions(self, new_ad_region_impressions, existing_regions):
         cursor = self.get_cursor()

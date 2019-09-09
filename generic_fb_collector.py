@@ -190,10 +190,8 @@ class SearchRunner():
         print(datetime.datetime.now())
 
         print(page_id, page_name)
-        request_count = 0
         # TODO: Remove the request_count limit
-        while has_next and not already_seen and request_count < 30:
-            request_count += 1
+        while has_next and not already_seen:
             try:
                 results = None
                 if page_name is not None:
@@ -205,7 +203,7 @@ class SearchRunner():
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
                         limit=800,
-                        search_terms='',
+                        search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
                 else:
@@ -278,33 +276,31 @@ class SearchRunner():
                         continue
 
                     for demo_result in result['demographic_distribution']:
-                        demo_key = demo_result['gender']+demo_result['age']
-                        new_demo_groups[demo_key] = (demo_result['gender'], demo_result['age'])
+                        demo_key = demo_result['age'] + demo_result['gender']
+                        new_demo_groups[demo_key] = (demo_result['age'], demo_result['gender'])
 
-                        if demo_result['age'] + demo_result['gender'] not in new_ad_demo_impressions[curr_ad.archive_id]:
-                            new_ad_demo_impressions[
-                                curr_ad.archive_id][demo_result['age'] + demo_result['gender']] = SnapshotDemoRecord(
-                                    curr_ad.archive_id,
-                                    demo_result['age'],
-                                    demo_result['gender'],
-                                    float(demo_result['percentage']) * int(curr_ad.min_impressions),
-                                    float(demo_result['percentage']) * int(curr_ad.max_impressions),
-                                    float(demo_result['percentage']) * int(curr_ad.min_spend),
-                                    float(demo_result['percentage']) * int(curr_ad.max_spend),
-                                    self.crawl_date)
+                        if demo_key not in new_ad_demo_impressions[curr_ad.archive_id]:
+                            new_ad_demo_impressions[curr_ad.archive_id][demo_key] = SnapshotDemoRecord(
+                                curr_ad.archive_id,
+                                demo_result['age'],
+                                demo_result['gender'],
+                                float(demo_result['percentage']) * int(curr_ad.min_impressions),
+                                float(demo_result['percentage']) * int(curr_ad.max_impressions),
+                                float(demo_result['percentage']) * int(curr_ad.min_spend),
+                                float(demo_result['percentage']) * int(curr_ad.max_spend),
+                                self.crawl_date)
 
                     for region_result in result['region_distribution']:
                         if region_result['region'] not in existing_regions:
                             new_regions.add(region_result['region'])
-                            new_ad_region_impressions[
-                                curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
-                                    curr_ad.archive_id,
-                                    region_result['region'],
-                                    float(region_result['percentage']) * int(curr_ad.min_impressions),
-                                    float(region_result['percentage']) * int(curr_ad.max_impressions),
-                                    float(region_result['percentage']) * int(curr_ad.min_spend),
-                                    float(region_result['percentage']) * int(curr_ad.max_spend),
-                                    self.crawl_date)
+                            new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
+                                curr_ad.archive_id,
+                                region_result['region'],
+                                float(region_result['percentage']) * int(curr_ad.min_impressions),
+                                float(region_result['percentage']) * int(curr_ad.max_impressions),
+                                float(region_result['percentage']) * int(curr_ad.min_spend),
+                                float(region_result['percentage']) * int(curr_ad.max_spend),
+                                self.crawl_date)
 
                 if curr_ad.archive_id not in ad_ids:
                     new_ads.add(curr_ad)
@@ -334,14 +330,14 @@ class SearchRunner():
         existing_ad_sponsors = self.db.existing_sponsors()
 
         #write new ads to our database
-        print("writing " + str(len(new_ads)) + " to db")
+        print("writing " + str(len(new_ads)) + " new ads to db")
         self.db.insert_new_ads(new_ads, self.country_code, curr_ad.currency, existing_ad_sponsors)
 
         print("writing " + str(len(new_impressions)) + " impressions to db")
         self.db.insert_new_impressions(new_impressions, self.crawl_date)
 
         print("writing new_ad_demo_impressions to db")
-        self.db.insert_new_impression_demos(new_impressions, self.crawl_date, existing_demo_groups)
+        self.db.insert_new_impression_demos(new_ad_demo_impressions, self.crawl_date, existing_demo_groups)
 
         print("writing new_ad_region_impressions to db")
         self.db.insert_new_impression_regions(new_ad_region_impressions, existing_regions)
@@ -413,11 +409,12 @@ def main():
         db,
         config['FACEBOOK']['TOKEN'],
         sleep_time)
-    for page_id in all_ids:
-        search_runner.run_search(page_id=page_id)
+    # for page_id in all_ids:
+    #     search_runner.run_search(page_id=page_id)
 
-    for page_name in page_names:
-        search_runner.run_search(page_name=page_name)
+    # for page_name in page_names:
+    #     search_runner.run_search(page_name=page_name)
+    search_runner.run_search(page_name="''")
     connection.close()
 
 
