@@ -196,30 +196,30 @@ class SearchRunner():
             request_count += 1
             try:
                 results = None
-                if page_name:
+                if page_name is not None:
                     print(f"making search term request for {page_name}")
-                    sleep(self.sleep_time)
                     print(f"making request {request_count}")
-                    results = graph.get_object(id='ads_archive',
-                                            ad_reached_countries=self.country_code,
-                                            ad_type='POLITICAL_AND_ISSUE_ADS',
-                                            ad_active_status='ALL',
-                                            limit=800,
-                                            search_terms=page_name,
-                                            fields=",".join(FIELDS_TO_REQUEST),
-                                            after=next_cursor)
+                    results = graph.get_object(
+                        id='ads_archive',
+                        ad_reached_countries=self.country_code,
+                        ad_type='POLITICAL_AND_ISSUE_ADS',
+                        ad_active_status='ALL',
+                        limit=800,
+                        search_terms='',
+                        fields=",".join(FIELDS_TO_REQUEST),
+                        after=next_cursor)
                 else:
                     print(f"making page_id request for {page_id}")
-                    sleep(self.sleep_time)
                     print(f"making request {request_count}")
-                    results = graph.get_object(id='ads_archive',
-                                            ad_reached_countries=self.country_code,
-                                            ad_type='POLITICAL_AND_ISSUE_ADS',
-                                            ad_active_status='ALL',
-                                            limit=800,
-                                            search_page_ids=page_id,
-                                            fields=",".join(FIELDS_TO_REQUEST),
-                                            after=next_cursor)
+                    results = graph.get_object(
+                        id='ads_archive',
+                        ad_reached_countries=self.country_code,
+                        ad_type='POLITICAL_AND_ISSUE_ADS',
+                        ad_active_status='ALL',
+                        limit=800,
+                        search_page_ids=page_id,
+                        fields=",".join(FIELDS_TO_REQUEST),
+                        after=next_cursor)
             except facebook.GraphAPIError as e:
                 print("Graph Error")
                 print(e.code)
@@ -248,6 +248,8 @@ class SearchRunner():
                 print("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
+            finally:
+                sleep(self.sleep_time)
 
 
             old_ad_count = 0
@@ -354,12 +356,12 @@ def get_page_data(input_connection, config):
     input_TYPE = config['INPUT']['TYPE']
     if input_TYPE == 'file':
         input_FILES = config['INPUT']['FILES']
-    print(input_FILES)
-    file_list = json.loads(input_FILES)
-    for file_name in file_list:
-        with open(file_name) as input:
-            for row in input:
-                page_ids.add(row.strip())
+        print(input_FILES)
+        file_list = json.loads(input_FILES)
+        for file_name in file_list:
+            with open(file_name) as input:
+                for row in input:
+                    page_ids.add(row.strip())
     else:
         input_cursor = input_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
         general_table = config['INPUT']['GENERAL_TABLE']
@@ -393,6 +395,7 @@ def get_db_connection(config):
     return psycopg2.connect(dbauthorize)
 
 def main():
+    print("starting")
     config = configparser.ConfigParser()
     config.read(sys.argv[1])
     sleep_time = int(config['SEARCH']['SLEEP_TIME'])
@@ -405,7 +408,7 @@ def main():
     print(f"Page Name count: {len(page_names)}")
     search_runner = SearchRunner(
         datetime.date.today(),
-        config['SEARCH']['self.country_code'],
+        config['SEARCH']['COUNTRY_CODE'],
         connection,
         db,
         config['FACEBOOK']['TOKEN'],

@@ -168,7 +168,7 @@ class DBInterface():
 
     def insert_new_impressions(self, new_impressions, crawl_date):
         cursor = self.get_cursor()
-        impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES \
+        impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES %s\
             on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
                     min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
 
@@ -189,7 +189,7 @@ class DBInterface():
                 min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
         insert_template = '(%(archive_id)s, %(demo_id)s, %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s, %(crawl_date)s)'
         new_impressions_list = []
-        for unused_archive_id, impression in new_ad_demo_impressions():
+        for impression in new_ad_demo_impressions:
             impression = impression._asdict()
             impression['crawl_date'] = crawl_date
             impression['demo_id'] = existing_demo_groups[impression['gender'] +
