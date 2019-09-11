@@ -182,7 +182,7 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, impressions_insert_query, new_impressions_list, template=insert_template, page_size=250)
 
-    def insert_new_impression_demos(self, new_ad_demo_impressions, crawl_date, existing_demo_groups):
+    def insert_new_impression_demos(self, new_ad_demo_impressions, existing_demo_groups, crawl_date):
         cursor = self.get_cursor()
         impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
                 on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
@@ -199,17 +199,18 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, impression_demo_insert_query, new_impressions_demos_list, template=insert_template, page_size=250)
 
-    def insert_new_impression_regions(self, new_ad_region_impressions, existing_regions):
+    def insert_new_impression_regions(self, new_ad_region_impressions, existing_regions, crawl_date):
         cursor = self.get_cursor()
         impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
                         on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
                         min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
-        insert_template = "(%(archive_id)s, %(region_id)s, %(min_impressions)s, %(min_spend)s, %(max_impressions)s, %(max_spend)s)"
+        insert_template = "(%(archive_id)s, %(region_id)s, %(min_impressions)s, %(min_spend)s, %(max_impressions)s, %(max_spend)s, %(crawl_date)s)"
         region_impressions_list = []
-        for unused_archive_id, region_impression_dict in new_ad_region_impressions.values():
+        for unused_archive_id, region_impression_dict in new_ad_region_impressions.items():
             for unused_region, impression in region_impression_dict.items():
                 impression = impression._asdict()
-                impression['region_id'] = existing_regions[impression.name]
+                impression['crawl_date'] = crawl_date
+                impression['region_id'] = existing_regions[impression['name']]
                 region_impressions_list.append(impression)
         psycopg2.extras.execute_values(
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
