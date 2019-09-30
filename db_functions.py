@@ -1,4 +1,5 @@
 import psycopg2
+import psycopg2.extras
 
 
 class DBInterface():
@@ -214,3 +215,15 @@ class DBInterface():
                 region_impressions_list.append(impression)
         psycopg2.extras.execute_values(
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
+
+
+    def insert_candidate_data(self, candidate_data):
+        cursor = self.get_cursor()
+        candidate_insert_query = "INSERT INTO candidate_data(candidate_name, twitter_handle, facebook_page_name, party, riding) VALUES %s;"
+        insert_template = '("%(candidate_name)s", "%(twitter_handle)s" , "%(facebook_page_name)s" , "%(party)s" , "%(riding)s")'
+        records = [insert_template % candidate_row for candidate_row in candidate_data]
+        # print(candidate_insert_query % ','.join(records))
+        with open('/home/divam/projects/insert.sql','w') as f:
+            f.write(candidate_insert_query % ',\n'.join(records))
+        # psycopg2.extras.execute_values(
+        #     cursor, candidate_insert_query, candidate_data, template=insert_template, page_size=250)

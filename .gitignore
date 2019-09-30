@@ -1,2 +1,6 @@
 *.cfg
 *.log
+response*
+.vscode/
+__pycache__/
+venv/

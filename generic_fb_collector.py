@@ -1,21 +1,19 @@
-import logging
 import configparser
 import datetime
 import json
+import logging
 import os
 import random
 import sys
-import time
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
-
-import facebook
 import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
-
+import facebook
 from db_functions import DBInterface
+from slack_notifier import notify_slack
 
 logging.basicConfig(handlers=[logging.FileHandler("canada_fb_api_collection.log"),
                               logging.StreamHandler()],
@@ -132,10 +130,10 @@ class SearchRunner():
         max_spend = 0
         if 'impressions' in result:
             min_impressions = result['impressions']['lower_bound']
-            max_impressions = result['impressions']['upper_bound']
+            max_impressions = result['impressions'].get('upper_bound', -1)
         if 'spend' in result:
             min_spend = result['spend']['lower_bound']
-            max_spend = result['spend']['upper_bound']
+            max_spend = result['spend'].get('upper_bound', -1)
 
         link_caption = ''
         if 'ad_creative_link_caption' in result:
@@ -199,6 +197,7 @@ class SearchRunner():
         logging.info("page_name = %s", page_name)
         request_count = 0
         # TODO: Remove the request_count limit
+        curr_ad = None
         while has_next and not already_seen:
             request_count += 1
             try:
@@ -227,6 +226,8 @@ class SearchRunner():
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
+                if not results:
+                    raise RuntimeError('Result was None')
                 backoff_time = self.sleep_time
             except facebook.GraphAPIError as e:
                 backoff_time += backoff_time
@@ -254,7 +255,8 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except SSL.SysCallError as e:
+            except (SSL.SysCallError, RuntimeError) as e:
+                logging.error(e)
                 backoff_time += backoff_time
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
@@ -262,7 +264,6 @@ class SearchRunner():
             finally:
                 logging.info(f"waiting for {backoff_time} seconds before next query.")
                 sleep(backoff_time)
-            try:
                 with open(f"response-{request_count}","w") as result_file:
                     result_file.write(json.dumps(results))
                 old_ad_count = 0
@@ -324,16 +325,10 @@ class SearchRunner():
                 #we finished parsing each result
                 logging.info(f"old ads={old_ad_count}")
                 logging.info(f"total ads={total_ad_count}")
-                if total_ad_count > 0 and float(old_ad_count) / float(total_ad_count) > .75:
-                    already_seen = True
-
                 if "paging" in results and "next" in results["paging"]:
                     next_cursor = results["paging"]["cursors"]["after"]
                 else:
                     has_next = False
-            except Exception as e:
-                logging.error("Unhandled exception proccessing result: %s", result)
-                raise e
 
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_ad_sponsors(new_ad_sponsors)
@@ -415,11 +410,6 @@ def main():
     sleep_time = int(config['SEARCH']['SLEEP_TIME'])
     connection = get_db_connection(config)
     db = DBInterface(connection)
-    page_ids, page_names = get_page_data(connection, config)
-    all_ids = list(page_ids)
-    random.shuffle(all_ids)
-    logging.info(f"Page ID count: {len(all_ids)}")
-    logging.info(f"Page Name count: {len(page_names)}")
     search_runner = SearchRunner(
         datetime.date.today(),
         config['SEARCH']['COUNTRY_CODE'],
@@ -427,14 +417,15 @@ def main():
         db,
         config['FACEBOOK']['TOKEN'],
         sleep_time)
-    # for page_id in all_ids:
-    #     search_runner.run_search(page_id=page_id)
+    notify_slack(f"Starting Fullscale collection for {config['SEARCH']['COUNTRY_CODE']}")
 
-    # for page_name in page_names:
-    #     search_runner.run_search(page_name=page_name)
-    search_runner.run_search(page_name="''")
+    try:
+        search_runner.run_search(page_name = "''")
+    except Exception as e:
+        error_string = f'Unchaught excepion: {e}'
+        logging.error(error_string, exc_info=True)
+        notify_slack(error_string)
     connection.close()
-
 
 if __name__ == '__main__':
     main()

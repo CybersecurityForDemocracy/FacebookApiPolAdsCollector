@@ -1,7 +1,13 @@
+asn1crypto==0.24.0
 certifi==2019.6.16
+cffi==1.12.3
 chardet==3.0.4
+cryptography==2.7
 facebook-sdk==3.1.0
 idna==2.8
 psycopg2==2.8.3
+pycparser==2.19
+pyOpenSSL==19.0.0
 requests==2.22.0
+six==1.12.0
 urllib3==1.25.3
