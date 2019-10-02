@@ -422,7 +422,7 @@ def main():
         config['FACEBOOK']['TOKEN'],
         sleep_time)
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
-    page_string = ', '.join(page_ids) or 'all pages'
+    page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
     completion_status = 'Success'
