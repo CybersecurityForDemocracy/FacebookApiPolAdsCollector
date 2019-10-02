@@ -358,7 +358,6 @@ class SearchRunner():
         self.connection.commit()
 
 
-
 #get page data
 def get_page_data(input_connection, config):
     page_ids = set()
@@ -422,19 +421,25 @@ def main():
         db,
         config['FACEBOOK']['TOKEN'],
         sleep_time)
-    notify_slack(f"Starting Fullscale collection for {config['SEARCH']['COUNTRY_CODE']}")
+    page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
+    page_string = ', '.join(page_ids) or 'all pages'
+    start_time = datetime.datetime.now()
+    notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
+    completion_status = 'Success'
     try:
-        page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
         if page_ids:
             for page_id in page_ids:
                 search_runner.run_search(page_id=page_id)
         else:
             search_runner.run_search(page_name="''")
     except Exception as e:
-        error_string = f'Unchaught exception: {e}'
-        logging.error(error_string, exc_info=True)
-        notify_slack(error_string)
-    connection.close()
+        completion_status = f'Unchaught exception: {e}'
+        logging.error(completion_status, exc_info=True)
+    finally:
+        end_time = datetime.datetime.now()
+        duration_minutes = (end_time - start_time).seconds / 60
+        notify_slack(f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}.")
+        connection.close()
 
 if __name__ == '__main__':
     main()
