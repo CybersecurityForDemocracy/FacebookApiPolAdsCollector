@@ -8,6 +8,7 @@ import sys
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
+import pandas
 import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
@@ -15,14 +16,16 @@ import facebook
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 
-logging.basicConfig(handlers=[logging.FileHandler("canada_fb_api_collection.log"),
-                              logging.StreamHandler()],
-                    format='[%(levelname)s\t%(asctime)s] %(message)s',
-                    level=logging.INFO)
 
 if len(sys.argv) < 2:
     exit(f"Usage:python3 {sys.argv[1]} generic_fb_collector.cfg")
-
+config = configparser.ConfigParser()
+config.read(sys.argv[1])
+country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+logging.basicConfig(handlers=[logging.FileHandler(f"{country_code}_fb_api_collection.log"),
+                              logging.StreamHandler()],
+                    format='[%(levelname)s\t%(asctime)s] %(message)s',
+                    level=logging.INFO)
 #data structures to hold new ads
 AdRecord = namedtuple(
     "AdRecord",
@@ -210,7 +213,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=800,
+                        limit=700,
                         search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -222,12 +225,10 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=800,
+                        limit=500,
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
-                if not results:
-                    raise RuntimeError('Result was None')
                 backoff_time = self.sleep_time
             except facebook.GraphAPIError as e:
                 backoff_time += backoff_time
@@ -255,7 +256,7 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except (SSL.SysCallError, RuntimeError) as e:
+            except SSL.SysCallError as e:
                 logging.error(e)
                 backoff_time += backoff_time
                 logging.error("resetting graph")
@@ -264,71 +265,71 @@ class SearchRunner():
             finally:
                 logging.info(f"waiting for {backoff_time} seconds before next query.")
                 sleep(backoff_time)
-                with open(f"response-{request_count}","w") as result_file:
-                    result_file.write(json.dumps(results))
-                old_ad_count = 0
-                total_ad_count = 0
-                for result in results['data']:
-                    total_ad_count += 1
-                    curr_ad = self.get_ad_from_result(result)
-                    if curr_ad.sponsor_label not in existing_ad_sponsors:
-                        new_ad_sponsors.add(curr_ad.sponsor_label)
-                    if int(curr_ad.page_id) not in existing_pages:
-                        new_pages.add(PageRecord(curr_ad.page_id, curr_ad.page_name))
+            with open(f"response-{request_count}","w") as result_file:
+                result_file.write(json.dumps(results))
+            old_ad_count = 0
+            total_ad_count = 0
+            for result in results['data']:
+                total_ad_count += 1
+                curr_ad = self.get_ad_from_result(result)
+                if curr_ad.sponsor_label not in existing_ad_sponsors:
+                    new_ad_sponsors.add(curr_ad.sponsor_label)
+                if int(curr_ad.page_id) not in existing_pages:
+                    new_pages.add(PageRecord(curr_ad.page_id, curr_ad.page_name))
 
-                    if not curr_ad.is_active and curr_ad.archive_id in ad_ids:
-                        old_ad_count += 1
+                if not curr_ad.is_active and curr_ad.archive_id in ad_ids:
+                    old_ad_count += 1
 
-                    if curr_ad.is_active or curr_ad.archive_id in active_ads or curr_ad.archive_id not in ad_ids:
-                        new_impressions.add(curr_ad)
-                        if 'demographic_distribution' not in result:
-                            logging.info("no demo information in:")
-                            logging.info(result)
-                            continue
+                if curr_ad.is_active or curr_ad.archive_id in active_ads or curr_ad.archive_id not in ad_ids:
+                    new_impressions.add(curr_ad)
+                    if 'demographic_distribution' not in result:
+                        logging.info("no demo information in:")
+                        logging.info(result)
+                        continue
 
-                        if 'region_distribution' not in result:
-                            logging.info("no region information in:")
-                            logging.info(result)
-                            continue
+                    if 'region_distribution' not in result:
+                        logging.info("no region information in:")
+                        logging.info(result)
+                        continue
 
-                        for demo_result in result['demographic_distribution']:
-                            demo_key = demo_result['age'] + demo_result['gender']
-                            new_demo_groups[demo_key] = (demo_result['age'], demo_result['gender'])
+                    for demo_result in result['demographic_distribution']:
+                        demo_key = demo_result['age'] + demo_result['gender']
+                        new_demo_groups[demo_key] = (demo_result['age'], demo_result['gender'])
 
-                            if demo_key not in new_ad_demo_impressions[curr_ad.archive_id]:
-                                new_ad_demo_impressions[curr_ad.archive_id][demo_key] = SnapshotDemoRecord(
-                                    curr_ad.archive_id,
-                                    demo_result['age'],
-                                    demo_result['gender'],
-                                    float(demo_result['percentage']) * int(curr_ad.min_impressions),
-                                    float(demo_result['percentage']) * int(curr_ad.max_impressions),
-                                    float(demo_result['percentage']) * int(curr_ad.min_spend),
-                                    float(demo_result['percentage']) * int(curr_ad.max_spend),
-                                    self.crawl_date)
-
-                        for region_result in result['region_distribution']:
-                            if region_result['region'] not in existing_regions:
-                                new_regions.add(region_result['region'])
-                            new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
+                        if demo_key not in new_ad_demo_impressions[curr_ad.archive_id]:
+                            new_ad_demo_impressions[curr_ad.archive_id][demo_key] = SnapshotDemoRecord(
                                 curr_ad.archive_id,
-                                region_result['region'],
-                                float(region_result['percentage']) * int(curr_ad.min_impressions),
-                                float(region_result['percentage']) * int(curr_ad.max_impressions),
-                                float(region_result['percentage']) * int(curr_ad.min_spend),
-                                float(region_result['percentage']) * int(curr_ad.max_spend),
+                                demo_result['age'],
+                                demo_result['gender'],
+                                float(demo_result['percentage']) * int(curr_ad.min_impressions),
+                                float(demo_result['percentage']) * int(curr_ad.max_impressions),
+                                float(demo_result['percentage']) * int(curr_ad.min_spend),
+                                float(demo_result['percentage']) * int(curr_ad.max_spend),
                                 self.crawl_date)
 
-                    if curr_ad.archive_id not in ad_ids:
-                        new_ads.add(curr_ad)
-                        ad_ids.add(curr_ad.archive_id)
+                    for region_result in result['region_distribution']:
+                        if region_result['region'] not in existing_regions:
+                            new_regions.add(region_result['region'])
+                        new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
+                            curr_ad.archive_id,
+                            region_result['region'],
+                            float(region_result['percentage']) * int(curr_ad.min_impressions),
+                            float(region_result['percentage']) * int(curr_ad.max_impressions),
+                            float(region_result['percentage']) * int(curr_ad.min_spend),
+                            float(region_result['percentage']) * int(curr_ad.max_spend),
+                            self.crawl_date)
 
-                #we finished parsing each result
-                logging.info(f"old ads={old_ad_count}")
-                logging.info(f"total ads={total_ad_count}")
-                if "paging" in results and "next" in results["paging"]:
-                    next_cursor = results["paging"]["cursors"]["after"]
-                else:
-                    has_next = False
+                if curr_ad.archive_id not in ad_ids:
+                    new_ads.add(curr_ad)
+                    ad_ids.add(curr_ad.archive_id)
+
+            #we finished parsing each result
+            logging.info(f"old ads={old_ad_count}")
+            logging.info(f"total ads={total_ad_count}")
+            if "paging" in results and "next" in results["paging"]:
+                next_cursor = results["paging"]["cursors"]["after"]
+            else:
+                has_next = False
 
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_ad_sponsors(new_ad_sponsors)
@@ -403,10 +404,14 @@ def get_db_connection(config):
         host, dbname, user, password, port)
     return psycopg2.connect(dbauthorize)
 
+def get_pages_from_archive(archive_path):
+    if not archive_path:
+        return []
+    df = pandas.read_csv(archive_path)
+    return df['Page ID'].to_list()
+
 def main():
     logging.info("starting")
-    config = configparser.ConfigParser()
-    config.read(sys.argv[1])
     sleep_time = int(config['SEARCH']['SLEEP_TIME'])
     connection = get_db_connection(config)
     db = DBInterface(connection)
@@ -418,11 +423,15 @@ def main():
         config['FACEBOOK']['TOKEN'],
         sleep_time)
     notify_slack(f"Starting Fullscale collection for {config['SEARCH']['COUNTRY_CODE']}")
-
     try:
-        search_runner.run_search(page_name = "''")
+        page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
+        if page_ids:
+            for page_id in page_ids:
+                search_runner.run_search(page_id=page_id)
+        else:
+            search_runner.run_search(page_name="''")
     except Exception as e:
-        error_string = f'Unchaught excepion: {e}'
+        error_string = f'Unchaught exception: {e}'
         logging.error(error_string, exc_info=True)
         notify_slack(error_string)
     connection.close()
