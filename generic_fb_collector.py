@@ -213,7 +213,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=700,
+                        limit=2500/backoff_time,
                         search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -225,7 +225,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=500,
+                        limit=2500/backoff_time,
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -425,13 +425,14 @@ def main():
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
-    completion_status = 'Success'
+    completion_status = 'Failure'
     try:
         if page_ids:
             for page_id in page_ids:
                 search_runner.run_search(page_id=page_id)
         else:
             search_runner.run_search(page_name="''")
+        completion_status = 'Success'
     except Exception as e:
         completion_status = f'Unchaught exception: {e}'
         logging.error(completion_status, exc_info=True)
