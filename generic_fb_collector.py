@@ -200,6 +200,7 @@ class SearchRunner():
         logging.info("page_name = %s", page_name)
         request_count = 0
         # TODO: Remove the request_count limit
+        #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
         while has_next and not already_seen:
             request_count += 1
@@ -213,7 +214,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=2500/backoff_time,
+                        limit=20000/backoff_time,
                         search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -225,7 +226,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=2500/backoff_time,
+                        limit=20000/backoff_time,
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -264,6 +265,7 @@ class SearchRunner():
                 continue
             finally:
                 logging.info(f"waiting for {backoff_time} seconds before next query.")
+                #LAE - I'd like to propose we use a static time for sleeping, since we have an official rate limit from FB of 200 queries per hour. What do you think?
                 sleep(backoff_time)
             with open(f"response-{request_count}","w") as result_file:
                 result_file.write(json.dumps(results))
@@ -345,6 +347,7 @@ class SearchRunner():
 
         #write new ads to our database
         logging.info("writing " + str(len(new_ads)) + " new ads to db")
+        #LAE - I think it is incorrect to assume that all ads in a given run will have the same currency. I think this is the source of the SEK bug.
         self.db.insert_new_ads(new_ads, self.country_code, curr_ad.currency, existing_ad_sponsors)
 
         logging.info("writing " + str(len(new_impressions)) + " impressions to db")
@@ -406,6 +409,7 @@ def get_db_connection(config):
 def get_pages_from_archive(archive_path):
     if not archive_path:
         return []
+    #LAE - is there a reason we are using pandas instead of csv?
     df = pandas.read_csv(archive_path)
     return df['Page ID'].to_list()
 
@@ -422,12 +426,14 @@ def main():
         config['FACEBOOK']['TOKEN'],
         sleep_time)
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
+    #LAE - implement thing we discussed where we get existing ads by page id, and then get ads for the pages we are missing ads for, until we have everything
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
     completion_status = 'Failure'
     try:
         if page_ids:
+            #LAE - alter this to work for up to 10 page ids at a time
             for page_id in page_ids:
                 search_runner.run_search(page_id=page_id)
         else:
