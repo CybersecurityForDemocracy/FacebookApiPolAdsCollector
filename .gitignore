@@ -4,3 +4,4 @@ response*
 .vscode/
 __pycache__/
 venv/
+*.json
