@@ -8,7 +8,7 @@ import sys
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
-import pandas
+import csv
 import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
@@ -98,13 +98,15 @@ FIELDS_TO_REQUEST = [
 
 class SearchRunner():
 
-    def __init__(self, crawl_date, country_code, connection, db, fb_access_token, sleep_time):
+    def __init__(self, crawl_date, connection, db, config):
         self.crawl_date = crawl_date
-        self.country_code = country_code
+        self.country_code = config['SEARCH']['COUNTRY_CODE']
         self.connection = connection
         self.db = db
-        self.fb_access_token = fb_access_token
-        self.sleep_time = sleep_time
+        self.fb_access_token = config['FACEBOOK']['TOKEN']
+        self.sleep_time = int(config['SEARCH']['SLEEP_TIME'])
+        self.request_limit = int(config['SEARCH']['LIMIT'])
+        self.max_requests = int(config['SEARCH']['MAX_REQUESTS'])
 
     def get_ad_from_result(self, result):
         image_url = result['ad_snapshot_url']
@@ -194,7 +196,7 @@ class SearchRunner():
         has_next = True
         already_seen = False
         next_cursor = ""
-        backoff_time = self.sleep_time
+        backoff = 1
         logging.info(datetime.datetime.now())
         logging.info("page_id = %s", page_id)
         logging.info("page_name = %s", page_name)
@@ -202,7 +204,7 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while has_next and not already_seen:
+        while has_next and not already_seen and request_count < self.max_requests:
             request_count += 1
             try:
                 results = None
@@ -214,7 +216,7 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=20000/backoff_time,
+                        limit=self.request_limit,
                         search_terms=page_name,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
@@ -226,13 +228,13 @@ class SearchRunner():
                         ad_reached_countries=self.country_code,
                         ad_type='POLITICAL_AND_ISSUE_ADS',
                         ad_active_status='ALL',
-                        limit=20000/backoff_time,
+                        limit=self.request_limit,
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
-                backoff_time = self.sleep_time
+                backoff = 1
             except facebook.GraphAPIError as e:
-                backoff_time += backoff_time
+                backoff += backoff
                 logging.error("Graph Error")
                 logging.error(e.code)
                 logging.error(e)
@@ -249,7 +251,7 @@ class SearchRunner():
                     graph = facebook.GraphAPI(access_token=self.fb_access_token)
                     continue
             except OSError as e:
-                backoff_time += backoff_time
+                backoff += backoff
                 logging.error("OS error: {0}".format(e))
                 logging.error(datetime.datetime.now())
                 sleep(60)
@@ -259,14 +261,13 @@ class SearchRunner():
 
             except SSL.SysCallError as e:
                 logging.error(e)
-                backoff_time += backoff_time
+                backoff += backoff
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
             finally:
-                logging.info(f"waiting for {backoff_time} seconds before next query.")
-                #LAE - I'd like to propose we use a static time for sleeping, since we have an official rate limit from FB of 200 queries per hour. What do you think?
-                sleep(backoff_time)
+                logging.info(f"waiting for {self.sleep_time} seconds before next query.")
+                sleep(self.sleep_time)
             with open(f"response-{request_count}","w") as result_file:
                 result_file.write(json.dumps(results))
             old_ad_count = 0
@@ -362,9 +363,8 @@ class SearchRunner():
 
 
 #get page data
-def get_page_data(input_connection, config):
-    page_ids = set()
-    page_names = set()
+def get_page_data(connection, config):
+    page_ids = {}
     input_TYPE = config['INPUT']['TYPE']
     if input_TYPE == 'file':
         input_FILES = config['INPUT']['FILES']
@@ -373,27 +373,15 @@ def get_page_data(input_connection, config):
         for file_name in file_list:
             with open(file_name) as input:
                 for row in input:
-                    page_ids.add(row.strip())
+                    page_ids[row.strip()] = 0
     else:
-        input_cursor = input_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        general_table = config['INPUT']['GENERAL_TABLE']
-        weekly_table = config['INPUT']['WEEKLYTABLE']
-        search_limit = config['SEARCH']['LIMIT']
-        for row in input_cursor:
-            this_week_pages_query = f'select page_name, {general_table}.fb_id, total_ads from \
-                {weekly_table} join {general_table} \
-                on {weekly_table}.nyu_id = {general_table}.nyu_id \
-                where week in \
-                (select max(week) from {weekly_table}) \
-                order by total_ads desc \
-                limit({search_limit});'
-            input_cursor.execute(this_week_pages_query)
-            for row in input_cursor:
-                if row['fb_id']:
-                    page_ids.add(int(row['fb_id']))
-                else:
-                    page_names.add(row['page_name'])
-    return page_ids, page_names
+        cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        page_ads_query = "select page_id, count(*) as ad_count from ads group by page_id"
+        cursor.execute(page_ads_query)
+        for row in cursor:
+            page_ids[row['page_id']] = row['ad_count']
+
+    return page_ids
 
 
 def get_db_connection(config):
@@ -407,34 +395,47 @@ def get_db_connection(config):
     return psycopg2.connect(dbauthorize)
 
 def get_pages_from_archive(archive_path):
+    page_ads = {}
     if not archive_path:
-        return []
-    #LAE - is there a reason we are using pandas instead of csv?
-    df = pandas.read_csv(archive_path)
-    return df['Page ID'].to_list()
+        return page_ads
+    with open(archive_path) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row["\ufeffPage ID"] in page_ads:
+                page_ads[row["\ufeffPage ID"]] += row["Number of Ads in Library"]
+            else:
+                page_ads[row["\ufeffPage ID"]] = row["Number of Ads in Library"]
+
+    return page_ads
 
 def main():
     logging.info("starting")
-    sleep_time = int(config['SEARCH']['SLEEP_TIME'])
     connection = get_db_connection(config)
     db = DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),
-        config['SEARCH']['COUNTRY_CODE'],
         connection,
         db,
-        config['FACEBOOK']['TOKEN'],
-        sleep_time)
+        config)
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
-    #LAE - implement thing we discussed where we get existing ads by page id, and then get ads for the pages we are missing ads for, until we have everything
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
     completion_status = 'Failure'
     try:
         if page_ids:
+            curr_page_ids = get_page_data(connection, config)
+            for page_id, ad_count in page_ids.items():
+                if page_id in curr_page_ids:
+                    curr_ad_count = curr_page_ids[page_id]
+                    if ad_count > curr_ad_count:
+                        page_delta[page_id] = ad_count - curr_ad_count
+                else:
+                    page_delta[page_id] = ad_count
+
+            prioritized_page_ids = [x for x in sorted(page_delta, key=d.get, reverse=True)]
             #LAE - alter this to work for up to 10 page ids at a time
-            for page_id in page_ids:
+            for page_id in prioritized_page_ids:
                 search_runner.run_search(page_id=page_id)
         else:
             search_runner.run_search(page_name="''")
