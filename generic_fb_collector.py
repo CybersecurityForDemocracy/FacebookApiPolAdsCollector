@@ -410,6 +410,7 @@ def get_pages_from_archive(archive_path):
 
 def main():
     logging.info("starting")
+    slack_url = config['LOGGING']['SLACK_URL']
     connection = get_db_connection(config)
     db = DBInterface(connection)
     search_runner = SearchRunner(
@@ -420,7 +421,7 @@ def main():
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
-    notify_slack(f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
+    notify_slack(slack_url, f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
     completion_status = 'Failure'
     try:
         if page_ids:
@@ -446,7 +447,7 @@ def main():
     finally:
         end_time = datetime.datetime.now()
         duration_minutes = (end_time - start_time).seconds / 60
-        notify_slack(f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}.")
+        notify_slack(slack_url, f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}.")
         connection.close()
 
 if __name__ == '__main__':

@@ -5,10 +5,7 @@ headers = {
     'Content-type': 'application/json',
 }
 
-# Ideally the key in the URL should be read from a config file
-devops_channel_url = 'https://hooks.slack.com/services/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'
-
-def notify_slack(message):
+def notify_slack(devops_channel_url, message):
     data = json.dumps({'text': message})
     requests.post(devops_channel_url, headers=headers, data=data)
     
