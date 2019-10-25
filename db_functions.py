@@ -152,7 +152,7 @@ class DBInterface():
             # print(self.mogrify(insert_demo_groups))
             cursor.execute(insert_demo_groups)
 
-    def insert_new_ads(self, new_ads, country_code, currency, existing_ad_sponsors):
+    def insert_new_ads(self, new_ads, country_code, existing_ad_sponsors):
         cursor = self.get_cursor()
         ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES %s on conflict on constraint unique_ad_archive_id do nothing;"
         insert_template = '(%(archive_id)s, %(creation_date)s, %(start_date)s, %(end_date)s, %(currency)s, %(page_id)s, %(image_url)s, %(text)s, %(ad_sponsor_id)s, %(is_active)s, %(ad_creative_link_caption)s, %(ad_creative_link_description)s, %(ad_creative_link_title)s, %(country_code)s)'
@@ -161,7 +161,6 @@ class DBInterface():
             ad_dict = ad._asdict()
             ad_dict['country_code'] = country_code
             ad_dict['ad_sponsor_id'] = existing_ad_sponsors[ad.sponsor_label]
-            ad_dict['currency'] = currency
             new_ad_list.append(ad_dict)
 
         psycopg2.extras.execute_values(
