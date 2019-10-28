@@ -12,7 +12,7 @@ import csv
 import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
-import fpopulationacebook
+import facebook
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 
