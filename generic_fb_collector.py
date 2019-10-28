@@ -349,7 +349,7 @@ class SearchRunner():
         #write new ads to our database
         logging.info("writing " + str(len(new_ads)) + " new ads to db")
         #LAE - I think it is incorrect to assume that all ads in a given run will have the same currency. I think this is the source of the SEK bug.
-        self.db.insert_new_ads(new_ads, self.country_code, curr_ad.currency, existing_ad_sponsors)
+        self.db.insert_new_ads(new_ads, self.country_code, existing_ad_sponsors)
 
         logging.info("writing " + str(len(new_impressions)) + " impressions to db")
         self.db.insert_new_impressions(new_impressions, self.crawl_date)
