@@ -1,17 +1,23 @@
-import requests
 import json
+import logging
+
+import requests
 
 headers = {
     'Content-type': 'application/json',
 }
 
 def notify_slack(devops_channel_url, message):
-    data = json.dumps({'text': message})
-    requests.post(devops_channel_url, headers=headers, data=data)
-    
+    logging.info('Slack notification: %s', message)
+    if devops_channel_url:
+        data = json.dumps({'text': message})
+        requests.post(devops_channel_url, headers=headers, data=data)
+        return
+    else:
+        logging.warning('No Slack URL provided, logging locally only.')
     # Curl request: 
-    # curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' https://hooks.slack.com/services/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
+    # curl -X POST -H 'Content-type: application/json' --data '{"text":"Hello, World!"}' <SLACK URL FROM CONFIG FILE>
 
-
+# Quick and dirty test
 # if __name__ == '__main__':
 #     notify_slack('Test String with `fun\'ny" characters')

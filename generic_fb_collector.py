@@ -1,4 +1,5 @@
 import configparser
+import csv
 import datetime
 import json
 import logging
@@ -8,14 +9,14 @@ import sys
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
-import csv
+
+import facebook
 import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
-import facebook
+
 from db_functions import DBInterface
 from slack_notifier import notify_slack
-
 
 if len(sys.argv) < 2:
     exit(f"Usage:python3 {sys.argv[1]} generic_fb_collector.cfg")
@@ -174,16 +175,6 @@ class SearchRunner():
     def run_search(self, page_id=None, page_name=None):
         self.crawl_date = datetime.date.today()
 
-        #structures to hold all the new stuff we find
-        new_ads = set()
-        new_ad_sponsors = set()
-        new_pages = set()
-        new_demo_groups = {}
-        new_regions = set()
-        new_impressions = set()
-        new_ad_region_impressions = defaultdict(dict)
-        new_ad_demo_impressions = defaultdict(dict)
-
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         (ad_ids, active_ads) = self.db.existing_ads()
         existing_regions = self.db.existing_region()
@@ -194,7 +185,6 @@ class SearchRunner():
         #get ads
         graph = facebook.GraphAPI(access_token=self.fb_access_token)
         has_next = True
-        already_seen = False
         next_cursor = ""
         backoff = 1
         logging.info(datetime.datetime.now())
@@ -204,7 +194,16 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while has_next and not already_seen and request_count < self.max_requests:
+        while has_next and request_count < self.max_requests:
+            #structures to hold all the new stuff we find
+            new_ads = set()
+            new_ad_sponsors = set()
+            new_pages = set()
+            new_demo_groups = {}
+            new_regions = set()
+            new_impressions = set()
+            new_ad_region_impressions = defaultdict(dict)
+            new_ad_demo_impressions = defaultdict(dict)
             request_count += 1
             try:
                 results = None
@@ -279,6 +278,7 @@ class SearchRunner():
                     new_ad_sponsors.add(curr_ad.sponsor_label)
                 if int(curr_ad.page_id) not in existing_pages:
                     new_pages.add(PageRecord(curr_ad.page_id, curr_ad.page_name))
+                    existing_pages.add(int(curr_ad.page_id))
 
                 if not curr_ad.is_active and curr_ad.archive_id in ad_ids:
                     old_ad_count += 1
@@ -297,7 +297,8 @@ class SearchRunner():
 
                     for demo_result in result['demographic_distribution']:
                         demo_key = demo_result['age'] + demo_result['gender']
-                        new_demo_groups[demo_key] = (demo_result['age'], demo_result['gender'])
+                        if demo_key not in existing_demo_groups:
+                            new_demo_groups[demo_key] = (demo_result['age'], demo_result['gender'])
 
                         if demo_key not in new_ad_demo_impressions[curr_ad.archive_id]:
                             new_ad_demo_impressions[curr_ad.archive_id][demo_key] = SnapshotDemoRecord(
@@ -326,6 +327,9 @@ class SearchRunner():
                     new_ads.add(curr_ad)
                     ad_ids.add(curr_ad.archive_id)
 
+                if curr_ad.is_active:
+                    active_ads.add(curr_ad.archive_id)
+
             #we finished parsing each result
             logging.info(f"old ads={old_ad_count}")
             logging.info(f"total ads={total_ad_count}")
@@ -334,32 +338,32 @@ class SearchRunner():
             else:
                 has_next = False
 
-        #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
-        self.db.insert_ad_sponsors(new_ad_sponsors)
-        self.db.insert_pages(new_pages)
-        self.db.insert_regions(new_regions)
-        self.db.insert_demos(new_demo_groups)
+            #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
+            self.db.insert_ad_sponsors(new_ad_sponsors)
+            self.db.insert_pages(new_pages)
+            self.db.insert_regions(new_regions)
+            self.db.insert_demos(new_demo_groups)
 
-        self.connection.commit()
-        existing_regions = self.db.existing_region()
-        existing_demo_groups = self.db.existing_demos()
-        existing_pages = self.db.existing_page()
-        existing_ad_sponsors = self.db.existing_sponsors()
+            self.connection.commit()
 
-        #write new ads to our database
-        logging.info("writing " + str(len(new_ads)) + " new ads to db")
-        #LAE - I think it is incorrect to assume that all ads in a given run will have the same currency. I think this is the source of the SEK bug.
-        self.db.insert_new_ads(new_ads, self.country_code, existing_ad_sponsors)
+            # We have to reload these since we rely on the row ids from the database for indexing
+            existing_regions = self.db.existing_region()
+            existing_demo_groups = self.db.existing_demos()
+            existing_ad_sponsors = self.db.existing_sponsors()
+            #write new ads to our database
+            logging.info("writing " + str(len(new_ads)) + " new ads to db")
+            #LAE - I think it is incorrect to assume that all ads in a given run will have the same currency. I think this is the source of the SEK bug.
+            self.db.insert_new_ads(new_ads, self.country_code, existing_ad_sponsors)
 
-        logging.info("writing " + str(len(new_impressions)) + " impressions to db")
-        self.db.insert_new_impressions(new_impressions, self.crawl_date)
+            logging.info("writing " + str(len(new_impressions)) + " impressions to db")
+            self.db.insert_new_impressions(new_impressions, self.crawl_date)
 
-        logging.info("writing new_ad_demo_impressions to db")
-        self.db.insert_new_impression_demos(new_ad_demo_impressions, existing_demo_groups, self.crawl_date)
+            logging.info("writing new_ad_demo_impressions to db")
+            self.db.insert_new_impression_demos(new_ad_demo_impressions, existing_demo_groups, self.crawl_date)
 
-        logging.info("writing new_ad_region_impressions to db")
-        self.db.insert_new_impression_regions(new_ad_region_impressions, existing_regions, self.crawl_date)
-        self.connection.commit()
+            logging.info("writing new_ad_region_impressions to db")
+            self.db.insert_new_impression_regions(new_ad_region_impressions, existing_regions, self.crawl_date)
+            self.connection.commit()
 
 
 #get page data
