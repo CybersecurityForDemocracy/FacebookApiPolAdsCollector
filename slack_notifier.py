@@ -1,6 +1,7 @@
-import requests
 import json
 import logging
+
+import requests
 
 headers = {
     'Content-type': 'application/json',
