@@ -110,6 +110,8 @@ CREATE TABLE demo_impression_results (
   min_impressions integer,
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  -- This constraint probably has a syntax error
+  CONSTRAINT unique_demos_per_ad UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impression_results (
   archive_id bigint,
@@ -119,4 +121,6 @@ CREATE TABLE region_impression_results (
   min_impressions integer,
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  -- This constraint probably has a syntax error
+  CONSTRAINT unique_regions_per_ad UNIQUE(archive_id, region)
 );
