@@ -6,20 +6,26 @@ CREATE TABLE pages (
 );
 CREATE TABLE ads (
   archive_id bigint NOT NULL,
-  ad_text character varying,
-  creation_data date,
-  end_data date,
+  ad_creative_body character varying,
+  ad_creation_time date,
+  ad_delivery_stop_time date,
   page_id bigint,
   currency character varying (4),
-  link_caption character varying,
-  link_title character varying,
-  creative_url character varying,
-  sponsor_label character varying,
-  country_codes character varying,
+  ad_creative_link_caption character varying,
+  ad_creative_link_title character varying,
+  ad_creative_link_description character varying,
+  ad_snapshot_url character varying,
+  funding_entity character varying,
   PRIMARY KEY (archive_id),
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-
+CREATE TABLE ad_countries(
+  archive_id bigint,
+  country_code character varying,
+  PRIMARY KEY (archive_id, country_code)
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  
+);
 CREATE TABLE impressions (
   archive_id bigint,
   ad_status bigint,
@@ -30,9 +36,7 @@ CREATE TABLE impressions (
   last_active date,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT funder_id_fk FOREIGN KEY (funder_id) REFERENCES funder_metadata (funder_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-
 CREATE TABLE funder_metadata (
   funder_id bigint NOT NULL,
   funder_name character varying,
@@ -72,7 +76,6 @@ CREATE TABLE ad_images (
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-
 CREATE TABLE demo_impressions (
   archive_id bigint,
   age_group character varying,
@@ -82,7 +85,9 @@ CREATE TABLE demo_impressions (
   CONSTRAINT spend_is_percentage check (
     spend_percentage >= 0
     AND spend_percentage <= 100
-  )
+  ),
+  -- This constraint probably has a syntax error
+  CONSTRAINT unique_demos_per_ad UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impressions (
   archive_id bigint,
@@ -92,17 +97,9 @@ CREATE TABLE region_impressions (
   CONSTRAINT spend_is_percentage check (
     spend_percentage >= 0
     AND spend_percentage <= 100
-  )
-);
-CREATE TABLE demo_impression_results (
-  archive_id bigint,
-  age_group character varying,
-  gender character varying,
-  min_spend decimal(10, 2),
-  max_spend decimal(10, 2),
-  min_impressions integer,
-  max_impressions integer,
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  ),
+  -- This constraint probably has a syntax error
+  CONSTRAINT unique_regions_per_ad UNIQUE(archive_id, region)
 );
 CREATE TABLE demo_impression_results (
   archive_id bigint,
