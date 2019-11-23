@@ -136,10 +136,10 @@ class SearchRunner():
             result.get('ad_delivery_start_time', None),
             result.get('ad_delivery_stop_time', self.crawl_date),
             ad_status,
-            result.get('impressions', dict()).get('lower_bound'),
-            result.get('impressions', dict()).get('upper_bound'),
-            result.get('spend', dict()).get('lower_bound'),
-            result.get('spend', dict()).get('upper_bound'),
+            result.get('impressions', dict()).get('lower_bound', '0'),
+            result.get('impressions', dict()).get('upper_bound', '0'),
+            result.get('spend', dict()).get('lower_bound', '0'),
+            result.get('spend', dict()).get('upper_bound', '0'),
             result.get('currency', None),
             result.get('ad_creative_link_caption', None),
             result.get('ad_creative_link_description', None),
@@ -179,7 +179,15 @@ class SearchRunner():
                 float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
 
     def process_region_impressions(self, region_distribution, curr_ad):
-        for region_result in region_distribution:
+        regions = set()
+        for region_result in region_distribution: 
+            # If we get the same region more than once for an ad, the second occurance
+            # This is a data losing proposition but can't be helped till FB fixes the results
+            # They provide on the API
+            if region_result['region'] in regions:
+                continue
+            else:
+                regions.add(region_result['region'])
             self.new_ad_region_impressions.append(SnapshotRegionRecord(
             curr_ad.archive_id,
             region_result['region'],
@@ -407,7 +415,7 @@ def main():
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
-    notify_slack(slack_url, f"Starting fullscale collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
+    notify_slack(slack_url, f"Starting UNIFIED collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
     completion_status = 'Failure'
     try:
         if page_ids:
