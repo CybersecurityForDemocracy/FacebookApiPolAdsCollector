@@ -1,3 +1,18 @@
+-- Uncomment these to drop tables. 
+--  DROP TABLE IF EXISTS ad_countries cascade;
+--  DROP TABLE IF EXISTS pages cascade;
+--  DROP TABLE IF EXISTS impressions cascade;
+--  DROP TABLE IF EXISTS funder_metadata cascade;
+--  DROP TABLE IF EXISTS ad_metadata cascade;
+--  DROP TABLE IF EXISTS page_metadata cascade;
+--  DROP TABLE IF EXISTS ad_images cascade;
+--  DROP TABLE IF EXISTS ads cascade;
+--  DROP TABLE IF EXISTS demo_impressions cascade;
+--  DROP TABLE IF EXISTS region_impressions cascade;
+--  DROP TABLE IF EXISTS demo_impression_results cascade;
+--  DROP TABLE IF EXISTS region_impression_results cascade;
+
+
 CREATE TABLE pages (
   page_id bigint NOT NULL,
   page_name character varying NOT NULL,
@@ -9,7 +24,7 @@ CREATE TABLE ads (
   ad_creative_body character varying,
   ad_creation_time date,
   ad_delivery_stop_time date,
-  page_id bigint,
+  page_id bigint,unique_demo_results
   currency character varying (4),
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
@@ -22,9 +37,8 @@ CREATE TABLE ads (
 CREATE TABLE ad_countries(
   archive_id bigint,
   country_code character varying,
-  PRIMARY KEY (archive_id, country_code)
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  
+  PRIMARY KEY (archive_id, country_code),
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 CREATE TABLE impressions (
   archive_id bigint,
@@ -35,10 +49,11 @@ CREATE TABLE impressions (
   max_impressions integer,
   last_active date,
   PRIMARY KEY (archive_id),
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
+
 CREATE TABLE funder_metadata (
-  funder_id bigint NOT NULL,
+  funder_id SERIAL,
   funder_name character varying,
   funder_type character varying,
   legal_entity_id character varying,
@@ -46,7 +61,7 @@ CREATE TABLE funder_metadata (
   funder_country character varying,
   parent_id bigint,
   partisan_lean character varying,
-  PRIMARY KEY (funder_id),
+  PRIMARY KEY (funder_id)
 );
 CREATE TABLE ad_metadata (
   archive_id bigint,
@@ -111,7 +126,7 @@ CREATE TABLE demo_impression_results (
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   -- This constraint probably has a syntax error
-  CONSTRAINT unique_demos_per_ad UNIQUE(archive_id, age_group, gender)
+  CONSTRAINT unique_demo_results UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impression_results (
   archive_id bigint,
@@ -122,5 +137,5 @@ CREATE TABLE region_impression_results (
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   -- This constraint probably has a syntax error
-  CONSTRAINT unique_regions_per_ad UNIQUE(archive_id, region)
+  CONSTRAINT unique_region_results UNIQUE(archive_id, region)
 );

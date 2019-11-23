@@ -40,7 +40,7 @@ AdRecord = namedtuple(
         "ad_creation_time",
         "ad_delivery_start_time",
         "ad_delivery_stop_time",
-        "is_active",
+        "ad_status",
         "impressions__lower_bound",
         "impressions__upper_bound",
         "spend__lower_bound",
@@ -56,8 +56,8 @@ SnapshotRegionRecord = namedtuple(
     "SnapshotRegionRecord",
     [
         "archive_id",
-        "name",
-        "spend_percentage"
+        "region",
+        "spend_percentage",
         "min_impressions",
         "max_impressions",
         "min_spend",
@@ -70,7 +70,7 @@ SnapshotDemoRecord = namedtuple(
         "archive_id",
         "age_range",
         "gender",
-        "spend_percentage"
+        "spend_percentage",
         "min_impressions",
         "max_impressions",
         "min_spend",
@@ -113,8 +113,8 @@ class SearchRunner():
         self.new_pages = set()
         self.new_regions = set()
         self.new_impressions = set()
-        self.new_ad_region_impressions = defaultdict(dict)
-        self.new_ad_demo_impressions = defaultdict(dict)
+        self.new_ad_region_impressions = list()
+        self.new_ad_demo_impressions = list()
         self.existing_pages = None
         self.existing_funding_entities = None
         self.existing_ads_to_end_time_map = None
@@ -122,27 +122,28 @@ class SearchRunner():
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
         archive_id = int(parse_qs(url_parts.query)['id'][0])
-        is_active = not 'ad_delivery_stop_time' in result
-
+        ad_status = 1
+        if  'ad_delivery_stop_time' in result:
+            ad_status = 0
         curr_ad = AdRecord(
             archive_id,
-            result.get('page_id', ''),
-            result.get('page_name', ''),
-            result.get('ad_snapshot_url', ''),
-            result.get('ad_creative_body', ''),
-            result.get('funding_entity', ''),
-            result.get('ad_creation_time', ''),
-            result.get('ad_delivery_start_time', ''),
-            result.get('ad_delivery_stop_time', ''),
-            is_active,
+            result.get('page_id', None),
+            result.get('page_name', None),
+            result.get('ad_snapshot_url', None),
+            result.get('ad_creative_body', None),
+            result.get('funding_entity', None),
+            result.get('ad_creation_time', None),
+            result.get('ad_delivery_start_time', None),
+            result.get('ad_delivery_stop_time', self.crawl_date),
+            ad_status,
             result.get('impressions', dict()).get('lower_bound'),
             result.get('impressions', dict()).get('upper_bound'),
             result.get('spend', dict()).get('lower_bound'),
             result.get('spend', dict()).get('upper_bound'),
-            result.get('currency', ''),
-            result.get('ad_creative_link_caption', ''),
-            result.get('ad_creative_link_description', ''),
-            result.get('ad_creative_link_title', ''))
+            result.get('currency', None),
+            result.get('ad_creative_link_caption', None),
+            result.get('ad_creative_link_description', None),
+            result.get('ad_creative_link_title', None))
         return curr_ad
 
     
@@ -159,7 +160,7 @@ class SearchRunner():
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
             self.new_ads.add(ad)
-            self.existing_ads_to_end_time_map.add(ad.archive_id)
+            self.existing_ads_to_end_time_map[ad.archive_id] = ad.ad_delivery_stop_time
 
     def process_impressions(self, ad):
         self.new_impressions.add(ad)
@@ -167,26 +168,26 @@ class SearchRunner():
     def process_demo_impressions(self, demographic_distribution, curr_ad):
         for demo_result in demographic_distribution:
             demo_key = demo_result['age'] + demo_result['gender']
-            self.new_ad_demo_impressions[curr_ad.archive_id][demo_key] = SnapshotDemoRecord(
+            self.new_ad_demo_impressions.append(SnapshotDemoRecord(
                 curr_ad.archive_id,
                 demo_result['age'],
                 demo_result['gender'],
                 demo_result['percentage'],
-                float(demo_result['percentage']) * int(curr_ad.min_impressions),
-                float(demo_result['percentage']) * int(curr_ad.max_impressions),
-                float(demo_result['percentage']) * int(curr_ad.min_spend),
-                float(demo_result['percentage']) * int(curr_ad.max_spend))
+                float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
+                float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
 
     def process_region_impressions(self, region_distribution, curr_ad):
         for region_result in region_distribution:
-            self.new_ad_region_impressions[curr_ad.archive_id][region_result['region']] = SnapshotRegionRecord(
+            self.new_ad_region_impressions.append(SnapshotRegionRecord(
             curr_ad.archive_id,
             region_result['region'],
             region_result['percentage'],
-            float(region_result['percentage']) * int(curr_ad.min_impressions),
-            float(region_result['percentage']) * int(curr_ad.max_impressions),
-            float(region_result['percentage']) * int(curr_ad.min_spend),
-            float(region_result['percentage']) * int(curr_ad.max_spend))
+            float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
+            float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
+            float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
+            float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
 
 
     def run_search(self, page_id=None, page_name=None):
@@ -214,11 +215,10 @@ class SearchRunner():
             self.new_ads = set()
             self.new_ad_sponsors = set()
             self.new_pages = set()
-            self.new_demo_groups = {}
             self.new_regions = set()
             self.new_impressions = set()
-            self.new_ad_region_impressions = defaultdict(dict)
-            self.new_ad_demo_impressions = defaultdict(dict)
+            self.new_ad_region_impressions = list()
+            self.new_ad_demo_impressions = list()
             request_count += 1
             try:
                 results = None
@@ -294,7 +294,7 @@ class SearchRunner():
                 self.process_page(curr_ad)
                 self.process_impressions(curr_ad)
 
-                if not curr_ad.is_active and curr_ad.archive_id in self.existing_ads_to_end_time_map:
+                if not curr_ad.ad_status and curr_ad.archive_id in self.existing_ads_to_end_time_map:
                     old_ad_count += 1
 
                 # If this ad is new to the dataset or has updated information, update impressions 
@@ -330,20 +330,20 @@ class SearchRunner():
         self.db.insert_pages(self.new_pages)
         #write new ads to our database
         logging.info("writing " + str(len(self.new_ads)) + " new ads to db")
-        self.db.insert_new_ads(self.new_ads, self.country_code, self.existing_funding_entities)
+        self.db.insert_new_ads(self.new_ads)
         logging.info("writing " + str(len(self.new_impressions)) + " impressions to db")
-        self.db.insert_new_impressions(self.new_impressions, self.crawl_date)
+        self.db.insert_new_impressions(self.new_impressions)
 
         logging.info("writing self.new_ad_demo_impressions to db")
-        self.db.insert_new_impression_demos(self.new_ad_demo_impressions, self.crawl_date)
+        self.db.insert_new_impression_demos(self.new_ad_demo_impressions)
 
         logging.info("writing self.new_ad_region_impressions to db")
-        self.db.insert_new_impression_regions(self.new_ad_region_impressions, self.existing_regions, self.crawl_date)
+        self.db.insert_new_impression_regions(self.new_ad_region_impressions)
         self.connection.commit()
 
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
-        self.existing_funding_entities = self.db.existing_sponsors()
+        self.existing_funding_entities = self.db.existing_funding_entities()
         self.connection.commit()
 
 
