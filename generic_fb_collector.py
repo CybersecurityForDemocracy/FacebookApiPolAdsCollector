@@ -167,7 +167,6 @@ class SearchRunner():
 
     def process_demo_impressions(self, demographic_distribution, curr_ad):
         for demo_result in demographic_distribution:
-            demo_key = demo_result['age'] + demo_result['gender']
             self.new_ad_demo_impressions.append(SnapshotDemoRecord(
                 curr_ad.archive_id,
                 demo_result['age'],
