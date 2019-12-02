@@ -47,7 +47,6 @@ CREATE TABLE impressions (
   max_spend decimal(10, 2),
   min_impressions integer,
   max_impressions integer,
-  last_active date,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
@@ -55,7 +54,7 @@ CREATE TABLE impressions (
 CREATE TABLE funder_metadata (
   funder_id SERIAL,
   funder_name character varying,
-  funder_type character varying,
+  funder_type character vlarying,
   legal_entity_id character varying,
   legal_entity_name character varying,
   funder_country character varying,
@@ -69,7 +68,6 @@ CREATE TABLE ad_metadata (
   category character varying,
   ad_id bigint,
   text_hash character varying,
-  last_active date,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT funder_id_fk FOREIGN KEY (funder_id) REFERENCES funder_metadata (funder_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION

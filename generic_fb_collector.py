@@ -18,37 +18,31 @@ from OpenSSL import SSL
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 
-if len(sys.argv) < 2:
-    exit(f"Usage:python3 {sys.argv[1]} generic_fb_collector.cfg")
-config = configparser.ConfigParser()
-config.read(sys.argv[1])
-country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-logging.basicConfig(handlers=[logging.FileHandler(f"{country_code}_fb_api_collection.log"),
-                              logging.StreamHandler()],
-                    format='[%(levelname)s\t%(asctime)s] %(message)s',
-                    level=logging.INFO)
 #data structures to hold new ads
 AdRecord = namedtuple(
     "AdRecord",
     [
-        "archive_id",
-        "page_id",
-        "page_name",
-        "ad_snapshot_url",
-        "ad_creative_body",
-        "funding_entity",
         "ad_creation_time",
-        "ad_delivery_start_time",
-        "ad_delivery_stop_time",
-        "ad_status",
-        "impressions__lower_bound",
-        "impressions__upper_bound",
-        "spend__lower_bound",
-        "spend__upper_bound",
-        "currency",
+        "ad_creative_body",
         "ad_creative_link_caption",
         "ad_creative_link_description",
         "ad_creative_link_title",
+        "ad_delivery_start_time",
+        "ad_delivery_stop_time",
+        "ad_snapshot_url",
+        "ad_status",
+        "archive_id",
+        "country",
+        "currency",
+        "first_crawl_time",
+        "funding_entity",
+        "impressions__lower_bound",
+        "impressions__upper_bound",
+        "page_id",
+        "page_name",
+        "publisher_platform",
+        "spend__lower_bound",
+        "spend__upper_bound",
     ],
 )
 PageRecord = namedtuple("PageRecord", ["id", "name"])
@@ -80,21 +74,22 @@ SnapshotDemoRecord = namedtuple(
 
 FIELDS_TO_REQUEST = [
     "ad_creation_time",
+    "ad_creative_body",
+    "ad_creative_link_caption",
+    "ad_creative_link_description",
+    "ad_creative_link_title",
     "ad_delivery_start_time",
     "ad_delivery_stop_time",
     "ad_snapshot_url",
     "currency",
     "demographic_distribution",
+    "funding_entity",
     "impressions",
     "page_id",
     "page_name",
+    "publisher_platform",
     "region_distribution",
     "spend",
-    "ad_creative_body",
-    "funding_entity",
-    "ad_creative_link_caption",
-    "ad_creative_link_description",
-    "ad_creative_link_title",
 ]
 
 class SearchRunner():
@@ -115,9 +110,9 @@ class SearchRunner():
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
-        self.existing_pages = None
-        self.existing_funding_entities = None
-        self.existing_ads_to_end_time_map = None
+        self.existing_pages = set()
+        self.existing_funding_entities = set()
+        self.existing_ads_to_end_time_map = dict()
 
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
@@ -126,24 +121,28 @@ class SearchRunner():
         if  'ad_delivery_stop_time' in result:
             ad_status = 0
         curr_ad = AdRecord(
-            archive_id,
-            result.get('page_id', None),
-            result.get('page_name', None),
-            result.get('ad_snapshot_url', None),
-            result.get('ad_creative_body', None),
-            result.get('funding_entity', None),
-            result.get('ad_creation_time', None),
-            result.get('ad_delivery_start_time', None),
-            result.get('ad_delivery_stop_time', self.crawl_date),
-            ad_status,
-            result.get('impressions', dict()).get('lower_bound', '0'),
-            result.get('impressions', dict()).get('upper_bound', '0'),
-            result.get('spend', dict()).get('lower_bound', '0'),
-            result.get('spend', dict()).get('upper_bound', '0'),
-            result.get('currency', None),
-            result.get('ad_creative_link_caption', None),
-            result.get('ad_creative_link_description', None),
-            result.get('ad_creative_link_title', None))
+            ad_creation_time=result.get('ad_creation_time', None),
+            ad_creative_body=result.get('ad_creative_body', None),
+            ad_creative_link_caption=result.get('ad_creative_link_caption', None),
+            ad_creative_link_description=result.get('ad_creative_link_description', None),
+            ad_creative_link_title=result.get('ad_creative_link_title', None),
+            ad_delivery_start_time=result.get('ad_delivery_start_time', None),
+            ad_delivery_stop_time=result.get('ad_delivery_stop_time', self.crawl_date),
+            ad_snapshot_url=result.get('ad_snapshot_url', None),
+            ad_status=ad_status,
+            archive_id=archive_id,
+            country=self.country_code,
+            currency=result.get('currency', None),
+            first_crawl_time=self.crawl_date,
+            funding_entity=result.get('funding_entity', None),
+            impressions__lower_bound=result.get('impressions', dict()).get('lower_bound', '0'),
+            impressions__upper_bound=result.get('impressions', dict()).get('upper_bound', '0'),
+            page_id=result.get('page_id', None),
+            page_name=result.get('page_name', None),
+            publisher_platform=result.get('publisher_platform', 'NotProvided'),
+            spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
+            spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
+        )
         return curr_ad
 
     
@@ -166,6 +165,9 @@ class SearchRunner():
         self.new_impressions.add(ad)
 
     def process_demo_impressions(self, demographic_distribution, curr_ad):
+        if not demographic_distribution:
+            logging.info("no demo impression information for: %s", curr_ad.archive_id)
+
         for demo_result in demographic_distribution:
             self.new_ad_demo_impressions.append(SnapshotDemoRecord(
                 curr_ad.archive_id,
@@ -178,6 +180,9 @@ class SearchRunner():
                 float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
 
     def process_region_impressions(self, region_distribution, curr_ad):
+        if not region_distribution:
+            logging.info("no region impression information for: %s", curr_ad.archive_id)
+
         regions = set()
         for region_result in region_distribution: 
             # If we get the same region more than once for an ad, the second occurance
@@ -291,8 +296,7 @@ class SearchRunner():
                 sleep(self.sleep_time)
             with open(f"response-{request_count}","w") as result_file:
                 result_file.write(json.dumps(results))
-            old_ad_count = 0
-            total_ad_count = 0
+
             for result in results['data']:
                 total_ad_count += 1
                 curr_ad = self.get_ad_from_result(result)
@@ -301,28 +305,12 @@ class SearchRunner():
                 self.process_page(curr_ad)
                 self.process_impressions(curr_ad)
 
-                if not curr_ad.ad_status and curr_ad.archive_id in self.existing_ads_to_end_time_map:
-                    old_ad_count += 1
-
-                # If this ad is new to the dataset or has updated information, update impressions 
-                if (curr_ad.archive_id not in self.existing_ads_to_end_time_map or 
-                        # TODO: Test if this date comparison needs typecasting
-                        curr_ad.ad_delivery_stop_time != self.existing_ads_to_end_time_map[curr_ad.archive_id]):
-                    self.process_impressions(curr_ad)
-                    self.process_demo_impressions(result.get('demographic_distribution', []), curr_ad)
-                    self.process_region_impressions(result.get('region_distribution', []), curr_ad)
-
-                    if 'demographic_distribution' not in result:
-                        logging.info("no demo information in:")
-                        logging.info(result)
-
-                    if 'region_distribution' not in result:
-                        logging.info("no region information in:")
-                        logging.info(result)
+                # Update impressions
+                self.process_impressions(curr_ad)
+                self.process_demo_impressions(result.get('demographic_distribution', []), curr_ad)
+                self.process_region_impressions(result.get('region_distribution', []), curr_ad)
 
             #we finished parsing all ads in the result
-            logging.info(f"old ads={old_ad_count}")
-            logging.info(f"total ads={total_ad_count}")
             self.write_results()
             self.refresh_state()
 
@@ -401,7 +389,7 @@ def get_pages_from_archive(archive_path):
 
     return page_ads
 
-def main():
+def main(config, country_code):
     logging.info("starting")
     slack_url = config['LOGGING']['SLACK_URL']
     connection = get_db_connection(config)
@@ -444,4 +432,14 @@ def main():
         connection.close()
 
 if __name__ == '__main__':
-    main()
+    config = configparser.ConfigParser()
+    config.read(sys.argv[1])
+    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+    logging.basicConfig(handlers=[logging.FileHandler(f"{country_code}_fb_api_collection.log"),
+                              logging.StreamHandler()],
+                        format='[%(levelname)s\t%(asctime)s] %(message)s',
+                        level=logging.INFO)
+
+    if len(sys.argv) < 2:
+        exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
+    main(config)

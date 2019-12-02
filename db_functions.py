@@ -57,14 +57,22 @@ class DBInterface():
     def insert_new_ads(self, new_ads):
         cursor = self.get_cursor()
         ad_insert_query = (
-            "INSERT INTO ads(archive_id, ad_creative_body, ad_creation_time, ad_delivery_stop_time, page_id, "
-            "currency, ad_creative_link_caption, ad_creative_link_title, ad_creative_link_description, "
-            "ad_snapshot_url, funding_entity) "
+            "INSERT INTO ads(archive_id, ad_creative_body, ad_creation_time, ad_delivery_start_time, "
+            "ad_delivery_stop_time, page_id, currency, ad_creative_link_caption, "
+            "ad_creative_link_title, ad_creative_link_description, ad_snapshot_url, funding_entity) "
             "VALUES %s on conflict (archive_id) do nothing;")
         insert_template = (
-            "(%(archive_id)s, %(ad_creative_body)s, %(ad_creation_time)s, %(ad_delivery_stop_time)s, %(page_id)s, "
-            "%(currency)s, %(ad_creative_link_caption)s, %(ad_creative_link_title)s, %(ad_creative_link_description)s, "
-            "%(ad_snapshot_url)s, %(funding_entity)s)")
+            "(%(archive_id)s, %(ad_creative_body)s, %(ad_creation_time)s, %(ad_delivery_start_time)s, "
+            "%(ad_delivery_stop_time)s, %(page_id)s, %(currency)s, %(ad_creative_link_caption)s, "
+            "%(ad_creative_link_title)s, %(ad_creative_link_description)s, %(ad_snapshot_url)s, %(funding_entity)s)")
+        new_ad_list = [x._asdict() for x in new_ads]
+        psycopg2.extras.execute_values(
+            cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
+        ad_insert_query = (
+            "INSERT INTO ad_countries(archive_id, country_code) "
+            "VALUES %s on conflict (archive_id_fk) do nothing;")
+        insert_template = (
+            "(%(archive_id)s, %(country_code)s)")
         new_ad_list = [x._asdict() for x in new_ads]
         psycopg2.extras.execute_values(
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
@@ -73,15 +81,14 @@ class DBInterface():
         cursor = self.get_cursor()
         impressions_insert_query = (
             "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, "
-            "min_impressions, max_impressions, last_active) "
+            "min_impressions, max_impressions) "
             "VALUES %s on conflict (archive_id) do update set "
             "ad_status = EXCLUDED.ad_status, min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
-            "min_impressions = EXCLUDED.min_impressions, max_impressions = EXCLUDED.max_impressions, "
-            "last_active = EXCLUDED.last_active;")
+            "min_impressions = EXCLUDED.min_impressions, max_impressions = EXCLUDED.max_impressions;")
 
         insert_template = (
             "(%(archive_id)s, %(ad_status)s , %(spend__lower_bound)s, %(spend__upper_bound)s , "
-            "%(impressions__lower_bound)s , %(impressions__upper_bound)s, %(ad_delivery_stop_time)s)")
+            "%(impressions__lower_bound)s , %(impressions__upper_bound)s)")
         new_impressions_list = [impression._asdict() for impression in new_impressions]
 
         psycopg2.extras.execute_values(
