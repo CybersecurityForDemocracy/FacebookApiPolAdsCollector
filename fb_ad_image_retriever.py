@@ -42,7 +42,11 @@ def get_database_connection(config):
 
 def get_archive_ids(cursor, limit=200):
   # TODO(macpd): figure out how we want to systematically get archive IDs for this
-  archive_ids_sample_query = cursor.mogrify('SELECT archive_id FROM ads LIMIT %s' % limit)
+  # Get most recently created ads that do not have image hashes in
+  # ad_image_hashes table.
+  archive_ids_sample_query = cursor.mogrify('SELECT archive_id,creation_date '
+      'from ads WHERE archive_id NOT IN (select archive_id FROM ad_image_hashes) '
+      'ORDER BY creation_date DESC LIMIT %s;' % limit)
   cursor.execute(archive_ids_sample_query)
   results = cursor.fetchall()
   return [row['archive_id'] for row in results]
@@ -66,22 +70,7 @@ def construct_snapshot_urls(access_token, archive_ids):
     archive_id_to_snapshot_url[archive_id] = url
   return archive_id_to_snapshot_url
 
-def get_image_url(snapshot_url):
-  ad_snapshot_request = requests.get(snapshot_url)
-  # TODO(macpd): handle this more gracefully
-  # TODO(macpd): check encoding
-  ad_snapshot_request.raise_for_status()
-  ad_snapshot_text = ad_snapshot_request.text
-  search_regex = None
-  if IMAGE_URL_JSON_NAME in ad_snapshot_text:
-    search_regex = IMAGE_URL_REGEX
-  elif VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
-    search_regex = VIDEO_PREVIEW_IMAGE_URL_REGEX
-  else:
-    logging.warn('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_PREVIEW_IMAGE_URL_REGEX)
-    # TODO(macpd): raise appropriate error here.
-    return None
-
+def search_for_image_url_by_regex(search_regex, ad_snapshot_text):
   match = re.search(search_regex, ad_snapshot_text)
   if not match:
     logging.warn('Unable to locate image url in ad snapshot using regex: "%s"', search_regex)
@@ -92,6 +81,29 @@ def get_image_url(snapshot_url):
   image_url = raw_image_url_str.replace('\\', '')
   logging.info('Found image URL value in ad snapshot: "%s"', image_url)
   return image_url
+
+def get_image_url(snapshot_url):
+  ad_snapshot_request = requests.get(snapshot_url)
+  # TODO(macpd): handle this more gracefully
+  # TODO(macpd): check encoding
+  ad_snapshot_request.raise_for_status()
+  ad_snapshot_text = ad_snapshot_request.text
+
+  if IMAGE_URL_JSON_NAME in ad_snapshot_text:
+    logging.debug('%s found in snapshot. Assuming ad has image only.', IMAGE_URL_JSON_NAME)
+    image_url = search_for_image_url_by_regex(IMAGE_URL_REGEX, ad_snapshot_text)
+    if image_url:
+      return image_url
+
+  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
+    logging.debug('%s found in snapshot. Assuming ad has video with preview image', VIDEO_IMAGE_URL_JSON_NAME)
+    image_url = search_for_image_url_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
+    if image_url:
+      return image_url
+
+  logging.warn('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
+  # TODO(macpd): raise appropriate error here.
+  return None
 
 def make_image_hash_file_path(image_hash):
   base_file_name = '%s.jpg' % image_hash
@@ -131,6 +143,32 @@ def store_image_in_google_bucket(bucket_client, image_dhash, image_bytes):
   blob.upload_from_string(image_bytes)
   logging.info('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
 
+def process_archive_images(cursor, access_token, archive_ids):
+  archive_id_to_snapshot_url = construct_snapshot_urls(access_token, archive_ids)
+  archive_id_to_image_url = {}
+  for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
+   image_url = get_image_url(snapshot_url)
+   if image_url:
+     archive_id_to_image_url[archive_id] = image_url
+     logging.info('Archive ID %s has image_url: %s', archive_id, image_url)
+   else:
+     logging.warn('Unable to find image_url for archive_id: %s, snapshot_url: '
+         '%s', archive_id, snapshot_url)
+
+  bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
+  for archive_id, image_url in  archive_id_to_image_url.items():
+    image_bytes = get_image(image_url)
+    image_dhash = get_image_dhash(image_bytes)
+
+    store_image_in_google_bucket(bucket_client, image_dhash, image_bytes)
+    insert_hash_to_database(cursor, archive_id, image_dhash)
+
+def chunks(lst, n):
+  """Yield successive n-sized chunks from lst."""
+  for i in range(0, len(lst), n):
+    yield lst[i:i + n]
+
+
 def main(argv):
   config = configparser.ConfigParser()
   config.read(argv[0])
@@ -143,22 +181,12 @@ def main(argv):
   logging.info('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
   access_token = config['FACEBOOK_API']['ACCESS_TOKEN']
-  archive_id_to_snapshot_url = construct_snapshot_urls(access_token, archive_ids)
-  archive_id_to_image_url = {}
-  for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-   image_url = get_image_url(snapshot_url)
-   archive_id_to_image_url[archive_id] = image_url
-   logging.info('Archive ID %s has image_url: %s', archive_id, image_url)
+  batch_size = 5
+  for archive_id_batch in chunks(archive_ids, batch_size):
+    process_archive_images(cursor, access_token, archive_id_batch)
+    db_connection.commit()
+    logging.info('Processed %d archive_ids: %s', len(archive_id_batch), ','.join([str(i) for i in archive_id_batch]))
 
-  bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
-  for archive_id, image_url in  archive_id_to_image_url.items():
-    image_bytes = get_image(image_url)
-    image_dhash = get_image_dhash(image_bytes)
-
-    store_image_in_google_bucket(bucket_client, image_dhash, image_bytes)
-    insert_hash_to_database(cursor, archive_id, image_dhash)
-
-  db_connection.commit()
   db_connection.close()
 
 
