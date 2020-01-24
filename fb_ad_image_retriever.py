@@ -21,8 +21,6 @@ logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
                     level=logging.INFO)
 
-#TODO(macpd): don't hardcode this. get this from DB
-ARCHIVE_IDS= [528030057812924]
 IMAGE_URL_JSON_NAME = 'original_image_url'
 VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
 URL_REGEX_TEMPLATE = '"%s":\s*?"(http[^"]+?)"'
