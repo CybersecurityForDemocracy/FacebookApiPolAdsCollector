@@ -1,4 +1,3 @@
-#  from bs4 import BeautifulSoup
 import configparser
 import datetime
 import dhash
@@ -20,11 +19,9 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                               logging.StreamHandler()],
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
-                    # TODO(macpd): set this back to INFO
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 #TODO(macpd): don't hardcode this. get this from DB
-#  ARCHIVE_IDS= [528030057812924, 544096909523734]
 ARCHIVE_IDS= [528030057812924]
 IMAGE_URL_JSON_NAME = 'original_image_url'
 VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
@@ -76,8 +73,6 @@ def get_image_url(snapshot_url):
   # TODO(macpd): handle this more gracefully
   # TODO(macpd): check encoding
   ad_snapshot_request.raise_for_status()
-  #  soup = BeautifulSoup(ad_snapshot_request.text)
-  #  script_tags = soup.find_all(
   ad_snapshot_text = ad_snapshot_request.text
   search_regex = None
   if IMAGE_URL_JSON_NAME in ad_snapshot_text:
@@ -147,7 +142,6 @@ def main(argv):
 
   # TODO(macpd): get archive IDs from somewhere, probably the database
   archive_ids = get_archive_ids(cursor, limit=200)
-  #  archive_ids = ARCHIVE_IDS
   logging.info('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
   access_token = config['FACEBOOK_API']['ACCESS_TOKEN']
