@@ -180,7 +180,7 @@ def main(search_term, connection):
     print(datetime.datetime.now())
     print(search_term)
     request_count = 0
-    while has_next and not already_seen and request_count < 40:
+    while has_next and not already_seen and request_count < 20:
         request_count += 1
         try:
             results = None
@@ -192,8 +192,9 @@ def main(search_term, connection):
                                            ad_reached_countries=country_code, 
                                            ad_type='POLITICAL_AND_ISSUE_ADS',
                                            ad_active_status='ALL',
-                                           limit=2000,
-                                           search_page_ids=search_term,
+                                           limit=1000,
+                                           #search_page_ids=search_term,
+                                           search_terms=search_term,
                                            fields=",".join(field_list))
             else:
                 sleep(SLEEP_TIME * 2)
@@ -202,7 +203,7 @@ def main(search_term, connection):
                                            ad_reached_countries=country_code, 
                                            ad_type='POLITICAL_AND_ISSUE_ADS',
                                            ad_active_status='ALL',
-                                           limit=2000,
+                                           limit=1000,
                                            search_page_ids=search_term,
                                            fields=",".join(field_list),
                                            after=next_cursor)
@@ -270,10 +271,14 @@ def main(search_term, connection):
             max_spend = 0
             if 'impressions' in result:
                 min_impressions = result['impressions']['lower_bound']
-                max_impressions = result['impressions']['upper_bound']
+                max_impressions = -1
+                if 'upper_bound' in result['impressions']:
+                    max_impressions = result['impressions']['upper_bound']
             if 'spend' in result:
                 min_spend = result['spend']['lower_bound']
-                max_spend = result['spend']['upper_bound']
+                max_spend = -1
+                if 'upper_bound' in result['spend']:
+                    max_spend = result['spend']['upper_bound']
 
             link_caption = ''
             if 'ad_creative_link_caption' in result:
@@ -478,7 +483,8 @@ file_list = json.loads(input_FILES)
 for file_name in file_list:
    with open(file_name) as input:
        for row in input:
-           page_ids.append(int(row.strip()))
+           #page_ids.append(int(row.strip()))
+           page_ids.append(row.strip())
 
 
 #setup our db cursor
@@ -492,8 +498,7 @@ connection = psycopg2.connect(DBAuthorize)
 cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 
-all_ids = list(page_ids)
-random.shuffle(all_ids)
+all_ids = set(page_ids)
 print(all_ids)
 print(len(all_ids))
 
@@ -522,8 +527,13 @@ FB_ACCESS_TOKEN = config['FACEBOOK']['TOKEN']
 SLEEP_TIME = int(config['SEARCH']['SLEEP_TIME'])
 field_list = ["ad_creation_time","ad_delivery_start_time","ad_delivery_stop_time","ad_snapshot_url", "currency", "demographic_distribution", "impressions", "page_id", "page_name", "region_distribution", "spend", "ad_creative_body", "funding_entity", "ad_creative_link_caption", "ad_creative_link_description", "ad_creative_link_title"]
 
-
+curr_page_ids = set()
 for id in all_ids:
-    main(id, connection)
+    curr_page_ids.add(id)
+    if len(curr_page_ids) > 8:
+        main(list(curr_page_ids), connection)
+        curr_page_ids.clear()
+
+    main(list(curr_page_ids), connection)
 
 connection.close()
