@@ -32,7 +32,7 @@ AdRecord = namedtuple(
         "ad_snapshot_url",
         "ad_status",
         "archive_id",
-        "country",
+        "country_code",
         "currency",
         "first_crawl_time",
         "funding_entity",
