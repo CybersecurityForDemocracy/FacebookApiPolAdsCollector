@@ -96,6 +96,8 @@ class SearchRunner():
 
     def __init__(self, crawl_date, connection, db, config):
         self.crawl_date = crawl_date
+        # TODO(macpd): refactor this to pass in config options, and not read
+        # directly from config
         self.country_code = config['SEARCH']['COUNTRY_CODE']
         self.connection = connection
         self.db = db
