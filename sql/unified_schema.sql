@@ -57,7 +57,7 @@ CREATE TABLE impressions (
 CREATE TABLE funder_metadata (
   funder_id SERIAL,
   funder_name character varying,
-  funder_type character vlarying,
+  funder_type character varying,
   legal_entity_id character varying,
   legal_entity_name character varying,
   funder_country character varying,
