@@ -234,6 +234,7 @@ class SearchRunner():
             self.new_ad_region_impressions = list()
             self.new_ad_demo_impressions = list()
             request_count += 1
+            total_ad_count = 0
             try:
                 results = None
                 if page_name is not None:
@@ -425,7 +426,7 @@ def main(config, country_code):
             search_runner.run_search(page_name="''")
         completion_status = 'Success'
     except Exception as e:
-        completion_status = f'Unchaught exception: {e}'
+        completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
     finally:
         end_time = datetime.datetime.now()
@@ -444,4 +445,4 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
-    main(config)
+    main(config, country_code)

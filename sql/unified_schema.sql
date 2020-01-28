@@ -25,6 +25,7 @@ CREATE TABLE ads (
   archive_id bigint NOT NULL,
   ad_creative_body character varying,
   ad_creation_time date,
+  ad_delivery_start_time date,
   ad_delivery_stop_time date,
   page_id bigint,unique_demo_results
   currency character varying (4),
