@@ -47,7 +47,7 @@ class DBInterface():
         cursor = self.get_cursor()
         insert_page_query = (
             "INSERT INTO pages(page_id, page_name) VALUES %s "
-            "on conflict (page_id) do nothing;")
+            "on conflict page_id do nothing;")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
         psycopg2.extras.execute_values(
@@ -60,7 +60,7 @@ class DBInterface():
             "INSERT INTO ads(archive_id, ad_creative_body, ad_creation_time, ad_delivery_start_time, "
             "ad_delivery_stop_time, page_id, currency, ad_creative_link_caption, "
             "ad_creative_link_title, ad_creative_link_description, ad_snapshot_url, funding_entity) "
-            "VALUES %s on conflict (archive_id) do nothing;")
+            "VALUES %s on conflict archive_id do nothing;")
         insert_template = (
             "(%(archive_id)s, %(ad_creative_body)s, %(ad_creation_time)s, %(ad_delivery_start_time)s, "
             "%(ad_delivery_stop_time)s, %(page_id)s, %(currency)s, %(ad_creative_link_caption)s, "
@@ -70,7 +70,7 @@ class DBInterface():
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
         ad_insert_query = (
             "INSERT INTO ad_countries(archive_id, country_code) "
-            "VALUES %s on conflict (archive_id_fk) do nothing;")
+            "VALUES %s on conflict on constraint archive_id_fk do nothing;")
         insert_template = (
             "(%(archive_id)s, %(country_code)s)")
         new_ad_list = [x._asdict() for x in new_ads]
@@ -82,7 +82,7 @@ class DBInterface():
         impressions_insert_query = (
             "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, "
             "min_impressions, max_impressions) "
-            "VALUES %s on conflict (archive_id) do update set "
+            "VALUES %s on conflict on constraint archive_id_set do update set "
             "ad_status = EXCLUDED.ad_status, min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
             "min_impressions = EXCLUDED.min_impressions, max_impressions = EXCLUDED.max_impressions;")
 
