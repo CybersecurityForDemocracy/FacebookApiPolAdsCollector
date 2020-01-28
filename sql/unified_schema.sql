@@ -102,7 +102,6 @@ CREATE TABLE demo_impressions (
     spend_percentage >= 0
     AND spend_percentage <= 100
   ),
-  -- This constraint probably has a syntax error
   CONSTRAINT unique_demos_per_ad UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impressions (
@@ -114,7 +113,6 @@ CREATE TABLE region_impressions (
     spend_percentage >= 0
     AND spend_percentage <= 100
   ),
-  -- This constraint probably has a syntax error
   CONSTRAINT unique_regions_per_ad UNIQUE(archive_id, region)
 );
 CREATE TABLE demo_impression_results (
@@ -126,7 +124,6 @@ CREATE TABLE demo_impression_results (
   min_impressions integer,
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  -- This constraint probably has a syntax error
   CONSTRAINT unique_demo_results UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impression_results (
@@ -137,6 +134,5 @@ CREATE TABLE region_impression_results (
   min_impressions integer,
   max_impressions integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  -- This constraint probably has a syntax error
   CONSTRAINT unique_region_results UNIQUE(archive_id, region)
 );

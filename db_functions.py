@@ -70,7 +70,7 @@ class DBInterface():
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
         ad_insert_query = (
             "INSERT INTO ad_countries(archive_id, country_code) "
-            "VALUES %s on conflict on constraint (archive_id_fk) do nothing;")
+            "VALUES %s on conflict (archive_id, country_code) do nothing;")
         insert_template = (
             "(%(archive_id)s, %(country_code)s)")
         new_ad_list = [x._asdict() for x in new_ads]
@@ -82,7 +82,7 @@ class DBInterface():
         impressions_insert_query = (
             "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, "
             "min_impressions, max_impressions) "
-            "VALUES %s on conflict on constraint archive_id_set do update set "
+            "VALUES %s on conflict (archive_id) do update set "
             "ad_status = EXCLUDED.ad_status, min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
             "min_impressions = EXCLUDED.min_impressions, max_impressions = EXCLUDED.max_impressions;")
 
