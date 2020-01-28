@@ -1,3 +1,5 @@
+-- These tables exist in DB fb_global_ads.
+
 -- Uncomment these to drop tables. 
 --  DROP TABLE IF EXISTS ad_countries cascade;
 --  DROP TABLE IF EXISTS pages cascade;
