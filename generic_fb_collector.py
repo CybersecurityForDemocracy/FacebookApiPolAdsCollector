@@ -133,7 +133,7 @@ class SearchRunner():
             ad_snapshot_url=result.get('ad_snapshot_url', None),
             ad_status=ad_status,
             archive_id=archive_id,
-            country=self.country_code,
+            country_code=self.country_code,
             currency=result.get('currency', None),
             first_crawl_time=self.crawl_date,
             funding_entity=result.get('funding_entity', None),
