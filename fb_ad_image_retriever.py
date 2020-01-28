@@ -36,10 +36,57 @@ def chunks(lst, n):
     yield lst[i:i + n]
 
 
+def get_database_connection(config):
+  host = config['POSTGRES']['HOST']
+  dbname = config['POSTGRES']['DBNAME']
+  user = config['POSTGRES']['USER']
+  password = config['POSTGRES']['PASSWORD']
+  port = config['POSTGRES']['PORT']
+
+  db_authorize = "host=%s dbname=%s user=%s password=%s port=%s" % (host, dbname, user, password, port)
+  logging.info('Establishing connecton to %s:%s DB %s', host, port, dbname)
+  connection = psycopg2.connect(db_authorize)
+  return connection
+
+
 def make_gcs_bucket_client(bucket_name, credentials_file):
   storage_client = storage.Client.from_service_account_json(credentials_file)
   bucket_client = storage_client.get_bucket(bucket_name)
   return bucket_client
+
+def get_all_archive_ids_without_image_hash(cursor):
+  """Get ALL ad archive IDs that do not exist in ad_images table.
+
+  Args:
+    cursor: pyscopg2.Cursor DB cursor for query execution.
+  Returns:
+    list of archive IDs (str).
+  """
+  archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+      'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
+      'BY creation_date DESC')
+  cursor.execute(archive_ids_sample_query)
+  results = cursor.fetchall()
+  return [row['archive_id'] for row in results]
+
+def get_n_archive_ids_without_image_hash(cursor, max_archive_ids=200):
+  """Get ad archive IDs that do not exist in ad_images table.
+
+  Args:
+    cursor: pyscopg2.Cursor DB cursor for query execution.
+    max_archive_ids: int, limit on how many IDs to query DB for.
+  Returns:
+    list of archive IDs (str).
+  """
+  # TODO(macpd): figure out how we want to systematically get archive IDs for this
+  # Get most recently created ads that do not have image hashes in
+  # ad_images table.
+  archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+      'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+      'ORDER BY creation_date DESC LIMIT %s;' % max_archive_ids)
+  cursor.execute(archive_ids_sample_query)
+  results = cursor.fetchall()
+  return [row['archive_id'] for row in results]
 
 
 def construct_snapshot_urls(access_token, archive_ids):
@@ -111,7 +158,7 @@ def get_image_dhash(image_bytes):
 
 class FacebookAdImageRetriever:
 
-  def __init__(self, db_connection, bucket_client, access_token, archive_ids, batch_size):
+  def __init__(self, db_connection, bucket_client, access_token, batch_size):
     self.bucket_client = bucket_client
     self.num_ids_processed = 0
     self.num_image_urls_found = 0
@@ -120,72 +167,35 @@ class FacebookAdImageRetriever:
     self.num_image_uploade_to_gcs_bucket = 0
     self.db_connection = db_connection
     self.cursor = self.db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    self.access_token = access_token
+    self.batch_size = batch_size
 
 
-    logging.info('Processing %d archive IDs in batches of %d', len(archive_ids), batch_size)
+  def retreive_and_store_images(self, archive_ids):
+    logging.info('Processing %d archive IDs in batches of %d',
+        len(archive_ids), self.batch_size)
     try:
-      for archive_id_batch in chunks(archive_ids, batch_size):
-        process_archive_images(self.cursor, access_token, archive_id_batch)
-        db_connection.commit()
-        # TODO(macpd): get number of successful/failed image extractions
-        num_ids_processed += batch_size
-        logging.info('Processed %d of %d archive IDs.', num_ids_processed, len(archive_ids))
-        logging.debug('Processed %d archive_ids: %s', batch_size,
-            ','.join([str(i) for i in archive_id_batch]))
+      for archive_id_batch in chunks(archive_ids, self.batch_size):
+        self.process_archive_images(archive_id_batch)
+        self.db_connection.commit()
+        logging.info('Processed %d of %d archive IDs.', self.num_ids_processed, len(archive_ids))
+        logging.debug('Processed %d archive_ids: %s', self.batch_size,
+            ','.join([str(i) for i in archive_ids]))
 
     except requests.RequestException as e:
       logging.info('Request exception while processing archive ids:\n%s', e)
+      raise(e)
 
     finally:
-      logging.info('Finished processing %d arhive IDs.', num_ids_processed)
-      db_connection.close()
+      logging.info('Finished processing %d arhive IDs.\nImage URLs found: '
+          '%d\nImages downloads successful: %d\nImages downloads failed: %d\n'
+          'Images uploaded to GCS bucket: %d',
+          self.num_ids_processed, self.num_image_urls_found,
+          self.num_image_download_success,
+          self.num_image_download_failure,
+          self.num_image_uploade_to_gcs_bucket)
+      self.db_connection.close()
 
-
-  def get_database_connection(self, config):
-    host = config['POSTGRES']['HOST']
-    dbname = config['POSTGRES']['DBNAME']
-    user = config['POSTGRES']['USER']
-    password = config['POSTGRES']['PASSWORD']
-    port = config['POSTGRES']['PORT']
-
-    db_authorize = "host=%s dbname=%s user=%s password=%s port=%s" % (host, dbname, user, password, port)
-    logging.info('Establishing connecton to %s:%s DB %s', host, port, dbname)
-    connection = psycopg2.connect(db_authorize)
-    return connection
-
-  def get_all_archive_ids_without_image_hash(self, cursor):
-    """Get ALL ad archive IDs that do not exist in ad_image_hashes table.
-
-    Args:
-      cursor: pyscopg2.Cursor DB cursor for query execution.
-    Returns:
-      list of archive IDs (str).
-    """
-    archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-        'WHERE archive_id NOT IN (select archive_id FROM ad_image_hashes) ORDER '
-        'BY creation_date DESC')
-    cursor.execute(archive_ids_sample_query)
-    results = cursor.fetchall()
-    return [row['archive_id'] for row in results]
-
-  def get_n_archive_ids_without_image_hash(self, cursor, max_archive_ids=200):
-    """Get ad archive IDs that do not exist in ad_image_hashes table.
-
-    Args:
-      cursor: pyscopg2.Cursor DB cursor for query execution.
-      max_archive_ids: int, limit on how many IDs to query DB for.
-    Returns:
-      list of archive IDs (str).
-    """
-    # TODO(macpd): figure out how we want to systematically get archive IDs for this
-    # Get most recently created ads that do not have image hashes in
-    # ad_image_hashes table.
-    archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-        'WHERE archive_id NOT IN (select archive_id FROM ad_image_hashes) '
-        'ORDER BY creation_date DESC LIMIT %s;' % max_archive_ids)
-    cursor.execute(archive_ids_sample_query)
-    results = cursor.fetchall()
-    return [row['archive_id'] for row in results]
 
   def get_snapshot_urls_from_database(self, cursor, archive_ids):
     query = 'select archive_id, snapshot_url from ads where archive_id in (%s)' % ','.join([str(i) for i in archive_ids])
@@ -199,10 +209,11 @@ class FacebookAdImageRetriever:
     return archive_id_to_snapshot_url
 
 
-  def insert_hash_to_database(self, archive_id, image_dhash):
-    # TODO(macpd): store image URL in DB
-    insert_query = self.cursor.mogrify('INSERT INTO ad_image_hashes(archive_id, ad_image_phash) VALUES (%s, \'%s\')' % (archive_id, image_dhash))
-    logging.debug('Constructed archive_id -> phash query: %s', insert_query)
+  def insert_hash_to_database(self, archive_id, image_dhash, image_url):
+    insert_query = self.cursor.mogrify('INSERT INTO ad_images(archive_id, '
+        'image_url, sim_hash) VALUES (%s, \'%s\', \'%s\')' % (archive_id,
+          image_url, image_dhash))
+    logging.debug('Constructed archive_id -> sim_hash query: %s', insert_query)
     self.cursor.execute(insert_query)
 
   def store_image_in_google_bucket(self, image_dhash, image_bytes):
@@ -212,12 +223,13 @@ class FacebookAdImageRetriever:
     self.num_image_uploade_to_gcs_bucket += 1
     logging.info('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
 
-  def process_archive_images(self):
+  def process_archive_images(self, archive_id_batch):
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
-        self.archive_ids)
+        archive_id_batch)
     archive_id_to_image_url = {}
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-     image_url = self.get_image_url(snapshot_url)
+     image_url = get_image_url(snapshot_url)
+     self.num_ids_processed += 1
      if image_url:
        archive_id_to_image_url[archive_id] = image_url
        logging.info('Archive ID %s has image_url: %s', archive_id, image_url)
@@ -237,26 +249,12 @@ class FacebookAdImageRetriever:
 
       image_dhash = get_image_dhash(image_bytes)
       self.store_image_in_google_bucket(bucket_client, image_dhash, image_bytes)
-      self.insert_hash_to_database(archive_id, image_dhash)
+      self.insert_hash_to_database(archive_id, image_dhash, image_url)
 
 
 def main(argv):
   config = configparser.ConfigParser()
   config.read(argv[0])
-  db_connection = get_database_connection(config)
-  logging.info('DB connection established')
-  cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
-
-  if 'LIMITS' in config and 'MAX_ARCHIVE_IDS' in config['LIMITS']:
-    max_archive_ids = int(config['LIMITS']['MAX_ARCHIVE_IDS'])
-  else:
-    max_archive_ids = DEFAULT_MAX_ARCHIVE_IDS
-
-  if max_archive_ids == -1:
-    archive_ids = get_all_archive_ids_without_image_hash(cursor)
-  else:
-    archive_ids = get_n_archive_ids_without_image_hash(cursor, max_archive_ids)
-  logging.debug('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
   access_token = config['FACEBOOK_API']['ACCESS_TOKEN']
 
@@ -265,25 +263,27 @@ def main(argv):
   else:
     batch_size = DEFAULT_BATCH_SIZE
 
-  num_ids_processed = 0
-  logging.info('Processing %d archive IDs in batches of %d', len(archive_ids), batch_size)
+  if 'LIMITS' in config and 'MAX_ARCHIVE_IDS' in config['LIMITS']:
+    max_archive_ids = int(config['LIMITS']['MAX_ARCHIVE_IDS'])
+  else:
+    max_archive_ids = DEFAULT_MAX_ARCHIVE_IDS
+
   try:
-    for archive_id_batch in chunks(archive_ids, batch_size):
-      process_archive_images(cursor, access_token, archive_id_batch)
-      db_connection.commit()
-      # TODO(macpd): get number of successful/failed image extractions
-      num_ids_processed += batch_size
-      logging.info('Processed %d of %d archive IDs.', num_ids_processed, len(archive_ids))
-      logging.debug('Processed %d archive_ids: %s', batch_size,
-          ','.join([str(i) for i in archive_id_batch]))
+    with get_database_connection(config) as db_connection:
+      logging.info('DB connection established')
+      with db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
+        if max_archive_ids == -1:
+          archive_ids = get_all_archive_ids_without_image_hash(cursor)
+        else:
+          archive_ids = get_n_archive_ids_without_image_hash(cursor, max_archive_ids)
+        logging.debug('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
-  except requests.RequestException as e:
-    logging.info('Request exception while processing archive ids:\n%s', e)
-
+    bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
+    image_retriever = FacebookAdImageRetriever(db_connection, bucket_client,
+        access_token, batch_size)
+    image_retriever.retreive_and_store_images(archive_ids)
   finally:
-    logging.info('Finished processing %d arhive IDs.', num_ids_processed)
     db_connection.close()
-
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
