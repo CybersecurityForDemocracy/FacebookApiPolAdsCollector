@@ -27,7 +27,7 @@ CREATE TABLE ads (
   ad_creation_time date,
   ad_delivery_start_time date,
   ad_delivery_stop_time date,
-  page_id bigint,unique_demo_results
+  page_id bigint,
   currency character varying (4),
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
