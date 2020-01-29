@@ -110,6 +110,16 @@ NewSnapshotDemoRecord = collections.namedtuple(
     ],
 )
 
+FunderRecord = collections.namedtuple(
+    "FunderRecord",
+    [
+      "funder_id",
+      "funder_name",
+      "funder_type",
+      "parent_id",
+    ],
+)
+
 
 def get_db_connection(postgres_config):
     host = postgres_config['HOST']
@@ -131,7 +141,9 @@ class SchemaMigrator:
     self.dest_db_interface = db_functions.DBInterface(self.dest_db_connection)
 
   def get_src_cursor(self):
-    return self.src_db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor = self.src_db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.array_size = self.batch_size
+    return cursor
 
   def get_dest_cursor(self):
     return self.dest_db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
@@ -140,11 +152,14 @@ class SchemaMigrator:
     logging.info('Starting migration.')
     # migrate page_id as it is foreign key in a lot of tables
     self.migrate_page_table()
+
     # migrate archive_id as it is second most refrenced foreign key. Also,
     # migrate impressions for archive IDs.
     self.migrate_ads_and_impressions_table()
 
     # migrate funder_id as it is next most refrenced foreign key
+    self.migrate_funder_table()
+
     # computations required for demographic and regional impressions and
     # spending
     # maybe demo and regional impressions -> results
@@ -152,7 +167,6 @@ class SchemaMigrator:
   def migrate_pages_table(self):
     logging.info('Migrating pages table.')
     src_cursor = self.get_src_cursor()
-    src_cursor.array_size = self.batch_size
     src_pages_query = 'SELECT (page_id, page_name) from pages'
     srcs_cursor.execute(src_cursor.mogrify(src_pages_query))
     fetched_rows = src_cursor.fetchmany()
@@ -172,11 +186,10 @@ class SchemaMigrator:
   def migrate_ads_and_impressions_table(self):
     logging.info('Migrating ads table.')
     src_cursor = self.get_src_cursor()
-    src_cursor.array_size = self.batch_size
     srcs_ads_query = 'SELECT * FROM ads;'
     srcs_cursor.execute(src_cursor.mogrify(src_ads_query))
-    fetched_rows = src_cursor.fetchmany()
     num_rows_processed = 0
+    fetched_rows = src_cursor.fetchmany()
     while fetched_rows:
       ad_records = []
       ad_status = {}
@@ -210,17 +223,17 @@ class SchemaMigrator:
     logging.info('Migrated %d page rows total.', num_rows_processed)
 
   def migrate_impressions_for_archive_id_batch(self, archive_id_to_ad_status):
-    logging.info('Migrationg impressions table.')
+    logging.info('Migrationg impressions for archive ID batch.')
     src_cursor = self.get_src_cursor()
-    src_cursor.array_size = self.batch_size
     archive_ids = [str(k) for k in archive_id_to_ad_status]
-    src_impressions_query = 'SELECT * FROM impressions WHERE archive_id IN '
-    '(%s)' % (','.join(archive_ids))
+    src_impressions_query = ('SELECT * FROM impressions WHERE archive_id IN '
+      '(%s)' % (','.join(archive_ids)))
     srcs_cursor.execute(src_cursor.mogrify(src_impressions_query))
-    fetched_rows = src_cursor.fetchall()
+
     num_rows_processed = 0
     impression_records = []
     archive_ids_in_results = set()
+    fetched_rows = src_cursor.fetchall()
     for row in fetched_row:
       archive_id = row['archive_id']
       archive_ids_in_results.add(archive_id)
@@ -241,6 +254,37 @@ class SchemaMigrator:
     num_rows_processed += len(impression_records)
     logging.info('Migrated %d impression rows for %d archive IDs.',
         num_rows_processed, len(archive_ids))
+
+  def migrate_funder_table(self):
+    logging.info('Migrationg funder table.')
+    src_cursor = self.get_src_cursor()
+    src_sponsor_query = src_cursor.mogrify('SELECT * FROM ad_sponsors')
+    srcs_curosr.execute(src_sponsor_query)
+    fetched_rows = src_cursor.fetchmany()
+    num_rows_processed = 0
+    while fetched_rows:
+      funder_records = []
+      for row in fetched_rows:
+        funder_records.append(
+            FunderRecord(
+                funder_id=row['id'],
+                funder_name=row['name'],
+                funder_type=row['nyu_category'],
+                parent_id=row['parent_ad_sponsor_id']))
+
+      insert_funder_query = ("INSERT INTO funder_metadata(funder_id, "
+          "funder_name, funder_type, parent_id) VALUES %s;")
+      insert_template = ("(%(funder_id)s, %(funder_name)s, %(funder_type)s, "
+          "%(parent_id)s)")
+      psycopg2.extras.execute_values(
+          cursor, insert_funder_query, funder_records, template=insert_template, page_size=250)
+
+      num_rows_processed += len(funder_records)
+
+    logging.info('Migrated %d funder rows total.', num_rows_processed)
+
+
+
 
 def main(src_db_connection, dest_db_connection, batch_size=1000):
   schema_migrator = SchemaMigraton(src_db_connection, dest_db_connection,
