@@ -35,7 +35,7 @@ VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
 class ImageUrlFetchStatus(enum.IntEnum):
-  UNKNOWn_ERROR = 0
+  UNKNOWN_ERROR = 0
   SUCCESS = 1
   TIMEOUT = 2
   NOT_FOUND = 3
@@ -235,6 +235,9 @@ class FacebookAdImageRetriever:
        logging.warning('Unable to find image_url for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
        archive_ids_without_image_url_found.append(archive_id)
+    if len(archive_ids_without_image_url_found) == self.batch_size:
+      raise RuntimeError('Failed to find image URLs in any snapshot from this '
+          'batch.  Assuming access_token has expired. Aborting!')
 
     archive_id_to_fetch_status = {}
     archive_id_to_dhash = {}
