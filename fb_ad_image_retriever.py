@@ -274,7 +274,6 @@ class FacebookAdImageRetriever:
     self.db_interface.insert_ad_image_records(ad_image_records)
 
 
-
 def main(argv):
   config = configparser.ConfigParser()
   config.read(argv[0])
