@@ -277,8 +277,8 @@ class SchemaMigrator:
       insert_template = ("(%(funder_id)s, %(funder_name)s, %(funder_type)s, "
           "%(parent_id)s)")
       psycopg2.extras.execute_values(
-          cursor, insert_funder_query, funder_records, template=insert_template, page_size=250)
-
+          cursor, insert_funder_query, funder_records, template=insert_template,
+          page_size=250)
       num_rows_processed += len(funder_records)
 
     logging.info('Migrated %d funder rows total.', num_rows_processed)
