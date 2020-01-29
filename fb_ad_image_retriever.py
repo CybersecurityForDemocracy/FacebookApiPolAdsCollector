@@ -82,12 +82,21 @@ def construct_snapshot_urls(access_token, archive_ids):
   return archive_id_to_snapshot_url
 
 
-def get_image_url(snapshot_url):
+def get_image_url(archive_id, snapshot_url):
   ad_snapshot_request = requests.get(snapshot_url, timeout=30)
   # TODO(macpd): handle this more gracefully
   # TODO(macpd): check encoding
   ad_snapshot_request.raise_for_status()
   ad_snapshot_text = ad_snapshot_request.text
+
+  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
+    logging.debug('%s found snapshot. Assuming ad has video with preview image', VIDEO_IMAGE_URL_JSON_NAME)
+    image_url = search_for_image_url_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
+    if image_url:
+      return image_url
+
+    logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
+        VIDEO_IMAGE_URL_JSON_NAME, archive_id, VIDEO_PREVIEW_IMAGE_URL_REGEX)
 
   if IMAGE_URL_JSON_NAME in ad_snapshot_text:
     logging.debug('%s found in snapshot. Assuming ad has image only.', IMAGE_URL_JSON_NAME)
@@ -95,11 +104,8 @@ def get_image_url(snapshot_url):
     if image_url:
       return image_url
 
-  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
-    logging.debug('%s found in snapshot. Assuming ad has video with preview image', VIDEO_IMAGE_URL_JSON_NAME)
-    image_url = search_for_image_url_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
-    if image_url:
-      return image_url
+    logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
+        IMAGE_URL_JSON_NAME, archive_id, IMAGE_URL_REGEX)
 
   logging.warning('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
   # TODO(macpd): raise appropriate error here.
@@ -108,7 +114,7 @@ def get_image_url(snapshot_url):
 def search_for_image_url_by_regex(search_regex, ad_snapshot_text):
   match = re.search(search_regex, ad_snapshot_text)
   if not match:
-    logging.warning('Unable to locate image url in ad snapshot using regex: "%s"', search_regex)
+    logging.debug('Unable to locate image url in ad snapshot using regex: "%s"', search_regex)
     # TODO(macpd): raise appropriate error here.
     return None
   raw_image_url_str = match.group(1)
@@ -187,7 +193,7 @@ class FacebookAdImageRetriever:
     archive_ids_without_image_url_found = []
     archive_id_to_fetch_time = {}
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-     image_url = get_image_url(snapshot_url)
+     image_url = get_image_url(archive_id, snapshot_url)
      archive_id_to_fetch_time[archive_id] = datetime.datetime.now()
      self.num_ids_processed += 1
      if image_url:
