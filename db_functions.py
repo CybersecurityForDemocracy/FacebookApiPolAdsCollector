@@ -52,7 +52,7 @@ class DBInterface():
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
 
-    def get_n_archive_ids_without_image_hash(self, max_archive_ids=200):
+    def n_archive_ids_without_image_hash(self, max_archive_ids=200):
       """Get ad archive IDs that do not exist in ad_images table.
 
       Args:
@@ -61,10 +61,10 @@ class DBInterface():
       Returns:
         list of archive IDs (str).
       """
+      cursor = self.get_cursor()
       archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
           'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
           'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
-      cursor = sef.get_cursor()
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
@@ -186,4 +186,5 @@ class DBInterface():
         '%(image_url_found_in_snapshot)s, %(image_url)s, '
         '%(image_url_fetch_status)s, %(sim_hash)s)')
       ad_image_record_list = [x._asdict() for x in ad_image_records]
-      psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list, template=insert_template)
+      psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list,
+          template=insert_template, page_size=250)
