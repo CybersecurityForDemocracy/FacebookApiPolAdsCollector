@@ -72,37 +72,6 @@ def make_gcs_bucket_client(bucket_name, credentials_file):
   bucket_client = storage_client.get_bucket(bucket_name)
   return bucket_client
 
-def get_all_archive_ids_without_image_hash(cursor):
-  """Get ALL ad archive IDs that do not exist in ad_images table.
-
-  Args:
-    cursor: pyscopg2.Cursor DB cursor for query execution.
-  Returns:
-    list of archive IDs (str).
-  """
-  archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-      'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
-      'BY creation_time DESC')
-  cursor.execute(archive_ids_sample_query)
-  results = cursor.fetchall()
-  return [row['archive_id'] for row in results]
-
-def get_n_archive_ids_without_image_hash(cursor, max_archive_ids=200):
-  """Get ad archive IDs that do not exist in ad_images table.
-
-  Args:
-    cursor: pyscopg2.Cursor DB cursor for query execution.
-    max_archive_ids: int, limit on how many IDs to query DB for.
-  Returns:
-    list of archive IDs (str).
-  """
-  archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-      'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
-      'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
-  cursor.execute(archive_ids_sample_query)
-  results = cursor.fetchall()
-  return [row['archive_id'] for row in results]
-
 
 def construct_snapshot_urls(access_token, archive_ids):
   archive_id_to_snapshot_url = {}
@@ -154,13 +123,6 @@ def make_image_hash_file_path(image_hash):
                       image_hash[12:16], image_hash[16:20], image_hash[20:24],
                       image_hash[24:28], base_file_name)
 
-
-def fetch_image(image_url):
-  image_request = requests.get(image_url, timeout=30)
-  # TODO(macpd): handle this more gracefully
-  # TODO(macpd): check encoding
-  image_request.raise_for_status()
-  return image_request.content
 
 def get_image_dhash(image_bytes):
   image_file = io.BytesIO(image_bytes)
@@ -243,10 +205,14 @@ class FacebookAdImageRetriever:
 
     archive_id_to_fetch_status = {}
     archive_id_to_dhash = {}
-    archive_id_to_bucket_path = {}
+    archive_id_to_bucket_url = {}
     for archive_id, image_url in  archive_id_to_image_url.items():
       try:
-        image_bytes = fetch_image(image_url)
+        image_request = requests.get(image_url, timeout=30)
+        # TODO(macpd): handle this more gracefully
+        # TODO(macpd): check encoding
+        image_request.raise_for_status()
+        image_bytes = image_request.content
         archive_id_to_fetch_status[archive_id] = ImageUrlFetchStatus.SUCCESS
       except requests.RequestException as e:
         self.num_image_download_failure += 1
@@ -257,15 +223,14 @@ class FacebookAdImageRetriever:
 
       image_dhash = get_image_dhash(image_bytes)
       archive_id_to_dhash[archive_id] = image_dhash
-      archive_id_to_bucket_path[archive_id] = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      archive_id_to_bucket_url[archive_id] = self.store_image_in_google_bucket(image_dhash, image_bytes)
 
-    # TODO(macpd): record image URLs not found in snapshot
     ad_image_records = []
     for archive_id in archive_id_to_image_url:
       ad_image_records.append(AdImageRecord(archive_id=archive_id,
         snapshot_fetch_time=archive_id_to_fetch_time[archive_id],
         image_url_found_in_snapshot=True,
-        image_url=archive_id_to_bucket_path[archive_id],
+        image_url=archive_id_to_bucket_url[archive_id],
         image_url_fetch_status=int(archive_id_to_fetch_status[archive_id]),
         sim_hash=archive_id_to_dhash[archive_id]))
 
