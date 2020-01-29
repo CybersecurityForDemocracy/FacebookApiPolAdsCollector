@@ -11,134 +11,263 @@ class DBInterface():
 
     def existing_ads(self):
         cursor = self.get_cursor()
-        existing_ad_query = "select archive_id, ad_delivery_stop_time from ads"
+        existing_ad_query = "select archive_id, is_active from ads"
         cursor.execute(existing_ad_query)
-        ads_to_end_time_map = dict()
+        ad_ids = set()
+        active_ads = set()
         for row in cursor:
-            ads_to_end_time_map[row['archive_id']]=row['ad_delivery_stop_time']
-        return ads_to_end_time_map
+            ad_ids.add(row['archive_id'])
+            if row['is_active'] == True:
+                active_ads.add(row['archive_id'])
 
-    def existing_pages(self):
+        return (ad_ids, active_ads)
+
+    def existing_demos(self):
+        cursor = self.get_cursor()
+        existing_demo_group_query = "select gender, age, id from demo_groups;"
+        cursor.execute(existing_demo_group_query)
+        existing_demo_groups = {}
+        for row in cursor:
+            existing_demo_groups[row['age']+row['gender']] = row['id']
+
+        return existing_demo_groups
+
+    def existing_region(self):
+        cursor = self.get_cursor()
+        existing_regions_query = "select name, id from regions;"
+        cursor.execute(existing_regions_query)
+        existing_regions = {}
+        for row in cursor:
+            existing_regions[row['name']] = row['id']
+
+        return existing_regions
+
+    def existing_page(self):
         cursor = self.get_cursor()
         existing_pages_query = "select page_id, page_name from pages;"
         cursor.execute(existing_pages_query)
         existing_pages = set()
         for row in cursor:
             existing_pages.add(row['page_id'])
+
         return existing_pages
 
-    def existing_funding_entities(self):
+    def existing_sponsors(self):
         cursor = self.get_cursor()
-        existing_funder_query = "select funder_id, funder_name from funder_metadata;"
-        cursor.execute(existing_funder_query)
-        existing_funders = dict()
+        existing_ad_sponsor_query = "select id, name from ad_sponsors;"
+        cursor.execute(existing_ad_sponsor_query)
+        existing_ad_sponsors = {}
         for row in cursor:
-            existing_funders[row['funder_name']] = row['funder_id']
-        return existing_funders
+            existing_ad_sponsors[row['name']] = row['id']
 
-    def insert_funding_entities(self, new_funders):
+        return existing_ad_sponsors
+
+    def all_archive_ids_without_image_hash(self):
+      """Get ALL ad archive IDs that do not exist in ad_images table.
+
+      Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+      Returns:
+        list of archive IDs (str).
+      """
+      cursor = self.get_cursor()
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
+          'BY ad_creation_time DESC')
+      cursor.execute(archive_ids_sample_query)
+      results = cursor.fetchall()
+      return [row['archive_id'] for row in results]
+
+    def get_n_archive_ids_without_image_hash(self, max_archive_ids=200):
+      """Get ad archive IDs that do not exist in ad_images table.
+
+      Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+        max_archive_ids: int, limit on how many IDs to query DB for.
+      Returns:
+        list of archive IDs (str).
+      """
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+          'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
+      cursor = sef.get_cursor()
+      cursor.execute(archive_ids_sample_query)
+      results = cursor.fetchall()
+      return [row['archive_id'] for row in results]
+
+    def insert_ad_sponsors(self, new_ad_sponsors):
         cursor = self.get_cursor()
-        insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
-        insert_template = "(%s)"
-        psycopg2.extras.execute_values(
-            cursor, insert_funder_query, new_funders, template=insert_template, page_size=250)
+        insert_ad_sponsor = "INSERT INTO ad_sponsors(name) VALUES "
+        ad_sponsor_count = 0
+        for ad_sponsor in new_ad_sponsors:
+            insert_ad_sponsor += cursor.mogrify("(%s),",
+                                                (ad_sponsor,)).decode('utf-8')
+            ad_sponsor_count += 1
+
+            if ad_sponsor_count >= 250:
+                insert_ad_sponsor = insert_ad_sponsor[:-1]
+                insert_ad_sponsor += ";"
+                # print(cursor.mogrify(insert_ad_sponsor))
+                cursor.execute(insert_ad_sponsor)
+                insert_ad_sponsor = "INSERT INTO ad_sponsors(name) VALUES "
+                ad_sponsor_count = 0
+
+        if ad_sponsor_count > 0:
+            insert_ad_sponsor = insert_ad_sponsor[:-1]
+            insert_ad_sponsor += ";"
+            # print(self.mogrify(insert_ad_sponsor))
+            cursor.execute(insert_ad_sponsor)
 
     def insert_pages(self, new_pages):
         cursor = self.get_cursor()
-        insert_page_query = (
-            "INSERT INTO pages(page_id, page_name) VALUES %s "
-            "on conflict (page_id) do nothing;")
-        insert_template = "(%(id)s, %(name)s)"
-        new_page_list = [x._asdict() for x in new_pages]
-        psycopg2.extras.execute_values(
-            cursor, insert_page_query, new_page_list, template=insert_template, page_size=250)
+        insert_page = "INSERT INTO pages(page_id, page_name) VALUES "
+        page_count = 0
+        for page in new_pages:
+            insert_page += cursor.mogrify("(%s, %s),",
+                                          (page.id, page.name)).decode('utf-8')
+            page_count += 1
 
+            if page_count >= 250:
+                insert_page = insert_page[:-1]
+                insert_page += ";"
+                # print(self.mogrify(insert_page))
+                cursor.execute(insert_page)
+                insert_page = "INSERT INTO pages(page_id, page_name) VALUES "
+                page_count = 0
 
-    def insert_new_ads(self, new_ads):
+        insert_page = insert_page[:-1]
+        insert_page += ";"
+        if page_count > 0:
+            # print(self.mogrify(insert_page))
+            cursor.execute(insert_page)
+
+    def insert_regions(self, new_regions):
         cursor = self.get_cursor()
-        ad_insert_query = (
-            "INSERT INTO ads(archive_id, ad_creative_body, ad_creation_time, ad_delivery_start_time, "
-            "ad_delivery_stop_time, page_id, currency, ad_creative_link_caption, "
-            "ad_creative_link_title, ad_creative_link_description, ad_snapshot_url, funding_entity) "
-            "VALUES %s on conflict (archive_id) do nothing;")
-        insert_template = (
-            "(%(archive_id)s, %(ad_creative_body)s, %(ad_creation_time)s, %(ad_delivery_start_time)s, "
-            "%(ad_delivery_stop_time)s, %(page_id)s, %(currency)s, %(ad_creative_link_caption)s, "
-            "%(ad_creative_link_title)s, %(ad_creative_link_description)s, %(ad_snapshot_url)s, %(funding_entity)s)")
-        new_ad_list = [x._asdict() for x in new_ads]
+        insert_region = "INSERT into regions(name) VALUES "
+        region_count = 0
+        for region in new_regions:
+            insert_region += cursor.mogrify("(%s),", (region,)).decode('utf-8')
+            region_count += 1
+
+            if region_count >= 250:
+                insert_region = insert_region[:-1]
+                insert_region += ";"
+                cursor.execute(insert_region)
+                insert_region = "INSERT INTO regions(name) VALUES "
+                region_count = 0
+
+        if region_count > 0:
+            insert_region = insert_region[:-1]
+            insert_region += ";"
+            # print(self.mogrify(insert_regions))
+            cursor.execute(insert_region)
+
+    def insert_demos(self, new_demo_groups):
+        cursor = self.get_cursor()
+        insert_demo_groups = "INSERT INTO demo_groups(age, gender) VALUES "
+        demo_group_count = 0
+        for unused_key, val in new_demo_groups.items():
+            insert_demo_groups += cursor.mogrify(
+                "(%s, %s),", (val[0], val[1])).decode('utf-8')
+            demo_group_count += 1
+
+            if demo_group_count >= 250:
+                insert_demo_groups = insert_demo_groups[:-1]
+                insert_demo_groups += ";"
+                # print(self.mogrify(insert_demo_groups))
+                cursor.execute(insert_demo_groups)
+                insert_demo_groups = "INSERT INTO demo_groups(age, gender) VALUES "
+                demo_group_count = 0
+
+        if demo_group_count > 0:
+            insert_demo_groups = insert_demo_groups[:-1]
+            insert_demo_groups += ";"
+            # print(self.mogrify(insert_demo_groups))
+            cursor.execute(insert_demo_groups)
+
+    def insert_new_ads(self, new_ads, country_code, existing_ad_sponsors):
+        cursor = self.get_cursor()
+        ad_insert_query = "INSERT INTO ads(archive_id, creation_date, start_date, end_date, currency, page_id, snapshot_url, text, ad_sponsor_id, is_active, link_caption, link_description, link_title, country_code) VALUES %s on conflict on constraint unique_ad_archive_id do nothing;"
+        insert_template = '(%(archive_id)s, %(creation_date)s, %(start_date)s, %(end_date)s, %(currency)s, %(page_id)s, %(image_url)s, %(text)s, %(ad_sponsor_id)s, %(is_active)s, %(ad_creative_link_caption)s, %(ad_creative_link_description)s, %(ad_creative_link_title)s, %(country_code)s)'
+        new_ad_list = []
+        for ad in new_ads:
+            ad_dict = ad._asdict()
+            ad_dict['country_code'] = country_code
+            ad_dict['ad_sponsor_id'] = existing_ad_sponsors[ad.sponsor_label]
+            new_ad_list.append(ad_dict)
+
         psycopg2.extras.execute_values(
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
-        ad_insert_query = (
-            "INSERT INTO ad_countries(archive_id, country_code) "
-            "VALUES %s on conflict (archive_id, country_code) do nothing;")
-        insert_template = (
-            "(%(archive_id)s, %(country_code)s)")
-        new_ad_list = [x._asdict() for x in new_ads]
-        psycopg2.extras.execute_values(
-            cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
 
-    def insert_new_impressions(self, new_impressions):
+    def insert_new_impressions(self, new_impressions, crawl_date):
         cursor = self.get_cursor()
-        impressions_insert_query = (
-            "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, "
-            "min_impressions, max_impressions) "
-            "VALUES %s on conflict (archive_id) do update set "
-            "ad_status = EXCLUDED.ad_status, min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
-            "min_impressions = EXCLUDED.min_impressions, max_impressions = EXCLUDED.max_impressions;")
+        impressions_insert_query = "INSERT INTO impressions(ad_archive_id, crawl_date, min_impressions, min_spend, max_impressions, max_spend) VALUES %s\
+            on conflict on constraint impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                    min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
 
-        insert_template = (
-            "(%(archive_id)s, %(ad_status)s , %(spend__lower_bound)s, %(spend__upper_bound)s , "
-            "%(impressions__lower_bound)s , %(impressions__upper_bound)s)")
-        new_impressions_list = [impression._asdict() for impression in new_impressions]
+        insert_template = '(%(archive_id)s, %(crawl_date)s , %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s)'
+        new_impressions_list = []
+        for impression in new_impressions:
+            impression = impression._asdict()
+            impression['crawl_date'] = crawl_date
+            new_impressions_list.append(impression)
 
         psycopg2.extras.execute_values(
             cursor, impressions_insert_query, new_impressions_list, template=insert_template, page_size=250)
 
-    def insert_new_impression_demos(self, new_ad_demo_impressions):
-        demo_impressions_list = [impression._asdict() for impression in new_ad_demo_impressions]
+    def insert_new_impression_demos(self, new_ad_demo_impressions, existing_demo_groups, crawl_date):
         cursor = self.get_cursor()
-        impression_demo_insert_query = (
-            "INSERT INTO demo_impressions(archive_id, age_group, gender, spend_percentage) "
-            "VALUES %s on conflict on constraint unique_demos_per_ad do update set "
-            "spend_percentage = EXCLUDED.spend_percentage;")
-        insert_template = '(%(archive_id)s, %(age_range)s, %(gender)s, %(spend_percentage)s)'
+        impression_demo_insert_query = "INSERT INTO demo_impressions(ad_archive_id, demo_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
+                on conflict on constraint demo_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+        insert_template = '(%(archive_id)s, %(demo_id)s, %(min_impressions)s , %(min_spend)s , %(max_impressions)s , %(max_spend)s, %(crawl_date)s)'
+        new_impressions_demos_list = []
+        for unused_archive_id, impression_demos in new_ad_demo_impressions.items():
+            for demo, snapshot_record in impression_demos.items():
+                snapshot_record = snapshot_record._asdict()
+                snapshot_record['crawl_date'] = crawl_date
+                snapshot_record['demo_id'] = existing_demo_groups[demo]
+                new_impressions_demos_list.append(snapshot_record)
 
         psycopg2.extras.execute_values(
-            cursor, impression_demo_insert_query, demo_impressions_list, template=insert_template, page_size=250)
+            cursor, impression_demo_insert_query, new_impressions_demos_list, template=insert_template, page_size=250)
 
-        impression_demo_result_insert_query = ("INSERT INTO demo_impression_results("
-            "archive_id, age_group, gender, min_impressions, min_spend, "
-            "max_impressions, max_spend) "
-            "VALUES %s "
-            "on conflict on constraint unique_demo_results do update set "
-            "min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, "
-            "max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;")
-        insert_template = (
-            '(%(archive_id)s, %(age_range)s, %(gender)s, %(min_impressions)s , %(min_spend)s,'
-            ' %(max_impressions)s , %(max_spend)s)')
-        psycopg2.extras.execute_values(
-            cursor, impression_demo_result_insert_query, demo_impressions_list, template=insert_template, page_size=250)
-
-
-    def insert_new_impression_regions(self, new_ad_region_impressions):
-        region_impressions_list = [impression._asdict() for impression in new_ad_region_impressions]
+    def insert_new_impression_regions(self, new_ad_region_impressions, existing_regions, crawl_date):
         cursor = self.get_cursor()
-        impression_region_insert_query = ("INSERT INTO region_impressions("
-            "archive_id, region, spend_percentage) VALUES %s "
-            "on conflict on constraint unique_regions_per_ad do update set "
-            "spend_percentage = EXCLUDED.spend_percentage;")
-        insert_template = (
-            "(%(archive_id)s, %(region)s, %(spend_percentage)s)")
+        impression_region_insert_query = "INSERT INTO region_impressions(ad_archive_id, region_id, min_impressions, min_spend, max_impressions, max_spend, crawl_date) VALUES %s \
+                        on conflict on constraint region_impressions_unique_ad_archive_id do update set crawl_date = EXCLUDED.crawl_date, \
+                        min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;"
+        insert_template = "(%(archive_id)s, %(region_id)s, %(min_impressions)s, %(min_spend)s, %(max_impressions)s, %(max_spend)s, %(crawl_date)s)"
+        region_impressions_list = []
+        for unused_archive_id, region_impression_dict in new_ad_region_impressions.items():
+            for unused_region, impression in region_impression_dict.items():
+                impression = impression._asdict()
+                impression['crawl_date'] = crawl_date
+                impression['region_id'] = existing_regions[impression['name']]
+                region_impressions_list.append(impression)
         psycopg2.extras.execute_values(
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
-        impression_region_insert_query = ("INSERT INTO region_impression_results("
-            "archive_id, region, min_impressions, min_spend, "
-            "max_impressions, max_spend) VALUES %s "
-            "on conflict on constraint unique_region_results do update set "
-            "min_impressions = EXCLUDED.min_impressions, min_spend = EXCLUDED.min_spend, "
-            "max_impressions = EXCLUDED.max_impressions, max_spend = EXCLUDED.max_spend;")
-        insert_template = (
-            "(%(archive_id)s, %(region)s, %(min_impressions)s, %(min_spend)s,"
-            " %(max_impressions)s, %(max_spend)s)")
-        psycopg2.extras.execute_values(
-            cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
+
+
+    def insert_candidate_data(self, candidate_data):
+        cursor = self.get_cursor()
+        candidate_insert_query = "INSERT INTO candidate_data(candidate_name, twitter_handle, facebook_page_name, party, riding) VALUES %s;"
+        insert_template = '("%(candidate_name)s", "%(twitter_handle)s" , "%(facebook_page_name)s" , "%(party)s" , "%(riding)s")'
+        records = [insert_template % candidate_row for candidate_row in candidate_data]
+        # print(candidate_insert_query % ','.join(records))
+        with open('/home/divam/projects/insert.sql','w') as f:
+            f.write(candidate_insert_query % ',\n'.join(records))
+        # psycopg2.extras.execute_values(
+        #     cursor, candidate_insert_query, candidate_data, template=insert_template, page_size=250)
+
+    def insert_ad_image_records(self, ad_image_records):
+      cursor = self.get_cursor()
+      insert_query = ('INSERT INTO ad_images(archive_id, '
+          'snapshot_fetch_time, image_url_found_in_snapshot, image_url, '
+          'image_url_fetch_status, sim_hash) '
+          'VALUES %s')
+      insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
+        '%(image_url_found_in_snapshot)s, %(image_url)s, '
+        '%(image_url_fetch_status)s, %(sim_hash)s)')
+      ad_image_record_list = [x._asdict() for x in ad_image_records]
+      psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list, template=insert_template)

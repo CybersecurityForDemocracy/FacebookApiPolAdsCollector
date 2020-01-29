@@ -1,6 +1,8 @@
+import collections
 import configparser
 import datetime
 import dhash
+import enum
 from google.cloud import storage
 import io
 import json
@@ -13,6 +15,8 @@ import psycopg2
 import psycopg2.extras
 import sys
 import urllib.parse
+
+import db_functions
 
 GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
@@ -29,6 +33,20 @@ URL_REGEX_TEMPLATE = r'"%s":\s*?"(http[^"]+?)"'
 IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % IMAGE_URL_JSON_NAME)
 VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
+
+class ImageUrlFetchStatus(enum.IntEnum):
+  UNKNOWn_ERROR = 0
+  SUCCESS = 1
+  TIMEOUT = 2
+  NOT_FOUND = 3
+
+AdImageRecord = collections.namedtuple('AdImageRecord',
+    ['archive_id',
+     'snapshot_fetch_time',
+     'image_url_found_in_snapshot',
+     'image_url',
+     'image_url_fetch_status',
+     'sim_hash'])
 
 def chunks(lst, n):
   """Yield successive n-sized chunks from lst."""
@@ -64,7 +82,7 @@ def get_all_archive_ids_without_image_hash(cursor):
   """
   archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
       'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
-      'BY creation_date DESC')
+      'BY creation_time DESC')
   cursor.execute(archive_ids_sample_query)
   results = cursor.fetchall()
   return [row['archive_id'] for row in results]
@@ -78,12 +96,9 @@ def get_n_archive_ids_without_image_hash(cursor, max_archive_ids=200):
   Returns:
     list of archive IDs (str).
   """
-  # TODO(macpd): figure out how we want to systematically get archive IDs for this
-  # Get most recently created ads that do not have image hashes in
-  # ad_images table.
   archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
       'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
-      'ORDER BY creation_date DESC LIMIT %s;' % max_archive_ids)
+      'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
   cursor.execute(archive_ids_sample_query)
   results = cursor.fetchall()
   return [row['archive_id'] for row in results]
@@ -166,7 +181,7 @@ class FacebookAdImageRetriever:
     self.num_image_download_failure = 0
     self.num_image_uploade_to_gcs_bucket = 0
     self.db_connection = db_connection
-    self.cursor = self.db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    self.db_interface = db_functions.DBInterface(db_connection)
     self.access_token = access_token
     self.batch_size = batch_size
 
@@ -194,62 +209,70 @@ class FacebookAdImageRetriever:
           self.num_image_download_success,
           self.num_image_download_failure,
           self.num_image_uploade_to_gcs_bucket)
-      self.db_connection.close()
-
-
-  def get_snapshot_urls_from_database(self, cursor, archive_ids):
-    query = 'select archive_id, snapshot_url from ads where archive_id in (%s)' % ','.join([str(i) for i in archive_ids])
-    logging.debug('Executing query: %s', query)
-    cursor.execute(query)
-    results = cursor.fetchall()
-    archive_id_to_snapshot_url = {}
-    for row in results:
-      archive_id_to_snapshot_url[row['archive_id']] = row['snapshot_url']
-      logging.debug('Archive ID %s has snapshot URL: %s', row['archive_id'], row['snapshot_url'])
-    return archive_id_to_snapshot_url
-
-
-  def insert_hash_to_database(self, archive_id, image_dhash, image_url):
-    insert_query = self.cursor.mogrify('INSERT INTO ad_images(archive_id, '
-        'image_url, sim_hash) VALUES (%s, \'%s\', \'%s\')' % (archive_id,
-          image_url, image_dhash))
-    logging.debug('Constructed archive_id -> sim_hash query: %s', insert_query)
-    self.cursor.execute(insert_query)
 
   def store_image_in_google_bucket(self, image_dhash, image_bytes):
     image_bucket_path = make_image_hash_file_path(image_dhash)
     blob = self.bucket_client.blob(image_bucket_path)
     blob.upload_from_string(image_bytes)
     self.num_image_uploade_to_gcs_bucket += 1
-    logging.info('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
+    logging.debug('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
 
   def process_archive_images(self, archive_id_batch):
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
         archive_id_batch)
     archive_id_to_image_url = {}
+    archive_ids_without_image_url_found = []
+    archive_id_to_fetch_time = {}
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
      image_url = get_image_url(snapshot_url)
+     archive_id_to_fetch_time[archive_id] = datetime.datetime.now()
      self.num_ids_processed += 1
      if image_url:
        archive_id_to_image_url[archive_id] = image_url
-       logging.info('Archive ID %s has image_url: %s', archive_id, image_url)
+       logging.debug('Archive ID %s has image_url: %s', archive_id, image_url)
        self.num_image_urls_found += 1
      else:
        logging.warning('Unable to find image_url for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
+       archive_ids_without_image_url_found.append(archive_id)
 
+    archive_id_to_fetch_status = {}
+    archive_id_to_dhash = {}
     for archive_id, image_url in  archive_id_to_image_url.items():
       try:
         image_bytes = get_image(image_url)
+        archive_id_to_fetch_status[archive_id] = ImageUrlFetchStatus.SUCCESS
       except requests.RequestException as e:
         self.num_image_download_failure += 1
-        raise
+        # TODO(macpd): handle all error types
+        archive_id_to_fetch_status[archive_id] = ImageUrlFetchStatus.UNKNOWN_ERROR
 
       self.num_image_download_success += 1
 
       image_dhash = get_image_dhash(image_bytes)
-      self.store_image_in_google_bucket(bucket_client, image_dhash, image_bytes)
-      self.insert_hash_to_database(archive_id, image_dhash, image_url)
+      archive_id_to_dhash[archive_id] = image_dhash
+      self.store_image_in_google_bucket(image_dhash, image_bytes)
+
+    # TODO(macpd): record image URLs not found in snapshot
+    ad_image_records = []
+    for archive_id in archive_id_to_image_url:
+      ad_image_records.append(AdImageRecord(archive_id=archive_id,
+        snapshot_fetch_time=archive_id_to_fetch_time[archive_id],
+        image_url_found_in_snapshot=True,
+        image_url=archive_id_to_image_url[archive_id],
+        image_url_fetch_status=int(archive_id_to_fetch_status[archive_id]),
+        sim_hash=archive_id_to_dhash[archive_id]))
+
+    for archive_id in archive_ids_without_image_url_found:
+      ad_image_records.append(AdImageRecord(archive_id=archive_id,
+        snapshot_fetch_time=archive_id_to_fetch_time[archive_id],
+        image_url_found_in_snapshot=False,
+        image_url=None,
+        image_url_fetch_status=None,
+        sim_hash=None))
+
+    self.db_interface.insert_ad_image_records(ad_image_records)
+
 
 
 def main(argv):
@@ -271,11 +294,12 @@ def main(argv):
   try:
     with get_database_connection(config) as db_connection:
       logging.info('DB connection established')
+      db_interface = db_functions.DBInterface(db_connection)
       with db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
         if max_archive_ids == -1:
-          archive_ids = get_all_archive_ids_without_image_hash(cursor)
+          archive_ids = db_interface.all_archive_ids_without_image_hash()
         else:
-          archive_ids = get_n_archive_ids_without_image_hash(cursor, max_archive_ids)
+          archive_ids = db_interface.n_archive_ids_without_image_hash(max_archive_ids)
         logging.debug('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
     bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
