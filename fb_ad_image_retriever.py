@@ -153,6 +153,15 @@ class FacebookAdImageRetriever:
     self.access_token = access_token
     self.batch_size = batch_size
 
+  def log_stats(self):
+    logging.info('Processed %d archive IDs.\nImage URLs found: '
+        '%d\nImages downloads successful: %d\nImages downloads failed: %d\n'
+        'Images uploaded to GCS bucket: %d',
+        self.num_ids_processed, self.num_image_urls_found,
+        self.num_image_download_success,
+        self.num_image_download_failure,
+        self.num_image_uploade_to_gcs_bucket)
+
 
   def retreive_and_store_images(self, archive_ids):
     logging.info('Processing %d archive IDs in batches of %d',
@@ -162,6 +171,7 @@ class FacebookAdImageRetriever:
         self.process_archive_images(archive_id_batch)
         self.db_connection.commit()
         logging.info('Processed %d of %d archive IDs.', self.num_ids_processed, len(archive_ids))
+        self.log_stats()
         logging.debug('Processed %d archive_ids: %s', self.batch_size,
             ','.join([str(i) for i in archive_ids]))
 
@@ -170,13 +180,7 @@ class FacebookAdImageRetriever:
       raise(e)
 
     finally:
-      logging.info('Finished processing %d arhive IDs.\nImage URLs found: '
-          '%d\nImages downloads successful: %d\nImages downloads failed: %d\n'
-          'Images uploaded to GCS bucket: %d',
-          self.num_ids_processed, self.num_image_urls_found,
-          self.num_image_download_success,
-          self.num_image_download_failure,
-          self.num_image_uploade_to_gcs_bucket)
+      self.log_stats()
 
   def store_image_in_google_bucket(self, image_dhash, image_bytes):
     image_bucket_path = make_image_hash_file_path(image_dhash)
