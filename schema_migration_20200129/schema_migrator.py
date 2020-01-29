@@ -140,9 +140,9 @@ class SchemaMigrator:
     logging.info('Starting migration.')
     # migrate page_id as it is foreign key in a lot of tables
     self.migrate_page_table()
-    # migrate archive_id as it is second most refrenced foreign key
-    self.migrate_ads_table()
-    # migrate impressions since that only relies on archive_id
+    # migrate archive_id as it is second most refrenced foreign key. Also,
+    # migrate impressions for archive IDs.
+    self.migrate_ads_and_impressions_table()
 
     # migrate funder_id as it is next most refrenced foreign key
     # computations required for demographic and regional impressions and
@@ -150,16 +150,16 @@ class SchemaMigrator:
     # maybe demo and regional impressions -> results
 
   def migrate_pages_table(self):
-    logging.info('Migrationg pages table.')
+    logging.info('Migrating pages table.')
     src_cursor = self.get_src_cursor()
     src_cursor.array_size = self.batch_size
     src_pages_query = 'SELECT (page_id, page_name) from pages'
     srcs_cursor.execute(src_cursor.mogrify(src_pages_query))
     fetched_rows = src_cursor.fetchmany()
     num_rows_processed = 0
-    while fetched_row:
+    while fetched_rows:
       page_records = []
-      for row in fetched_row:
+      for row in fetched_rows:
         page_records.append(NewPageRecord(page_id=row['page_id'],
           page_name=row['page_name']))
 
@@ -170,7 +170,7 @@ class SchemaMigrator:
     logging.info('Migrated %d page rows total.', num_rows_processed)
 
   def migrate_ads_and_impressions_table(self):
-    logging.info('Migrationg ads table.')
+    logging.info('Migrating ads table.')
     src_cursor = self.get_src_cursor()
     src_cursor.array_size = self.batch_size
     srcs_ads_query = 'SELECT * FROM ads;'
