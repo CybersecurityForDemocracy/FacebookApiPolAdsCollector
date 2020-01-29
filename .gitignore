@@ -5,3 +5,4 @@ response*
 __pycache__/
 venv/
 *.json
+.*.swp
