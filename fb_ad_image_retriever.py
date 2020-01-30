@@ -28,7 +28,9 @@ logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                     level=logging.INFO)
 
 IMAGE_URL_JSON_NAME = 'original_image_url'
+IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
 VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
+VIDEO_IMAGE_URL_JSON_NULL_PHRASE = '"video_preview_image_url":null'
 URL_REGEX_TEMPLATE = r'"%s":\s*?"(http[^"]+?)"'
 IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % IMAGE_URL_JSON_NAME)
 VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
@@ -89,7 +91,8 @@ def get_image_url(archive_id, snapshot_url):
   ad_snapshot_request.raise_for_status()
   ad_snapshot_text = ad_snapshot_request.text
 
-  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
+  if (VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text and
+          VIDEO_IMAGE_URL_JSON_NULL_PHRASE not in ad_snapshot_text):
     logging.debug('%s found snapshot. Assuming ad has video with preview image', VIDEO_IMAGE_URL_JSON_NAME)
     image_url = search_for_image_url_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
     if image_url:
@@ -98,7 +101,8 @@ def get_image_url(archive_id, snapshot_url):
     logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
         VIDEO_IMAGE_URL_JSON_NAME, archive_id, VIDEO_PREVIEW_IMAGE_URL_REGEX)
 
-  if IMAGE_URL_JSON_NAME in ad_snapshot_text:
+  if (IMAGE_URL_JSON_NAME in ad_snapshot_text and IMAGE_URL_JSON_NULL_PHRASE not
+          in ad_snapshot_text):
     logging.debug('%s found in snapshot. Assuming ad has image only.', IMAGE_URL_JSON_NAME)
     image_url = search_for_image_url_by_regex(IMAGE_URL_REGEX, ad_snapshot_text)
     if image_url:
