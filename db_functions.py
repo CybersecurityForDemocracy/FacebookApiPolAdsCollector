@@ -180,7 +180,8 @@ class DBInterface():
       cursor = self.get_cursor()
       insert_query = ('INSERT INTO ad_images(archive_id, '
           'snapshot_fetch_time, downloaded_url, bucket_url, '
-          'image_url_fetch_status, sim_hash, sha256_hash) VALUES %s')
+          'image_url_fetch_status, sim_hash, sha256_hash) VALUES %s ON CONFLICT '
+          '(archive_id, sha256_hash) DO NOTHING')
       insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
         '%(downloaded_url)s, %(bucket_url)s, %(image_url_fetch_status)s, '
         '%(sim_hash)s, %(image_sha256)s)')
