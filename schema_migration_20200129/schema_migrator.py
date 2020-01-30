@@ -283,6 +283,24 @@ class SchemaMigrator:
 
     logging.info('Migrated %d funder rows total.', num_rows_processed)
 
+  #  def migrate_demo_impressions_table(self):
+    #  logging.info('Migrating demo_impressions table.')
+    #  src_cursor = self.get_src_cursor()
+    #  src_demo_impressions_query = 'SELECT (page_id, page_name) from demo_impressions'
+    #  srcs_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
+    #  fetched_rows = src_cursor.fetchmany()
+    #  num_rows_processed = 0
+    #  while fetched_rows:
+      #  demo_impression_records = []
+      #  for row in fetched_rows:
+        #  demo_impression_records.append(NewPageRecord(demo_impression_id=row['demo_impression_id'],
+          #  demo_impression_name=row['demo_impression_name']))
+
+      #  self.dest_db_interface.dest_db_interface.insert_demo_impressions(demo_impression_records)
+      #  num_rows_processed += len(demo_impression_records)
+      #  logging.info('Migrated %d demo_impression rows so far.', num_rows_processed)
+
+    #  logging.info('Migrated %d demo_impression rows total.', num_rows_processed)
 
 
 
