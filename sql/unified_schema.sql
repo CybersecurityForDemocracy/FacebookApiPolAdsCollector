@@ -87,12 +87,11 @@ CREATE TABLE page_metadata (
 );
 CREATE TABLE ad_images (
   archive_id bigint,
-  snapshot_fetch_time timestamp,
+  sha256_hash character varying,
+  fetch_time timestamp,
   downloaded_url character varying,
   bucket_url character varying,
-  image_url_fetch_status integer,
   sim_hash character varying,
-  sha256_hash character varying,
   PRIMARY KEY (archive_id, sha256_hash),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );

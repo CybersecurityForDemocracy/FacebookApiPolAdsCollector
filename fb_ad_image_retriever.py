@@ -45,7 +45,7 @@ class ImageUrlFetchStatus(enum.IntEnum):
 
 AdImageRecord = collections.namedtuple('AdImageRecord',
     ['archive_id',
-     'snapshot_fetch_time',
+     'fetch_time',
      'downloaded_url',
      'bucket_url',
      'image_url_fetch_status',
@@ -153,6 +153,7 @@ class FacebookAdImageRetriever:
     self.bucket_client = bucket_client
     self.num_ids_processed = 0
     self.num_image_urls_found = 0
+    self.num_ids_without_image_url_found = 0
     self.num_image_download_success = 0
     self.num_image_download_failure = 0
     self.num_image_uploade_to_gcs_bucket = 0
@@ -162,10 +163,16 @@ class FacebookAdImageRetriever:
     self.batch_size = batch_size
 
   def log_stats(self):
-    logging.info('Processed %d archive IDs.\nImage URLs found: '
-        '%d\nImages downloads successful: %d\nImages downloads failed: %d\n'
+    logging.info(
+        'Processed %d archive IDs.\n'
+        'Image URLs found: %d\n'
+        'Archive snapshots without image URL found: %d\n'
+        'Images downloads successful: %d\n'
+        'Images downloads failed: %d\n'
         'Images uploaded to GCS bucket: %d',
-        self.num_ids_processed, self.num_image_urls_found,
+        self.num_ids_processed,
+        self.num_image_urls_found,
+        self.num_ids_without_image_url_found,
         self.num_image_download_success,
         self.num_image_download_failure,
         self.num_image_uploade_to_gcs_bucket)
@@ -201,17 +208,14 @@ class FacebookAdImageRetriever:
         archive_id_batch)
     image_url_to_archive_id = {}
     archive_ids_without_image_url_found = []
-    archive_id_to_snapshot_fetch_time = {}
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
      image_url_list = get_image_url_list(archive_id, snapshot_url)
-     archive_id_to_snapshot_fetch_time[archive_id] = datetime.datetime.now()
      self.num_ids_processed += 1
      if image_url_list:
        for image_url in image_url_list:
          image_url_to_archive_id[image_url] = archive_id
 
        logging.debug('Archive ID %s has image_url(s): %s', archive_id, image_url_list)
-       self.num_image_urls_found += len(image_url_list)
      else:
        logging.warning('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
@@ -221,41 +225,38 @@ class FacebookAdImageRetriever:
       raise RuntimeError('Failed to find image URLs in any snapshot from this '
           'batch.  Assuming access_token has expired. Aborting!')
 
-    # TODO(macpd): change to image_url -> fetch_status
-    image_url_to_fetch_status = {}
-    image_url_to_dhash = {}
-    image_url_to_sha256 = {}
-    image_url_to_bucket_url = {}
+    self.num_image_urls_found += len(image_url_to_archive_id.keys())
+    self.num_ids_without_image_url_found += len(archive_ids_without_image_url_found)
+
+    ad_image_records = []
     for image_url in image_url_to_archive_id:
       try:
+        fetch_time = datetime.datetime.now()
         image_request = requests.get(image_url, timeout=30)
         # TODO(macpd): handle this more gracefully
         # TODO(macpd): check encoding
         image_request.raise_for_status()
       except requests.RequestException as e:
+        logging.info('Exception %s when requesting image_url: %s', e, image_url)
         self.num_image_download_failure += 1
         # TODO(macpd): handle all error types
         image_url_to_fetch_status[image_url] = ImageUrlFetchStatus.UNKNOWN_ERROR
         continue
 
-
-      image_bytes = image_request.content
-      image_url_to_fetch_status[image_url] = ImageUrlFetchStatus.SUCCESS
       self.num_image_download_success += 1
+      image_bytes = image_request.content
       image_dhash = get_image_dhash(image_bytes)
-      image_url_to_dhash[image_url] = image_dhash
-      image_url_to_sha256[image_url] = hashlib.sha256(image_bytes).hexdigest()
-      image_url_to_bucket_url[image_url] = self.store_image_in_google_bucket(image_dhash, image_bytes)
-
-    ad_image_records = []
-    for image_url, archive_id in image_url_to_archive_id.items():
-      ad_image_records.append(AdImageRecord(archive_id=archive_id,
-        snapshot_fetch_time=archive_id_to_snapshot_fetch_time[archive_id],
-        downloaded_url=image_url,
-        bucket_url=image_url_to_bucket_url[image_url],
-        image_url_fetch_status=int(image_url_to_fetch_status[image_url]),
-        sim_hash=image_url_to_dhash[image_url],
-        image_sha256=image_url_to_sha256[image_url]))
+      image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+      bucket_url = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      ad_image_records.append(
+          AdImageRecord(
+            archive_id=image_url_to_archive_id[image_url],
+            fetch_time=fetch_time,
+            downloaded_url=image_url,
+            bucket_url=bucket_url,
+            image_url_fetch_status=int(ImageUrlFetchStatus.SUCCESS),
+            sim_hash=image_dhash,
+            image_sha256=image_sha256))
 
     logging.debug('Inserting AdImageRecords to DB: %r', ad_image_records)
     self.db_interface.insert_ad_image_records(ad_image_records)
