@@ -134,7 +134,7 @@ def get_db_connection(postgres_config):
 
 class SchemaMigrator:
 
-  def __init__(src_db_connection, dest_db_connection, batch_size):
+  def __init__(self, src_db_connection, dest_db_connection, batch_size):
     self.batch_size = batch_size
     self.src_db_connection = src_db_connection
     self.dest_db_connection = dest_db_connection
@@ -151,7 +151,7 @@ class SchemaMigrator:
   def run_migration(self):
     logging.info('Starting migration.')
     # migrate page_id as it is foreign key in a lot of tables
-    self.migrate_page_table()
+    self.migrate_pages_table()
 
     # migrate archive_id as it is second most refrenced foreign key. Also,
     # migrate impressions for archive IDs.
@@ -168,7 +168,7 @@ class SchemaMigrator:
     logging.info('Migrating pages table.')
     src_cursor = self.get_src_cursor()
     src_pages_query = 'SELECT (page_id, page_name) from pages'
-    srcs_cursor.execute(src_cursor.mogrify(src_pages_query))
+    src_cursor.execute(src_cursor.mogrify(src_pages_query))
     fetched_rows = src_cursor.fetchmany()
     num_rows_processed = 0
     while fetched_rows:
@@ -186,8 +186,8 @@ class SchemaMigrator:
   def migrate_ads_and_impressions_table(self):
     logging.info('Migrating ads table.')
     src_cursor = self.get_src_cursor()
-    srcs_ads_query = 'SELECT * FROM ads;'
-    srcs_cursor.execute(src_cursor.mogrify(src_ads_query))
+    src_ads_query = 'SELECT * FROM ads;'
+    src_cursor.execute(src_cursor.mogrify(src_ads_query))
     num_rows_processed = 0
     fetched_rows = src_cursor.fetchmany()
     while fetched_rows:
@@ -228,7 +228,7 @@ class SchemaMigrator:
     archive_ids = [str(k) for k in archive_id_to_ad_status]
     src_impressions_query = ('SELECT * FROM impressions WHERE archive_id IN '
       '(%s)' % (','.join(archive_ids)))
-    srcs_cursor.execute(src_cursor.mogrify(src_impressions_query))
+    src_cursor.execute(src_cursor.mogrify(src_impressions_query))
 
     num_rows_processed = 0
     impression_records = []
@@ -259,7 +259,7 @@ class SchemaMigrator:
     logging.info('Migrationg funder table.')
     src_cursor = self.get_src_cursor()
     src_sponsor_query = src_cursor.mogrify('SELECT * FROM ad_sponsors')
-    srcs_curosr.execute(src_sponsor_query)
+    src_cursor.execute(src_sponsor_query)
     fetched_rows = src_cursor.fetchmany()
     num_rows_processed = 0
     while fetched_rows:
@@ -287,7 +287,7 @@ class SchemaMigrator:
     #  logging.info('Migrating demo_impressions table.')
     #  src_cursor = self.get_src_cursor()
     #  src_demo_impressions_query = 'SELECT (page_id, page_name) from demo_impressions'
-    #  srcs_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
+    #  src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
     #  fetched_rows = src_cursor.fetchmany()
     #  num_rows_processed = 0
     #  while fetched_rows:
@@ -305,7 +305,7 @@ class SchemaMigrator:
 
 
 def main(src_db_connection, dest_db_connection, batch_size=1000):
-  schema_migrator = SchemaMigraton(src_db_connection, dest_db_connection,
+  schema_migrator = SchemaMigrator(src_db_connection, dest_db_connection,
       batch_size)
   schema_migrator.run_migration()
 
