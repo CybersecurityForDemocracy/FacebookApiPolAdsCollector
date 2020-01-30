@@ -36,6 +36,39 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
+    def all_archive_ids_without_image_hash(self):
+      """Get ALL ad archive IDs that do not exist in ad_images table.
+
+      Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+      Returns:
+        list of archive IDs (str).
+      """
+      cursor = self.get_cursor()
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
+          'BY ad_creation_time DESC')
+      cursor.execute(archive_ids_sample_query)
+      results = cursor.fetchall()
+      return [row['archive_id'] for row in results]
+
+    def n_archive_ids_without_image_hash(self, max_archive_ids=200):
+      """Get ad archive IDs that do not exist in ad_images table.
+
+      Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+        max_archive_ids: int, limit on how many IDs to query DB for.
+      Returns:
+        list of archive IDs (str).
+      """
+      cursor = self.get_cursor()
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+          'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
+      cursor.execute(archive_ids_sample_query)
+      results = cursor.fetchall()
+      return [row['archive_id'] for row in results]
+
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
@@ -142,3 +175,14 @@ class DBInterface():
             " %(max_impressions)s, %(max_spend)s)")
         psycopg2.extras.execute_values(
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
+
+    def insert_ad_image_records(self, ad_image_records):
+      cursor = self.get_cursor()
+      insert_query = ('INSERT INTO ad_images(archive_id, '
+          'fetch_time, downloaded_url, bucket_url, sim_hash, sha256_hash) '
+          'VALUES %s ON CONFLICT (archive_id, sha256_hash) DO NOTHING')
+      insert_template = ('(%(archive_id)s, %(fetch_time)s, '
+        '%(downloaded_url)s, %(bucket_url)s,  %(sim_hash)s, %(image_sha256)s)')
+      ad_image_record_list = [x._asdict() for x in ad_image_records]
+      psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list,
+          template=insert_template, page_size=250)
