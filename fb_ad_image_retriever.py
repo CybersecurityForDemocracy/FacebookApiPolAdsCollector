@@ -151,7 +151,8 @@ class FacebookAdImageRetriever:
 
   def __init__(self, db_connection, bucket_client, access_token, batch_size):
     self.bucket_client = bucket_client
-    self.num_ids_processed = 0
+    self.num_snapshots_processed = 0
+    self.num_snapshots_fetch_failed = 0
     self.num_image_urls_found = 0
     self.num_ids_without_image_url_found = 0
     self.num_image_download_success = 0
@@ -164,13 +165,15 @@ class FacebookAdImageRetriever:
 
   def log_stats(self):
     logging.info(
-        'Processed %d archive IDs.\n'
+        'Processed %d archive snapshots.\n'
+        'Failed to fetch %d archive snapshots.\n'
         'Image URLs found: %d\n'
         'Archive snapshots without image URL found: %d\n'
         'Images downloads successful: %d\n'
         'Images downloads failed: %d\n'
         'Images uploaded to GCS bucket: %d',
-        self.num_ids_processed,
+        self.num_snapshots_processed,
+        self.num_snapshots_fetch_failed,
         self.num_image_urls_found,
         self.num_ids_without_image_url_found,
         self.num_image_download_success,
@@ -179,13 +182,13 @@ class FacebookAdImageRetriever:
 
 
   def retreive_and_store_images(self, archive_ids):
-    logging.info('Processing %d archive IDs in batches of %d',
+    logging.info('Processing %d archive snapshots in batches of %d',
         len(archive_ids), self.batch_size)
     try:
       for archive_id_batch in chunks(archive_ids, self.batch_size):
         self.process_archive_images(archive_id_batch)
         self.db_connection.commit()
-        logging.info('Processed %d of %d archive IDs.', self.num_ids_processed, len(archive_ids))
+        logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
         self.log_stats()
 
     except requests.RequestException as e:
@@ -209,14 +212,20 @@ class FacebookAdImageRetriever:
     image_url_to_archive_id = {}
     archive_ids_without_image_url_found = []
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-     image_url_list = get_image_url_list(archive_id, snapshot_url)
-     self.num_ids_processed += 1
-     if image_url_list:
+      try:
+        image_url_list = get_image_url_list(archive_id, snapshot_url)
+      except requests.RequestException as e:
+        logging.info('Request exception while processing archive id:%s\n%s',
+            archive_id, e)
+        self.num_snapshots_fetch_failed += 1
+
+      self.num_snapshots_processed += 1
+      if image_url_list:
        for image_url in image_url_list:
          image_url_to_archive_id[image_url] = archive_id
 
        logging.debug('Archive ID %s has image_url(s): %s', archive_id, image_url_list)
-     else:
+      else:
        logging.warning('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
        archive_ids_without_image_url_found.append(archive_id)
