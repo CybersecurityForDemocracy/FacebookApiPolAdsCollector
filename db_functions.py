@@ -179,12 +179,11 @@ class DBInterface():
     def insert_ad_image_records(self, ad_image_records):
       cursor = self.get_cursor()
       insert_query = ('INSERT INTO ad_images(archive_id, '
-          'snapshot_fetch_time, image_url_found_in_snapshot, image_url, '
-          'image_url_fetch_status, sim_hash) '
-          'VALUES %s')
+          'snapshot_fetch_time, downloaded_url, bucket_url, '
+          'image_url_fetch_status, sim_hash, sha256_hash) VALUES %s')
       insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
-        '%(image_url_found_in_snapshot)s, %(image_url)s, '
-        '%(image_url_fetch_status)s, %(sim_hash)s)')
+        '%(downloaded_url)s, %(bucket_url)s, %(image_url_fetch_status)s, '
+        '%(sim_hash)s, %(image_sha256)s)')
       ad_image_record_list = [x._asdict() for x in ad_image_records]
       psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list,
           template=insert_template, page_size=250)

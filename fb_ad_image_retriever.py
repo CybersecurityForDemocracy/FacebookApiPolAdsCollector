@@ -4,6 +4,7 @@ import datetime
 import dhash
 import enum
 from google.cloud import storage
+import hashlib
 import io
 import json
 import logging
@@ -45,10 +46,11 @@ class ImageUrlFetchStatus(enum.IntEnum):
 AdImageRecord = collections.namedtuple('AdImageRecord',
     ['archive_id',
      'snapshot_fetch_time',
-     'image_url_found_in_snapshot',
-     'image_url',
+     'downloaded_url',
+     'bucket_url',
      'image_url_fetch_status',
-     'sim_hash'])
+     'sim_hash',
+     'image_sha256'])
 
 def chunks(lst, n):
   """Yield successive n-sized chunks from lst."""
@@ -64,8 +66,8 @@ def get_database_connection(config):
   port = config['POSTGRES']['PORT']
 
   db_authorize = "host=%s dbname=%s user=%s password=%s port=%s" % (host, dbname, user, password, port)
-  logging.info('Establishing connecton to %s:%s DB %s', host, port, dbname)
   connection = psycopg2.connect(db_authorize)
+  logging.info('Established connecton to %s', connection.dsn)
   return connection
 
 
@@ -84,29 +86,27 @@ def construct_snapshot_urls(access_token, archive_ids):
   return archive_id_to_snapshot_url
 
 
-def get_image_url(archive_id, snapshot_url):
+def get_image_url_list(archive_id, snapshot_url):
   ad_snapshot_request = requests.get(snapshot_url, timeout=30)
   # TODO(macpd): handle this more gracefully
   # TODO(macpd): check encoding
   ad_snapshot_request.raise_for_status()
   ad_snapshot_text = ad_snapshot_request.text
 
-  if (VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text and
-          VIDEO_IMAGE_URL_JSON_NULL_PHRASE not in ad_snapshot_text):
-    logging.debug('%s found snapshot. Assuming ad has video with preview image', VIDEO_IMAGE_URL_JSON_NAME)
-    image_url = search_for_image_url_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
-    if image_url:
-      return image_url
+  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
+    logging.debug('%s found snapshot. Assuming ad has video with preview image.', VIDEO_IMAGE_URL_JSON_NAME)
+    image_url_list = search_for_image_urls_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
+    if image_url_list:
+      return image_url_list
 
     logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
         VIDEO_IMAGE_URL_JSON_NAME, archive_id, VIDEO_PREVIEW_IMAGE_URL_REGEX)
 
-  if (IMAGE_URL_JSON_NAME in ad_snapshot_text and IMAGE_URL_JSON_NULL_PHRASE not
-          in ad_snapshot_text):
-    logging.debug('%s found in snapshot. Assuming ad has image only.', IMAGE_URL_JSON_NAME)
-    image_url = search_for_image_url_by_regex(IMAGE_URL_REGEX, ad_snapshot_text)
-    if image_url:
-      return image_url
+  if IMAGE_URL_JSON_NAME in ad_snapshot_text:
+    logging.debug('%s found in snapshot. Assuming ad has image.', IMAGE_URL_JSON_NAME)
+    image_url_list = search_for_image_urls_by_regex(IMAGE_URL_REGEX, ad_snapshot_text)
+    if image_url_list:
+      return image_url_list
 
     logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
         IMAGE_URL_JSON_NAME, archive_id, IMAGE_URL_REGEX)
@@ -115,17 +115,21 @@ def get_image_url(archive_id, snapshot_url):
   # TODO(macpd): raise appropriate error here.
   return None
 
-def search_for_image_url_by_regex(search_regex, ad_snapshot_text):
-  match = re.search(search_regex, ad_snapshot_text)
-  if not match:
+def search_for_image_urls_by_regex(search_regex, ad_snapshot_text):
+  matched_strings = re.findall(search_regex, ad_snapshot_text)
+  if not matched_strings:
     logging.debug('Unable to locate image url in ad snapshot using regex: "%s"', search_regex)
     # TODO(macpd): raise appropriate error here.
     return None
-  raw_image_url_str = match.group(1)
-  logging.debug('Found raw image URL value in ad snapshot: "%s"', raw_image_url_str)
-  image_url = raw_image_url_str.replace('\\', '')
-  logging.debug('Found image URL value in ad snapshot: "%s"', image_url)
-  return image_url
+  image_url_list = []
+  for match in matched_strings:
+    raw_image_url_str = match
+    logging.debug('Found raw image URL value in ad snapshot: "%s"', raw_image_url_str)
+    image_url = raw_image_url_str.replace('\\', '')
+    logging.debug('Found image URL value in ad snapshot: "%s"', image_url)
+    image_url_list.append(image_url)
+
+  return image_url_list
 
 def make_image_hash_file_path(image_hash):
   base_file_name = '%s.jpg' % image_hash
@@ -176,8 +180,6 @@ class FacebookAdImageRetriever:
         self.db_connection.commit()
         logging.info('Processed %d of %d archive IDs.', self.num_ids_processed, len(archive_ids))
         self.log_stats()
-        logging.debug('Processed %d archive_ids: %s', self.batch_size,
-            ','.join([str(i) for i in archive_ids]))
 
     except requests.RequestException as e:
       logging.info('Request exception while processing archive ids:\n%s', e)
@@ -197,19 +199,21 @@ class FacebookAdImageRetriever:
   def process_archive_images(self, archive_id_batch):
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
         archive_id_batch)
-    archive_id_to_image_url = {}
+    image_url_to_archive_id = {}
     archive_ids_without_image_url_found = []
-    archive_id_to_fetch_time = {}
+    archive_id_to_snapshot_fetch_time = {}
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-     image_url = get_image_url(archive_id, snapshot_url)
-     archive_id_to_fetch_time[archive_id] = datetime.datetime.now()
+     image_url_list = get_image_url_list(archive_id, snapshot_url)
+     archive_id_to_snapshot_fetch_time[archive_id] = datetime.datetime.now()
      self.num_ids_processed += 1
-     if image_url:
-       archive_id_to_image_url[archive_id] = image_url
-       logging.debug('Archive ID %s has image_url: %s', archive_id, image_url)
-       self.num_image_urls_found += 1
+     if image_url_list:
+       for image_url in image_url_list:
+         image_url_to_archive_id[image_url] = archive_id
+
+       logging.debug('Archive ID %s has image_url(s): %s', archive_id, image_url_list)
+       self.num_image_urls_found += len(image_url_list)
      else:
-       logging.warning('Unable to find image_url for archive_id: %s, snapshot_url: '
+       logging.warning('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
        archive_ids_without_image_url_found.append(archive_id)
 
@@ -217,44 +221,41 @@ class FacebookAdImageRetriever:
       raise RuntimeError('Failed to find image URLs in any snapshot from this '
           'batch.  Assuming access_token has expired. Aborting!')
 
-    archive_id_to_fetch_status = {}
-    archive_id_to_dhash = {}
-    archive_id_to_bucket_url = {}
-    for archive_id, image_url in  archive_id_to_image_url.items():
+    # TODO(macpd): change to image_url -> fetch_status
+    image_url_to_fetch_status = {}
+    image_url_to_dhash = {}
+    image_url_to_sha256 = {}
+    image_url_to_bucket_url = {}
+    for image_url in image_url_to_archive_id:
       try:
         image_request = requests.get(image_url, timeout=30)
         # TODO(macpd): handle this more gracefully
         # TODO(macpd): check encoding
         image_request.raise_for_status()
-        image_bytes = image_request.content
-        archive_id_to_fetch_status[archive_id] = ImageUrlFetchStatus.SUCCESS
       except requests.RequestException as e:
         self.num_image_download_failure += 1
         # TODO(macpd): handle all error types
-        archive_id_to_fetch_status[archive_id] = ImageUrlFetchStatus.UNKNOWN_ERROR
+        image_url_to_fetch_status[image_url] = ImageUrlFetchStatus.UNKNOWN_ERROR
+        continue
 
+
+      image_bytes = image_request.content
+      image_url_to_fetch_status[image_url] = ImageUrlFetchStatus.SUCCESS
       self.num_image_download_success += 1
-
       image_dhash = get_image_dhash(image_bytes)
-      archive_id_to_dhash[archive_id] = image_dhash
-      archive_id_to_bucket_url[archive_id] = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      image_url_to_dhash[image_url] = image_dhash
+      image_url_to_sha256[image_url] = hashlib.sha256(image_bytes).hexdigest()
+      image_url_to_bucket_url[image_url] = self.store_image_in_google_bucket(image_dhash, image_bytes)
 
     ad_image_records = []
-    for archive_id in archive_id_to_image_url:
+    for image_url, archive_id in image_url_to_archive_id.items():
       ad_image_records.append(AdImageRecord(archive_id=archive_id,
-        snapshot_fetch_time=archive_id_to_fetch_time[archive_id],
-        image_url_found_in_snapshot=True,
-        image_url=archive_id_to_bucket_url[archive_id],
-        image_url_fetch_status=int(archive_id_to_fetch_status[archive_id]),
-        sim_hash=archive_id_to_dhash[archive_id]))
-
-    for archive_id in archive_ids_without_image_url_found:
-      ad_image_records.append(AdImageRecord(archive_id=archive_id,
-        snapshot_fetch_time=archive_id_to_fetch_time[archive_id],
-        image_url_found_in_snapshot=False,
-        image_url=None,
-        image_url_fetch_status=None,
-        sim_hash=None))
+        snapshot_fetch_time=archive_id_to_snapshot_fetch_time[archive_id],
+        downloaded_url=image_url,
+        bucket_url=image_url_to_bucket_url[image_url],
+        image_url_fetch_status=int(image_url_to_fetch_status[image_url]),
+        sim_hash=image_url_to_dhash[image_url],
+        image_sha256=image_url_to_sha256[image_url]))
 
     logging.debug('Inserting AdImageRecords to DB: %r', ad_image_records)
     self.db_interface.insert_ad_image_records(ad_image_records)
@@ -285,7 +286,6 @@ def main(argv):
           archive_ids = db_interface.all_archive_ids_without_image_hash()
         else:
           archive_ids = db_interface.n_archive_ids_without_image_hash(max_archive_ids)
-        logging.debug('Got %d archive ids: %s', len(archive_ids), ','.join([str(i) for i in archive_ids]))
 
     bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
     image_retriever = FacebookAdImageRetriever(db_connection, bucket_client,
