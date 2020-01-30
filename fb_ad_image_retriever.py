@@ -1,21 +1,21 @@
 import collections
 import configparser
 import datetime
-import dhash
 import enum
-from google.cloud import storage
 import hashlib
-import io
-import json
 import logging
+import io
 import os.path
 import re
+import sys
+import urllib.parse
+
+import dhash
+from google.cloud import storage
 import requests
 from PIL import Image
 import psycopg2
 import psycopg2.extras
-import sys
-import urllib.parse
 
 import db_functions
 
@@ -52,10 +52,10 @@ AdImageRecord = collections.namedtuple('AdImageRecord',
      'sim_hash',
      'image_sha256'])
 
-def chunks(lst, n):
-  """Yield successive n-sized chunks from lst."""
-  for i in range(0, len(lst), n):
-    yield lst[i:i + n]
+def chunks(original_list, chunk_size):
+  """Yield successive chunks (of size chunk_size) from original_list."""
+  for i in range(0, len(original_list), chunk_size):
+    yield original_list[i:i + chunk_size]
 
 
 def get_database_connection(config):
@@ -190,11 +190,6 @@ class FacebookAdImageRetriever:
         self.db_connection.commit()
         logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
         self.log_stats()
-
-    except requests.RequestException as e:
-      logging.info('Request exception while processing archive ids:\n%s', e)
-      raise(e)
-
     finally:
       self.log_stats()
 
@@ -214,9 +209,9 @@ class FacebookAdImageRetriever:
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
       try:
         image_url_list = get_image_url_list(archive_id, snapshot_url)
-      except requests.RequestException as e:
+      except requests.RequestException as request_exception:
         logging.info('Request exception while processing archive id:%s\n%s',
-            archive_id, e)
+            archive_id, request_exception)
         self.num_snapshots_fetch_failed += 1
 
       self.num_snapshots_processed += 1
@@ -245,11 +240,10 @@ class FacebookAdImageRetriever:
         # TODO(macpd): handle this more gracefully
         # TODO(macpd): check encoding
         image_request.raise_for_status()
-      except requests.RequestException as e:
-        logging.info('Exception %s when requesting image_url: %s', e, image_url)
+      except requests.RequestException as request_exception:
+        logging.info('Exception %s when requesting image_url: %s', request_exception, image_url)
         self.num_image_download_failure += 1
         # TODO(macpd): handle all error types
-        image_url_to_fetch_status[image_url] = ImageUrlFetchStatus.UNKNOWN_ERROR
         continue
 
       self.num_image_download_success += 1
@@ -291,20 +285,20 @@ def main(argv):
     with get_database_connection(config) as db_connection:
       logging.info('DB connection established')
       db_interface = db_functions.DBInterface(db_connection)
-      with db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
-        if max_archive_ids == -1:
-          archive_ids = db_interface.all_archive_ids_without_image_hash()
-        else:
-          archive_ids = db_interface.n_archive_ids_without_image_hash(max_archive_ids)
+      if max_archive_ids == -1:
+        archive_ids = db_interface.all_archive_ids_without_image_hash()
+      else:
+        archive_ids = db_interface.n_archive_ids_without_image_hash(max_archive_ids)
 
-    bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
-    image_retriever = FacebookAdImageRetriever(db_connection, bucket_client,
-        access_token, batch_size)
-    image_retriever.retreive_and_store_images(archive_ids)
+    with get_database_connection(config) as db_connection:
+      bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
+      image_retriever = FacebookAdImageRetriever(db_connection, bucket_client,
+          access_token, batch_size)
+      image_retriever.retreive_and_store_images(archive_ids)
   finally:
     db_connection.close()
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
-    exit('Usage: %s <config file>' % sys.argv[0])
+    sys.exit('Usage: %s <config file>' % sys.argv[0])
   main(sys.argv[1:])
