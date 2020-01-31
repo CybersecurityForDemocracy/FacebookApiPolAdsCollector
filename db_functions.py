@@ -3,12 +3,12 @@ import psycopg2.extras
 
 
 class DBInterface():
+
     def __init__(self, connection):
         self.connection = connection
 
     def get_cursor(self):
-        return self.connection.cursor(
-            cursor_factory=psycopg2.extras.DictCursor)
+        return self.connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def existing_ads(self):
         cursor = self.get_cursor()
@@ -193,8 +193,7 @@ class DBInterface():
             "archive_id, region, spend_percentage) VALUES %s "
             "on conflict on constraint unique_regions_per_ad do update set "
             "spend_percentage = EXCLUDED.spend_percentage;")
-        insert_template = (
-            "(%(archive_id)s, %(region)s, %(spend_percentage)s)")
+        insert_template = ("(%(archive_id)s, %(region)s, %(spend_percentage)s)")
         psycopg2.extras.execute_values(cursor,
                                        impression_region_insert_query,
                                        region_impressions_list,
