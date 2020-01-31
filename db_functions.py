@@ -46,9 +46,9 @@ class DBInterface():
     def insert_pages(self, new_pages):
         cursor = self.get_cursor()
         insert_page_query = (
-            "INSERT INTO pages(page_id, page_name) VALUES %s "
+            "INSERT INTO pages(page_id, page_name, page_url) VALUES %s "
             "on conflict (page_id) do nothing;")
-        insert_template = "(%(id)s, %(name)s, https://www.facebook.com/%(id)s)"
+        insert_template = "(%(id)s, %(name)s, %(url)s)"
         new_page_list = [x._asdict() for x in new_pages]
         psycopg2.extras.execute_values(
             cursor, insert_page_query, new_page_list, template=insert_template, page_size=250)

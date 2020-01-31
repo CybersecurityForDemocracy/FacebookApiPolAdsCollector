@@ -1,9 +1,10 @@
 import collections
 import configparser
 import logging
+import sys
+
 import psycopg2
 import psycopg2.extras
-import sys
 
 import db_functions
 
@@ -30,7 +31,7 @@ OldAdRecord = collections.namedtuple(
         "ad_creative_link_title",
     ],
 )
-OldPageRecord = collections.namedtuple("PageRecord", ["id", "name"])
+OldPageRecord = collections.namedtuple("PageRecord", ["id", "name", "url"])
 OldSnapshotRegionRecord = collections.namedtuple(
     "SnapshotRegionRecord",
     [
@@ -83,7 +84,7 @@ NewAdRecord = collections.namedtuple(
         "spend__upper_bound",
     ],
 )
-NewPageRecord = collections.namedtuple("PageRecord", ["id", "name"])
+NewPageRecord = collections.namedtuple("PageRecord", ["id", "name", "url"])
 NewSnapshotRegionRecord = collections.namedtuple(
     "SnapshotRegionRecord",
     [
@@ -146,7 +147,7 @@ class SchemaMigrator:
     return cursor
 
   def get_dest_cursor(self):
-    return self.dest_db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    return self.dest_db_connection.cursor()
 
   def run_migration(self):
     logging.info('Starting migration.')
@@ -166,20 +167,25 @@ class SchemaMigrator:
 
   def migrate_pages_table(self):
     logging.info('Migrating pages table.')
+    src_pages_query = 'SELECT page_id, page_name, url FROM pages'
     src_cursor = self.get_src_cursor()
-    src_pages_query = 'SELECT (page_id, page_name) from pages'
     src_cursor.execute(src_cursor.mogrify(src_pages_query))
+    logging.info("%d rows retrieved.", src_cursor.rowcount)
     fetched_rows = src_cursor.fetchmany()
-    num_rows_processed = 0
-    while fetched_rows:
-      page_records = []
-      for row in fetched_rows:
-        page_records.append(NewPageRecord(page_id=row['page_id'],
-          page_name=row['page_name']))
 
-      self.dest_db_interface.dest_db_interface.insert_pages(page_records)
-      num_rows_processed += len(page_records)
-      logging.info('Migrated %d page rows so far.', num_rows_processed)
+    num_rows_processed = 0
+    page_records = []
+    while fetched_rows:
+      for row in fetched_rows:
+        logging.debug('Processing row: %r', row)
+        page_records.append(NewPageRecord(id=row['page_id'],
+          name=row['page_name'], url=row['url']))
+
+      fetched_rows = src_cursor.fetchmany()
+
+    self.dest_db_interface.insert_pages(page_records)
+    num_rows_processed += len(page_records)
+    logging.info('Migrated %d page rows so far.', num_rows_processed)
 
     logging.info('Migrated %d page rows total.', num_rows_processed)
 
@@ -191,42 +197,50 @@ class SchemaMigrator:
     num_rows_processed = 0
     fetched_rows = src_cursor.fetchmany()
     while fetched_rows:
-      ad_records = []
-      ad_status = {}
+      archive_id_to_ad_record = {}
       for row in fetched_rows:
-        ad_status[row['arcive_id']] = row['ad_status']
-        old_ad_record = OldAdRecord(row)
-        ad_records.apeend(NewAdRecord(
-        ad_creation_time=old_ad_record.creation_date,
-        ad_creative_body=old_ad_record.text,
-        ad_creative_link_caption=old_ad_record.ad_creative_link_caption,
-        ad_creative_link_description=old_ad_record.ad_creative_link_description,
-        ad_creative_link_title=old_ad_record.ad_creative_link_title,
-        ad_delivery_start_time=old_ad_record.start_date,
-        ad_delivery_stop_time=old_ad_record.end_date,
+        logging.debug('Processing row: %r', row)
+        new_record = NewAdRecord(
+        ad_creation_time=row['creation_date'],
+        ad_creative_body=row['text'],
+        ad_creative_link_caption=row['link_caption'],
+        ad_creative_link_description=row['link_description'],
+        ad_creative_link_title=row['link_title'],
+        ad_delivery_start_time=row['start_date'],
+        ad_delivery_stop_time=row['end_date'],
         ad_snapshot_url=row['snapshot_url'],
-        ad_status=old_ad_record.is_active,
-        archive_id=old_ad_record.archive_id,
+        # TODO(macpd): figure out if this is the correct column and how to
+        # transform
+        ad_status=int(row['is_active']),
+        archive_id=row['archive_id'],
         country_code='US',
         currency='USD',
         first_crawl_time=None,
-        funding_entity=old_ad_record.roe['funding_entity'],
-        page_id=old_ad_record.page_id,
-        page_name=old_ad_record.page_name,
-        publisher_platform=None))
+        funding_entity=row['funding_entity'],
+        page_id=row['page_id'],
+        # Below are args required to construct NamedTuple, but not used in ads
+        # table
+        publisher_platform=None,
+        page_name=None,
+        impressions__lower_bound=None,
+        impressions__upper_bound=None,
+        spend__lower_bound=None,
+        spend__upper_bound=None
+        )
+        archive_id_to_ad_record[row['archive_id']] = new_record
 
-      self.dest_db_interface.dest_db_interface.insert_new_ads(ad_records)
-      self.migrate_impressions_for_archive_id_batch(ad_status)
-      num_rows_processed += len(ad_records)
+      self.dest_db_interface.insert_new_ads(archive_id_to_ad_record.values())
+      self.migrate_impressions_for_archive_id_batch(archive_id_to_ad_record)
+      num_rows_processed += len(archive_id_to_ad_record)
       logging.info('Migrated %d page rows so far.', num_rows_processed)
 
     logging.info('Migrated %d page rows total.', num_rows_processed)
 
-  def migrate_impressions_for_archive_id_batch(self, archive_id_to_ad_status):
+  def migrate_impressions_for_archive_id_batch(self, archive_id_to_ad_record):
     logging.info('Migrationg impressions for archive ID batch.')
     src_cursor = self.get_src_cursor()
-    archive_ids = [str(k) for k in archive_id_to_ad_status]
-    src_impressions_query = ('SELECT * FROM impressions WHERE archive_id IN '
+    archive_ids = [str(k) for k in archive_id_to_ad_record]
+    src_impressions_query = ('SELECT * FROM impressions WHERE ad_archive_id IN '
       '(%s)' % (','.join(archive_ids)))
     src_cursor.execute(src_cursor.mogrify(src_impressions_query))
 
@@ -234,23 +248,24 @@ class SchemaMigrator:
     impression_records = []
     archive_ids_in_results = set()
     fetched_rows = src_cursor.fetchall()
-    for row in fetched_row:
-      archive_id = row['archive_id']
+    for row in fetched_rows:
+      logging.debug('Processing row: %r', row)
+      archive_id = row['ad_archive_id']
       archive_ids_in_results.add(archive_id)
-      impression_records.append(NewAdRecord(archive_id=archive_id,
-        ad_status=archive_id_to_ad_status[archive_id],
-        impressions__lower_bound=row['min_impressions'],
+      impression_records.append(archive_id_to_ad_record[archive_id]._replace(
+      impressions__lower_bound=row['min_impressions'],
         impressions__upper_bound=row['max_impressions'],
         spend__lower_bound=row['min_spend'],
         spend__upper_bound=row['max_spend']))
+      fetched_rows = src_cursor.fetchall()
 
-    archive_ids_to_fetch = set(archive_id_to_ad_status.keys())
+    archive_ids_to_fetch = set(archive_id_to_ad_record.keys())
     if archive_ids_in_results != archive_ids_to_fetch:
       logging.error('Did not get impressions for archive IDs: %s. IMPRESSIONS '
           'TABLE MIGRATION MAY BE INCOMPLETE.',
           archive_ids_to_fetch.difference(archive_ids_in_results))
 
-    self.dest_db_interface.dest_db_interface.insert_impressions(impression_records)
+    self.dest_db_interface.insert_new_impressions(impression_records)
     num_rows_processed += len(impression_records)
     logging.info('Migrated %d impression rows for %d archive IDs.',
         num_rows_processed, len(archive_ids))
@@ -277,7 +292,7 @@ class SchemaMigrator:
       insert_template = ("(%(funder_id)s, %(funder_name)s, %(funder_type)s, "
           "%(parent_id)s)")
       psycopg2.extras.execute_values(
-          cursor, insert_funder_query, funder_records, template=insert_template,
+          self.get_dest_cursor(), insert_funder_query, funder_records, template=insert_template,
           page_size=250)
       num_rows_processed += len(funder_records)
 
@@ -296,7 +311,7 @@ class SchemaMigrator:
         #  demo_impression_records.append(NewPageRecord(demo_impression_id=row['demo_impression_id'],
           #  demo_impression_name=row['demo_impression_name']))
 
-      #  self.dest_db_interface.dest_db_interface.insert_demo_impressions(demo_impression_records)
+      #  self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
       #  num_rows_processed += len(demo_impression_records)
       #  logging.info('Migrated %d demo_impression rows so far.', num_rows_processed)
 
@@ -312,21 +327,21 @@ def main(src_db_connection, dest_db_connection, batch_size=1000):
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
-      exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
+      sys.exit(f"Usage:python3 {sys.argv[0]} schema_migrator.cfg")
 
   config = configparser.ConfigParser()
   config.read(sys.argv[1])
   logging.basicConfig(handlers=[logging.FileHandler("schema_migrator.log"),
                             logging.StreamHandler()],
-                      format='[%(levelname)s\t%(asctime)s] %(message)s',
-                      level=logging.INFO)
+                      format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
+                      level=logging.DEBUG)
   src_db_config = config['SRC_POSTGRES']
   src_db_connection = get_db_connection(src_db_config)
   logging.info('Established connection to src database: %s',
       src_db_connection.dsn)
   dest_db_config = config['DEST_POSTGRES']
   dest_db_connection = get_db_connection(dest_db_config)
-  logging.info('Established connection to src database: %s',
+  logging.info('Established connection to dest database: %s',
       dest_db_connection.dsn)
   main(src_db_connection, dest_db_connection)
   src_db_connection.close()
