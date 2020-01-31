@@ -92,6 +92,7 @@ FIELDS_TO_REQUEST = [
     "spend",
 ]
 
+
 class SearchRunner():
 
     def __init__(self, crawl_date, connection, db, config):
@@ -120,16 +121,19 @@ class SearchRunner():
         url_parts = urlparse(result['ad_snapshot_url'])
         archive_id = int(parse_qs(url_parts.query)['id'][0])
         ad_status = 1
-        if  'ad_delivery_stop_time' in result:
+        if 'ad_delivery_stop_time' in result:
             ad_status = 0
         curr_ad = AdRecord(
             ad_creation_time=result.get('ad_creation_time', None),
             ad_creative_body=result.get('ad_creative_body', None),
-            ad_creative_link_caption=result.get('ad_creative_link_caption', None),
-            ad_creative_link_description=result.get('ad_creative_link_description', None),
+            ad_creative_link_caption=result.get('ad_creative_link_caption',
+                                                None),
+            ad_creative_link_description=result.get(
+                'ad_creative_link_description', None),
             ad_creative_link_title=result.get('ad_creative_link_title', None),
             ad_delivery_start_time=result.get('ad_delivery_start_time', None),
-            ad_delivery_stop_time=result.get('ad_delivery_stop_time', self.crawl_date),
+            ad_delivery_stop_time=result.get('ad_delivery_stop_time',
+                                             self.crawl_date),
             ad_snapshot_url=result.get('ad_snapshot_url', None),
             ad_status=ad_status,
             archive_id=archive_id,
@@ -137,56 +141,65 @@ class SearchRunner():
             currency=result.get('currency', None),
             first_crawl_time=self.crawl_date,
             funding_entity=result.get('funding_entity', None),
-            impressions__lower_bound=result.get('impressions', dict()).get('lower_bound', '0'),
-            impressions__upper_bound=result.get('impressions', dict()).get('upper_bound', '0'),
+            impressions__lower_bound=result.get('impressions',
+                                                dict()).get('lower_bound', '0'),
+            impressions__upper_bound=result.get('impressions',
+                                                dict()).get('upper_bound', '0'),
             page_id=result.get('page_id', None),
             page_name=result.get('page_name', None),
             publisher_platform=result.get('publisher_platform', 'NotProvided'),
-            spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
-            spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
+            spend__lower_bound=result.get('spend',
+                                          dict()).get('lower_bound', '0'),
+            spend__upper_bound=result.get('spend',
+                                          dict()).get('upper_bound', '0'),
         )
         return curr_ad
 
-    
     def process_funding_entity(self, ad):
         if ad.funding_entity not in self.existing_funding_entities:
             # We use tuples because it makes db updates simpler
             self.new_funding_entities.add((ad.funding_entity,))
 
     def process_page(self, ad):
-            if int(ad.page_id) not in self.existing_pages:
-                self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
-                self.existing_pages.add(int(ad.page_id))
+        if int(ad.page_id) not in self.existing_pages:
+            self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
+            self.existing_pages.add(int(ad.page_id))
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
             self.new_ads.add(ad)
-            self.existing_ads_to_end_time_map[ad.archive_id] = ad.ad_delivery_stop_time
+            self.existing_ads_to_end_time_map[
+                ad.archive_id] = ad.ad_delivery_stop_time
 
     def process_impressions(self, ad):
         self.new_impressions.add(ad)
 
     def process_demo_impressions(self, demographic_distribution, curr_ad):
         if not demographic_distribution:
-            logging.info("no demo impression information for: %s", curr_ad.archive_id)
+            logging.info("no demo impression information for: %s",
+                         curr_ad.archive_id)
 
         for demo_result in demographic_distribution:
-            self.new_ad_demo_impressions.append(SnapshotDemoRecord(
-                curr_ad.archive_id,
-                demo_result['age'],
-                demo_result['gender'],
-                demo_result['percentage'],
-                float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            self.new_ad_demo_impressions.append(
+                SnapshotDemoRecord(
+                    curr_ad.archive_id, demo_result['age'],
+                    demo_result['gender'], demo_result['percentage'],
+                    float(demo_result['percentage']) *
+                    int(curr_ad.impressions__lower_bound),
+                    float(demo_result['percentage']) *
+                    int(curr_ad.impressions__upper_bound),
+                    float(demo_result['percentage']) *
+                    int(curr_ad.spend__lower_bound),
+                    float(demo_result['percentage']) *
+                    int(curr_ad.spend__upper_bound)))
 
     def process_region_impressions(self, region_distribution, curr_ad):
         if not region_distribution:
-            logging.info("no region impression information for: %s", curr_ad.archive_id)
+            logging.info("no region impression information for: %s",
+                         curr_ad.archive_id)
 
         regions = set()
-        for region_result in region_distribution: 
+        for region_result in region_distribution:
             # If we get the same region more than once for an ad, the second occurance
             # This is a data losing proposition but can't be helped till FB fixes the results
             # They provide on the API
@@ -194,15 +207,18 @@ class SearchRunner():
                 continue
             else:
                 regions.add(region_result['region'])
-            self.new_ad_region_impressions.append(SnapshotRegionRecord(
-            curr_ad.archive_id,
-            region_result['region'],
-            region_result['percentage'],
-            float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
-
+            self.new_ad_region_impressions.append(
+                SnapshotRegionRecord(
+                    curr_ad.archive_id, region_result['region'],
+                    region_result['percentage'],
+                    float(region_result['percentage']) *
+                    int(curr_ad.impressions__lower_bound),
+                    float(region_result['percentage']) *
+                    int(curr_ad.impressions__upper_bound),
+                    float(region_result['percentage']) *
+                    int(curr_ad.spend__lower_bound),
+                    float(region_result['percentage']) *
+                    int(curr_ad.spend__upper_bound)))
 
     def run_search(self, page_id=None, page_name=None):
         self.crawl_date = datetime.date.today()
@@ -271,7 +287,7 @@ class SearchRunner():
                     logging.error(results)
                 else:
                     logging.error("No results")
-                if e.code == 4: # this means we've gotten to the FB max results per query
+                if e.code == 4:  # this means we've gotten to the FB max results per query
                     sleep(240)
                     has_next = False
                     continue
@@ -295,9 +311,10 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
             finally:
-                logging.info(f"waiting for {self.sleep_time} seconds before next query.")
+                logging.info(
+                    f"waiting for {self.sleep_time} seconds before next query.")
                 sleep(self.sleep_time)
-            with open(f"response-{request_count}","w") as result_file:
+            with open(f"response-{request_count}", "w") as result_file:
                 result_file.write(json.dumps(results))
 
             for result in results['data']:
@@ -310,8 +327,10 @@ class SearchRunner():
 
                 # Update impressions
                 self.process_impressions(curr_ad)
-                self.process_demo_impressions(result.get('demographic_distribution', []), curr_ad)
-                self.process_region_impressions(result.get('region_distribution', []), curr_ad)
+                self.process_demo_impressions(
+                    result.get('demographic_distribution', []), curr_ad)
+                self.process_region_impressions(
+                    result.get('region_distribution', []), curr_ad)
 
             #we finished parsing all ads in the result
             self.write_results()
@@ -329,7 +348,8 @@ class SearchRunner():
         #write new ads to our database
         logging.info("writing " + str(len(self.new_ads)) + " new ads to db")
         self.db.insert_new_ads(self.new_ads)
-        logging.info("writing " + str(len(self.new_impressions)) + " impressions to db")
+        logging.info("writing " + str(len(self.new_impressions)) +
+                     " impressions to db")
         self.db.insert_new_impressions(self.new_impressions)
 
         logging.info("writing self.new_ad_demo_impressions to db")
@@ -343,7 +363,6 @@ class SearchRunner():
         # We have to reload these since we rely on the row ids from the database for indexing
         self.existing_funding_entities = self.db.existing_funding_entities()
         self.connection.commit()
-
 
 
 #get page data
@@ -378,6 +397,7 @@ def get_db_connection(config):
         host, dbname, user, password, port)
     return psycopg2.connect(dbauthorize)
 
+
 def get_pages_from_archive(archive_path):
     page_ads = {}
     if not archive_path:
@@ -386,26 +406,28 @@ def get_pages_from_archive(archive_path):
         reader = csv.DictReader(csvfile)
         for row in reader:
             if row["\ufeffPage ID"] in page_ads:
-                page_ads[row["\ufeffPage ID"]] += row["Number of Ads in Library"]
+                page_ads[
+                    row["\ufeffPage ID"]] += row["Number of Ads in Library"]
             else:
                 page_ads[row["\ufeffPage ID"]] = row["Number of Ads in Library"]
 
     return page_ads
+
 
 def main(config, country_code):
     logging.info("starting")
     slack_url = config['LOGGING']['SLACK_URL']
     connection = get_db_connection(config)
     db = DBInterface(connection)
-    search_runner = SearchRunner(
-        datetime.date.today(),
-        connection,
-        db,
-        config)
-    page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
+    search_runner = SearchRunner(datetime.date.today(), connection, db, config)
+    page_ids = get_pages_from_archive(
+        config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
-    notify_slack(slack_url, f"Starting UNIFIED collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
+    notify_slack(
+        slack_url,
+        f"Starting UNIFIED collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}"
+    )
     completion_status = 'Failure'
     try:
         if page_ids:
@@ -418,7 +440,9 @@ def main(config, country_code):
                 else:
                     page_delta[page_id] = ad_count
 
-            prioritized_page_ids = [x for x in sorted(page_delta, key=d.get, reverse=True)]
+            prioritized_page_ids = [
+                x for x in sorted(page_delta, key=d.get, reverse=True)
+            ]
             #LAE - alter this to work for up to 10 page ids at a time
             for page_id in prioritized_page_ids:
                 search_runner.run_search(page_id=page_id)
@@ -431,15 +455,21 @@ def main(config, country_code):
     finally:
         end_time = datetime.datetime.now()
         duration_minutes = (end_time - start_time).seconds / 60
-        notify_slack(slack_url, f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}.")
+        notify_slack(
+            slack_url,
+            f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}."
+        )
         connection.close()
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-    logging.basicConfig(handlers=[logging.FileHandler(f"{country_code}_fb_api_collection.log"),
-                              logging.StreamHandler()],
+    logging.basicConfig(handlers=[
+        logging.FileHandler(f"{country_code}_fb_api_collection.log"),
+        logging.StreamHandler()
+    ],
                         format='[%(levelname)s\t%(asctime)s] %(message)s',
                         level=logging.INFO)
 
