@@ -3,9 +3,8 @@ import csv
 import datetime
 import json
 import logging
-import os
-import random
 import sys
+import time
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
@@ -115,6 +114,12 @@ class SearchRunner():
         self.existing_pages = set()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
+        self.stop_time = None
+        if 'SOFT_MAX_RUNIME_IN_SECONDS' in config['SEARCH']:
+            start_time = time.monotonic()
+            soft_deadline =  int(config['SEARCH']['SOFT_MAX_RUNIME_IN_SECONDS'])
+            self.stop_time = start_time + soft_deadline
+            logging.info('Will cease execution after %d seconds.', soft_deadline)
 
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
@@ -224,7 +229,8 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while has_next and request_count < self.max_requests:
+        while (has_next and request_count < self.max_requests and
+               self.allowed_execution_time_remaining()):
             #structures to hold all the new stuff we find
             self.new_ads = set()
             self.new_ad_sponsors = set()
@@ -297,8 +303,6 @@ class SearchRunner():
             finally:
                 logging.info(f"waiting for {self.sleep_time} seconds before next query.")
                 sleep(self.sleep_time)
-            with open(f"response-{request_count}","w") as result_file:
-                result_file.write(json.dumps(results))
 
             for result in results['data']:
                 total_ad_count += 1
@@ -321,6 +325,19 @@ class SearchRunner():
                 next_cursor = results["paging"]["cursors"]["after"]
             else:
                 has_next = False
+
+
+    def allowed_execution_time_remaining(self):
+        # No deadline configured.
+        if self.stop_time is None:
+          return True
+
+        if time.monotonic() >= self.stop_time:
+            logging.info('Allowed execution time has elapsed. quiting.')
+            return False
+
+        return True
+
 
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
