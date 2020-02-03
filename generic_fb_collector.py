@@ -3,11 +3,7 @@ import csv
 import datetime
 import json
 import logging
-import os
-import os.path
-import random
 import sys
-import tempfile
 import time
 from collections import defaultdict, namedtuple
 from time import sleep
@@ -233,7 +229,8 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while has_next and request_count < self.max_requests and self.allowed_execution_time_remaining():
+        while (has_next and request_count < self.max_requests and
+               self.allowed_execution_time_remaining()):
             #structures to hold all the new stuff we find
             self.new_ads = set()
             self.new_ad_sponsors = set()
