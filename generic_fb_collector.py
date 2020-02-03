@@ -328,6 +328,7 @@ class SearchRunner():
 
 
     def allowed_execution_time_remaining(self):
+        # No deadline configured.
         if self.stop_time is None:
           return True
 
