@@ -8,6 +8,7 @@ import io
 import os.path
 import re
 import sys
+import time
 import urllib.parse
 
 import dhash
@@ -111,7 +112,7 @@ def get_image_url_list(archive_id, snapshot_url):
     logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
         IMAGE_URL_JSON_NAME, archive_id, IMAGE_URL_REGEX)
 
-  logging.warning('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
+  logging.debug('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
   # TODO(macpd): raise appropriate error here.
   return None
 
@@ -162,26 +163,38 @@ class FacebookAdImageRetriever:
     self.db_interface = db_functions.DBInterface(db_connection)
     self.access_token = access_token
     self.batch_size = batch_size
+    self.start_time = None
+
+  def get_seconds_elapsed_procesing(self):
+    if not self.start_time:
+      return 0
+
+    return (time.monotonic() - self.start_time)
 
   def log_stats(self):
+    seconds_elapsed_procesing = self.get_seconds_elapsed_procesing()
     logging.info(
-        'Processed %d archive snapshots.\n'
+        'Processed %d archive snapshots in %d seconds.\n'
         'Failed to fetch %d archive snapshots.\n'
         'Image URLs found: %d\n'
         'Archive snapshots without image URL found: %d\n'
         'Images downloads successful: %d\n'
         'Images downloads failed: %d\n'
-        'Images uploaded to GCS bucket: %d',
+        'Images uploaded to GCS bucket: %d\n'
+        'Average time spent per image: %f seconds',
         self.num_snapshots_processed,
+        seconds_elapsed_procesing,
         self.num_snapshots_fetch_failed,
         self.num_image_urls_found,
         self.num_ids_without_image_url_found,
         self.num_image_download_success,
         self.num_image_download_failure,
-        self.num_image_uploade_to_gcs_bucket)
+        self.num_image_uploade_to_gcs_bucket,
+        seconds_elapsed_procesing / (self.num_image_uploade_to_gcs_bucket))
 
 
   def retreive_and_store_images(self, archive_ids):
+    self.start_time = time.monotonic()
     logging.info('Processing %d archive snapshots in batches of %d',
         len(archive_ids), self.batch_size)
     try:
@@ -221,7 +234,7 @@ class FacebookAdImageRetriever:
 
        logging.debug('Archive ID %s has image_url(s): %s', archive_id, image_url_list)
       else:
-       logging.warning('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
+       logging.info('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
        archive_ids_without_image_url_found.append(archive_id)
 
