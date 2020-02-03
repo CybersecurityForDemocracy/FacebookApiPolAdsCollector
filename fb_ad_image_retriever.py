@@ -112,7 +112,7 @@ def get_image_url_list(archive_id, snapshot_url):
     logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
         IMAGE_URL_JSON_NAME, archive_id, IMAGE_URL_REGEX)
 
-  logging.info('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
+  logging.debug('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
   # TODO(macpd): raise appropriate error here.
   return None
 
