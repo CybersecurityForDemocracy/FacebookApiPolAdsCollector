@@ -8,6 +8,7 @@ import os.path
 import random
 import sys
 import tempfile
+import time
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
@@ -117,14 +118,12 @@ class SearchRunner():
         self.existing_pages = set()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
-        # Create a temp dir for responses, with dirname prefix of country code
-        # and date (ex UK-2020-02-03. This directory will be deleted when object
-        # goes out of scope.
-        tempdir_prefix = "%s-%s." % (config['SEARCH']['COUNTRY_CODE'],
-            self.crawl_date.isoformat())
-        self.tempdir = tempfile.TemporaryDirectory(prefix=tempdir_prefix)
-        self.tempdir_name = self.tempdir.name
-        logging.info('Created tempdir %s to store API results', self.tempdir_name)
+        self.stop_time = None
+        if 'SOFT_MAX_RUNIME_IN_SECONDS' in config['SEARCH']:
+            start_time = time.monotonic()
+            soft_deadline =  int(config['SEARCH']['SOFT_MAX_RUNIME_IN_SECONDS'])
+            self.stop_time = start_time + soft_deadline
+            logging.info('Will cease execution after %d seconds.', soft_deadline)
 
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
@@ -234,7 +233,7 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while has_next and request_count < self.max_requests:
+        while has_next and request_count < self.max_requests and self.allowed_execution_time_remaining():
             #structures to hold all the new stuff we find
             self.new_ads = set()
             self.new_ad_sponsors = set()
@@ -308,8 +307,6 @@ class SearchRunner():
                 logging.info(f"waiting for {self.sleep_time} seconds before next query.")
                 sleep(self.sleep_time)
 
-            self.write_api_call_results_to_file(request_count, results)
-
             for result in results['data']:
                 total_ad_count += 1
                 curr_ad = self.get_ad_from_result(result)
@@ -332,11 +329,16 @@ class SearchRunner():
             else:
                 has_next = False
 
-    def write_api_call_results_to_file(self, request_count, results):
-        file_basename = f"response-{request_count}"
-        filepath = os.path.join(self.tempdir_name, file_basename)
-        with open(filepath, "w") as result_file:
-            result_file.write(json.dumps(results))
+
+    def allowed_execution_time_remaining(self):
+        if self.stop_time is None:
+          return True
+
+        if time.monotonic() >= self.stop_time:
+            logging.info('Allowed execution time has elapsed. quiting.')
+            return False
+
+        return True
 
 
     def write_results(self):
