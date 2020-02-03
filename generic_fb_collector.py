@@ -4,8 +4,10 @@ import datetime
 import json
 import logging
 import os
+import os.path
 import random
 import sys
+import tempfile
 from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
@@ -115,6 +117,14 @@ class SearchRunner():
         self.existing_pages = set()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
+        # Create a temp dir for responses, with dirname prefix of country code
+        # and date (ex UK-2020-02-03. This directory will be deleted when object
+        # goes out of scope.
+        tempdir_prefix = "%s-%s." % (config['SEARCH']['COUNTRY_CODE'],
+            self.crawl_date.isoformat())
+        self.tempdir = tempfile.TemporaryDirectory(prefix=tempdir_prefix)
+        self.tempdir_name = self.tempdir.name
+        logging.info('Created tempdir %s to store API results', self.tempdir_name)
 
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
@@ -297,8 +307,8 @@ class SearchRunner():
             finally:
                 logging.info(f"waiting for {self.sleep_time} seconds before next query.")
                 sleep(self.sleep_time)
-            with open(f"response-{request_count}","w") as result_file:
-                result_file.write(json.dumps(results))
+
+            self.write_api_call_results_to_file(request_count, results)
 
             for result in results['data']:
                 total_ad_count += 1
@@ -321,6 +331,13 @@ class SearchRunner():
                 next_cursor = results["paging"]["cursors"]["after"]
             else:
                 has_next = False
+
+    def write_api_call_results_to_file(self, request_count, results):
+        file_basename = f"response-{request_count}"
+        filepath = os.path.join(self.tempdir_name, file_basename)
+        with open(filepath, "w") as result_file:
+            result_file.write(json.dumps(results))
+
 
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
