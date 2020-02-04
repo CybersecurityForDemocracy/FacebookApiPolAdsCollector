@@ -8,6 +8,7 @@ import io
 import os.path
 import re
 import sys
+import tempfile
 import time
 import urllib.parse
 
@@ -17,9 +18,17 @@ import requests
 from PIL import Image
 import psycopg2
 import psycopg2.extras
+from selenium import webdriver
+from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.common.keys import Keys
 
 import db_functions
 
+CHROMEDRIVER_PATH='/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
@@ -27,7 +36,7 @@ DEFAULT_BATCH_SIZE = 20
 logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                               logging.StreamHandler()],
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
-                    level=logging.INFO)
+                    level=logging.DEBUG)
 
 IMAGE_URL_JSON_NAME = 'original_image_url'
 IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
@@ -44,6 +53,23 @@ class ImageUrlFetchStatus(enum.IntEnum):
   TIMEOUT = 2
   NOT_FOUND = 3
 
+FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', ['creative_text',
+  'image_url'])
+
+AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
+    'archive_id',
+    'ad_creative_body',
+    'ad_creative_link_caption',
+    'ad_creative_link_title',
+    'ad_creative_link_description',
+    'text_sha256_hash',
+    'image_sha256_hash',
+    'snapshot_fetch_time',
+    'image_downloaded_url',
+    'image_bucket_url',
+    'text_sim_hash',
+    'image_sim_hash'])
+
 AdImageRecord = collections.namedtuple('AdImageRecord',
     ['archive_id',
      'fetch_time',
@@ -57,6 +83,31 @@ def chunks(original_list, chunk_size):
   """Yield successive chunks (of size chunk_size) from original_list."""
   for i in range(0, len(original_list), chunk_size):
     yield original_list[i:i + chunk_size]
+
+def get_headless_driver_with_downloads(path, webdriver_executable_path):
+  # This works around https://bugs.chromium.org/p/chromium/issues/detail?id=696481
+  # Using https://github.com/shawnbutton/PythonHeadlessChrome as a reference
+  download_dir = path or os.getcwd()
+  chrome_options = webdriver.ChromeOptions()
+  prefs = {
+      "download.default_directory": download_dir,
+      "download.prompt_for_download": False,
+      "download.directory_upgrade": True,
+      "safebrowsing.enabled": False,
+      "safebrowsing.disable_download_protection": True}
+  chrome_options.add_argument("--headless")
+  chrome_options.add_experimental_option("prefs", prefs)
+
+  driver = webdriver.Chrome(
+      executable_path=webdriver_executable_path, chrome_options=chrome_options)
+  driver.command_executor._commands["send_command"] = (
+      "POST", "/session/$sessionId/chromium/send_command")
+
+  params = {"cmd": "Page.setDownloadBehavior", "params": {
+      "behavior": "allow", "downloadPath": download_dir}}
+  driver.execute("send_command", params)
+  return driver
+
 
 
 def get_database_connection(config):
@@ -85,7 +136,6 @@ def construct_snapshot_urls(access_token, archive_ids):
     logging.debug('Constructed snapshot URL %s', url)
     archive_id_to_snapshot_url[archive_id] = url
   return archive_id_to_snapshot_url
-
 
 def get_image_url_list(archive_id, snapshot_url):
   ad_snapshot_request = requests.get(snapshot_url, timeout=30)
@@ -164,6 +214,10 @@ class FacebookAdImageRetriever:
     self.access_token = access_token
     self.batch_size = batch_size
     self.start_time = None
+    self.chromedriver_download_dir = tempfile.TemporaryDirectory(prefix='fb_ad_creative_retreiver.')
+    self.chromedriver = get_headless_driver_with_downloads(
+        self.chromedriver_download_dir.name, CHROMEDRIVER_PATH)
+
 
   def get_seconds_elapsed_procesing(self):
     if not self.start_time:
@@ -190,7 +244,7 @@ class FacebookAdImageRetriever:
         self.num_image_download_success,
         self.num_image_download_failure,
         self.num_image_uploade_to_gcs_bucket,
-        seconds_elapsed_procesing / (self.num_image_uploade_to_gcs_bucket))
+        seconds_elapsed_procesing / (self.num_image_uploade_to_gcs_bucket or 1))
 
 
   def retreive_and_store_images(self, archive_ids):
@@ -199,12 +253,13 @@ class FacebookAdImageRetriever:
         len(archive_ids), self.batch_size)
     try:
       for archive_id_batch in chunks(archive_ids, self.batch_size):
-        self.process_archive_images(archive_id_batch)
+        self.process_archive_creatives_via_chrome_driver(archive_id_batch)
         self.db_connection.commit()
         logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
         self.log_stats()
     finally:
       self.log_stats()
+      self.chromedriver.quit()
 
   def store_image_in_google_bucket(self, image_dhash, image_bytes):
     image_bucket_path = make_image_hash_file_path(image_dhash)
@@ -212,7 +267,108 @@ class FacebookAdImageRetriever:
     blob.upload_from_string(image_bytes)
     self.num_image_uploade_to_gcs_bucket += 1
     logging.debug('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
+    logging.info('blob \npath: %s\nid: %s\nself_link:%s', blob.path, blob.id,
+        blob.self_link)
     return blob.public_url
+
+  def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
+    logging.info('Getting creatives data from archive ID: %s\nURL: %s',
+        archive_id, snapshot_url)
+    self.chromedriver.get(snapshot_url)
+    self.chromedriver.save_screenshot('%s_snapshot.png' % archive_id)
+    creatives = []
+    # First find creative text and image as they exist at load time. Then see if
+    # there are multiple versions by trying to select the next creative.
+    for i in range(2, 12):
+      creative_text = self.chromedriver.find_element_by_class_name('_7jyr').text
+      image_url = self.chromedriver.find_element_by_class_name('_7jys').get_attribute('src')
+      creatives.append(FetchedAdCreativeData(creative_text=creative_text,
+        image_url=image_url))
+      xpath = '//div[@class=\'_a2e\']/div[%d]/div/a' % (i)
+      try:
+        self.chromedriver.find_element_by_xpath(xpath).click()
+      except NoSuchElementException:
+        break
+
+    return creatives
+
+  def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
+    archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
+        archive_id_batch)
+    image_url_to_archive_id = {}
+    image_url_to_creative_text = {}
+    archive_ids_without_image_url_found = []
+    for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
+      try:
+        creatives = self.get_creative_data_list_via_chromedriver(archive_id,
+            snapshot_url)
+      except requests.RequestException as request_exception:
+        logging.info('Request exception while processing archive id:%s\n%s',
+            archive_id, request_exception)
+        self.num_snapshots_fetch_failed += 1
+
+      self.num_snapshots_processed += 1
+      if creatives:
+       for creative in creatives:
+         image_url_to_archive_id[creative.image_url] = archive_id
+         image_url_to_creative_text[creative.image_url] = creative.creative_text
+
+       logging.debug('Archive ID %s has image_url(s): %s', archive_id,
+                     ', '.join([c.image_url for c in creatives]))
+      else:
+       logging.info('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
+           '%s', archive_id, snapshot_url)
+       archive_ids_without_image_url_found.append(archive_id)
+
+    if len(archive_ids_without_image_url_found) == self.batch_size:
+      raise RuntimeError('Failed to find image URLs in any snapshot from this '
+          'batch.  Assuming access_token has expired. Aborting!')
+
+    self.num_image_urls_found += len(image_url_to_archive_id.keys())
+    self.num_ids_without_image_url_found += len(archive_ids_without_image_url_found)
+
+    ad_image_records = []
+    ad_creative_records = []
+    for image_url in image_url_to_archive_id:
+      try:
+        fetch_time = datetime.datetime.now()
+        image_request = requests.get(image_url, timeout=30)
+        # TODO(macpd): handle this more gracefully
+        # TODO(macpd): check encoding
+        image_request.raise_for_status()
+      except requests.RequestException as request_exception:
+        logging.info('Exception %s when requesting image_url: %s', request_exception, image_url)
+        self.num_image_download_failure += 1
+        # TODO(macpd): handle all error types
+        continue
+
+      self.num_image_download_success += 1
+      image_bytes = image_request.content
+      image_dhash = get_image_dhash(image_bytes)
+      image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+      text = image_url_to_creative_text[creative.image_url]
+      # TODO(macpd): figure out how to do text sim hash
+      text_sim_hash = ''
+      text_sha256_hash = hashlib.sha256(bytes(text, encoding='UTF-32')).hexdigest()
+      bucket_url = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      ad_creative_records.append(
+          AdCreativeRecord(
+            ad_creative_body=text,
+            ad_creative_link_caption='not yet implemented',
+            ad_creative_link_title='not yet implemented',
+            ad_creative_link_description='not yet implemented',
+            archive_id=image_url_to_archive_id[image_url],
+            snapshot_fetch_time=fetch_time,
+            text_sha256_hash=text_sha256_hash,
+            text_sim_hash=text_sim_hash,
+            image_downloaded_url=image_url,
+            image_bucket_url=bucket_url,
+            image_sim_hash=image_dhash,
+            image_sha256_hash=image_sha256
+            ))
+
+    logging.debug('Inserting AdCreativeRecords to DB: %r', ad_creative_records)
+    self.db_interface.insert_ad_creative_records(ad_creative_records)
 
   def process_archive_images(self, archive_id_batch):
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
@@ -307,9 +463,9 @@ def main(argv):
       logging.info('DB connection established')
       db_interface = db_functions.DBInterface(db_connection)
       if max_archive_ids == -1:
-        archive_ids = db_interface.all_archive_ids_without_image_hash()
+        archive_ids = db_interface.all_archive_ids_without_creatives_data()
       else:
-        archive_ids = db_interface.n_archive_ids_without_image_hash(max_archive_ids)
+        archive_ids = db_interface.n_archive_ids_without_creatives_data(max_archive_ids)
 
     with get_database_connection(config) as db_connection:
       bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
