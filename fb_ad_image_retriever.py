@@ -261,7 +261,13 @@ class FacebookAdImageRetriever:
 
       self.num_image_download_success += 1
       image_bytes = image_request.content
-      image_dhash = get_image_dhash(image_bytes)
+      try:
+        image_dhash = get_image_dhash(image_bytes)
+      except OSError as error:
+        logging.warning("Error generating dhash for archive ID: %s, image_url: "
+            "%s\n%s", image_url_to_archive_id[image_url], image_url, error)
+        continue
+
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
       bucket_url = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_image_records.append(
