@@ -36,8 +36,8 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
-    def all_archive_ids_without_image_hash(self):
-      """Get ALL ad archive IDs that do not exist in ad_images table.
+    def all_archive_ids_without_creatives_data(self):
+      """Get ALL ad archive IDs that do not exist in ad_creatives table.
 
       Args:
         cursor: pyscopg2.Cursor DB cursor for query execution.
@@ -46,14 +46,14 @@ class DBInterface():
       """
       cursor = self.get_cursor()
       archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-          'WHERE archive_id NOT IN (select archive_id FROM ad_images) ORDER '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_creatives) ORDER '
           'BY ad_creation_time DESC')
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
 
-    def n_archive_ids_without_image_hash(self, max_archive_ids=200):
-      """Get ad archive IDs that do not exist in ad_images table.
+    def n_archive_ids_without_creatives_data(self, max_archive_ids=200):
+      """Get ad archive IDs that do not exist in ad_creatives table.
 
       Args:
         cursor: pyscopg2.Cursor DB cursor for query execution.
@@ -63,7 +63,7 @@ class DBInterface():
       """
       cursor = self.get_cursor()
       archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-          'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+          'WHERE archive_id NOT IN (select archive_id FROM ad_creatives) '
           'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
@@ -185,4 +185,20 @@ class DBInterface():
         '%(downloaded_url)s, %(bucket_url)s,  %(sim_hash)s, %(image_sha256)s)')
       ad_image_record_list = [x._asdict() for x in ad_image_records]
       psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list,
+          template=insert_template, page_size=250)
+
+    def insert_ad_creative_records(self, ad_creative_records):
+      cursor = self.get_cursor()
+      insert_query = ('INSERT INTO ad_creatives(archive_id, '
+          'snapshot_fetch_time, ad_creative_body, text_sha256_hash, '
+          'text_sim_hash, image_downloaded_url, image_bucket_url, '
+          'image_sim_hash, image_sha256_hash) VALUES %s ')
+          # TODO(macpd): figure out how to handle conflicts/updates
+          # ON CONFLICT (archive_id, image_sha256_hash) DO NOTHING')
+      insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
+        '%(ad_creative_body)s, %(text_sha256_hash)s, %(text_sim_hash)s, '
+        '%(image_downloaded_url)s, %(image_bucket_url)s,  %(image_sim_hash)s, '
+        '%(image_sha256_hash)s)')
+      ad_creative_record_list = [x._asdict() for x in ad_creative_records]
+      psycopg2.extras.execute_values(cursor, insert_query, ad_creative_record_list,
           template=insert_template, page_size=250)
