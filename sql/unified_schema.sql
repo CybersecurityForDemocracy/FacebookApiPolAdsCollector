@@ -23,6 +23,7 @@ CREATE TABLE pages (
 );
 CREATE TABLE ads (
   archive_id bigint NOT NULL,
+  ad_creation_time date,
   ad_delivery_start_time date,
   ad_delivery_stop_time date,
   page_id bigint,
@@ -83,18 +84,17 @@ CREATE TABLE ad_creatives (
   ad_creative_id bigserial PRIMARY KEY,
   archive_id bigint NOT NULL,
   ad_creative_body character varying,
-  ad_creation_time date,
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
   ad_creative_link_description character varying,
-  text_sha256_hash character varying,
-  image_sha256_hash character varying,
   snapshot_fetch_time timestamp,
+  text_sim_hash character varying,
+  text_sha256_hash character varying,
   image_downloaded_url character varying,
   image_bucket_url character varying,
-  text_sim_hash character varying,
   image_sim_hash character varying,
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  image_sha256_hash character varying,
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 CREATE TABLE demo_impressions (
   archive_id bigint,
