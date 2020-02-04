@@ -264,8 +264,10 @@ class FacebookAdImageRetriever:
       try:
         image_dhash = get_image_dhash(image_bytes)
       except OSError as error:
-        logging.warning("Error generating dhash for archive ID: %s, image_url: "
-            "%s\n%s", image_url_to_archive_id[image_url], image_url, error)
+        logging.warning(
+            "Error generating dhash for archive ID: %s, image_url: %s. "
+            "images_bytes len: %d\n%s", image_url_to_archive_id[image_url],
+            image_url, len(image_bytes), error)
         continue
 
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
