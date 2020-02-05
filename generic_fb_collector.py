@@ -17,7 +17,8 @@ from OpenSSL import SSL
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 
-DEFAULT_MINIMUM_EXPECTED_RECORDS = 10000
+DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
+DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
 
 #data structures to hold new ads
 AdRecord = namedtuple(
@@ -429,39 +430,44 @@ def get_pages_from_archive(archive_path):
 
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
-        num_ads_added, num_impressions_added, min_expected_records):
+        num_ads_added, num_impressions_added, min_expected_new_ads,
+        min_expected_new_impressions):
     duration_minutes = (end_time - start_time).seconds / 60
-    if (num_ads_added < min_expected_records or
-            num_impressions_added < min_expected_records):
-        logging.error(
-            "Minimun expected records (%d) not met! Ads added: %d, "
-            "impressions added: %d", min_expected_records, num_ads_added,
-            num_impressions_added)
+    slack_msg_error_prefix = ''
+    if (num_ads_added < min_expected_new_ads or
+            num_impressions_added < min_expected_new_impressions):
+        error_log_msg = (
+            f"Minimun expected records not met! Ads expected: "
+            f"{min_expected_new_ads} added: {num_ads_added}, "
+            f"impressions expected: {min_expected_new_impressions} added: "
+            f"{num_impressions_added} ")
+        logging.error(error_log_msg)
+        slack_msg_error_prefix = (
+            ":rotating_light: :rotating_light: :rotating_light: "
+            f" {error_log_msg} "
+            ":rotating_light: :rotating_light: :rotating_light: ")
         completion_status = 'Failure'
-        notify_slack(
-            slack_url,
-            f":rotating_light: :rotating_light: :rotating_light: expected "
-            f"minimum records ({min_expected_records}) not met! "
-            f":rotating_light: :rotating_light: :rotating_light: "
-            f"Collection started at {start_time} for "
-            f"{country_code} completed in {duration_minutes} minutes. Added "
-            f"{num_ads_added} ads, and {num_impressions_added} impressions. "
-            f"Completion status {completion_status}.")
-    else:
-        notify_slack(
-            slack_url, f"Collection started at {start_time} for "
-            f"{country_code} completed in {duration_minutes} minutes. Added "
-            f"{num_ads_added} ads, and {num_impressions_added} impressions. "
-            f"Completion status {completion_status}.")
+
+    completion_message = (
+        f"{slack_msg_error_prefix}Collection started at{start_time} for "
+        f"{country_code} completed in {duration_minutes} minutes. Added "
+        f"{num_ads_added} ads, and {num_impressions_added} impressions. "
+        f"Completion status {completion_status}.")
+    notify_slack(slack_url, completion_message)
 
 def main(config, country_code):
     logging.info("starting")
     slack_url = config['LOGGING']['SLACK_URL']
-    if 'MINIMUM_EXPECTED_RECORDS' in config['SEARCH']:
-        min_expected_records = int(config['SEARCH']['MINIMUM_EXPECTED_RECORDS'])
+    if 'MINIMUM_EXPECTED_NEW_ADS' in config['SEARCH']:
+        min_expected_new_ads = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_ADS'])
     else:
-        min_expected_records = DEFAULT_MINIMUM_EXPECTED_RECORDS
-    logging.info('Expected minimum of %d new records.', min_expected_records)
+        min_expected_new_ads = DEFAULT_MINIMUM_EXPECTED_NEW_ADS
+
+    if 'MINIMUM_EXPECTED_NEW_IMPRESSIONS' in config['SEARCH']:
+        min_expected_new_impressions = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_IMPRESSIONS'])
+    else:
+        min_expected_new_impressions = DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS
+    logging.info('Expected minimum of %d new records.', min_expected_new_impressions)
 
     connection = get_db_connection(config)
     db = DBInterface(connection)
@@ -507,7 +513,7 @@ def main(config, country_code):
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
-            min_expected_records)
+            min_expected_new_ads, min_expected_new_impressions)
 
 
 if __name__ == '__main__':
