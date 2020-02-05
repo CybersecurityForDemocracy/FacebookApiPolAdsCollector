@@ -246,6 +246,7 @@ class SearchRunner():
             #structures to hold all the new stuff we find
             self.new_ads = set()
             self.new_ad_sponsors = set()
+            self.new_funding_entities = set()
             self.new_pages = set()
             self.new_regions = set()
             self.new_impressions = set()
