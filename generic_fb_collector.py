@@ -462,12 +462,13 @@ def main(config, country_code):
         min_expected_new_ads = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_ADS'])
     else:
         min_expected_new_ads = DEFAULT_MINIMUM_EXPECTED_NEW_ADS
+    logging.info('Expecting minimum %d new ads.', min_expected_new_ads)
 
     if 'MINIMUM_EXPECTED_NEW_IMPRESSIONS' in config['SEARCH']:
         min_expected_new_impressions = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_IMPRESSIONS'])
     else:
         min_expected_new_impressions = DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS
-    logging.info('Expected minimum of %d new records.', min_expected_new_impressions)
+    logging.info('Expecting minimum %d new impressions.', min_expected_new_impressions)
 
     connection = get_db_connection(config)
     db = DBInterface(connection)
