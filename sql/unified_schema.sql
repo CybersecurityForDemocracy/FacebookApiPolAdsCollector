@@ -94,7 +94,8 @@ CREATE TABLE ad_creatives (
   image_bucket_url character varying,
   image_sim_hash character varying,
   image_sha256_hash character varying,
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_creative_per_archive_id UNIQUE(archive_id, text_sha256_hash, image_sha256_hash)
 );
 CREATE TABLE demo_impressions (
   archive_id bigint,

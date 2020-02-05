@@ -38,6 +38,9 @@ logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
                     level=logging.DEBUG)
 
+CREATIVE_TEXT_CSS_SELECTOR = '_7jyr'
+CREATIVE_IMAGE_URL_CSS_SELECTOR = '_7jys'
+MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = '//div[@class=\'_a2e\']/div[%d]/div/a'
 IMAGE_URL_JSON_NAME = 'original_image_url'
 IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
 VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
@@ -279,12 +282,13 @@ class FacebookAdImageRetriever:
     creatives = []
     # First find creative text and image as they exist at load time. Then see if
     # there are multiple versions by trying to select the next creative.
+    # TODO(macpd): handle videos and extract link, link text, link caption
     for i in range(2, 12):
-      creative_text = self.chromedriver.find_element_by_class_name('_7jyr').text
-      image_url = self.chromedriver.find_element_by_class_name('_7jys').get_attribute('src')
+      creative_text = self.chromedriver.find_element_by_class_name(CREATIVE_TEXT_CSS_SELECTOR).text
+      image_url = self.chromedriver.find_element_by_class_name(CREATIVE_IMAGE_URL_CSS_SELECTOR).get_attribute('src')
       creatives.append(FetchedAdCreativeData(creative_text=creative_text,
         image_url=image_url))
-      xpath = '//div[@class=\'_a2e\']/div[%d]/div/a' % (i)
+      xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (i)
       try:
         self.chromedriver.find_element_by_xpath(xpath).click()
       except NoSuchElementException:
@@ -342,9 +346,17 @@ class FacebookAdImageRetriever:
         # TODO(macpd): handle all error types
         continue
 
-      self.num_image_download_success += 1
       image_bytes = image_request.content
-      image_dhash = get_image_dhash(image_bytes)
+      try:
+        image_dhash = get_image_dhash(image_bytes)
+      except OSError as error:
+        logging.warning(
+            "Error generating dhash for archive ID: %s, image_url: %s. "
+            "images_bytes len: %d\n%s", image_url_to_archive_id[image_url],
+            image_url, len(image_bytes), error)
+        self.num_image_download_failure += 1
+        continue
+      self.num_image_download_success += 1
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
       text = image_url_to_creative_text[creative.image_url]
       # TODO(macpd): figure out how to do text sim hash
