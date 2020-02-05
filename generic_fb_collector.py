@@ -17,6 +17,8 @@ from OpenSSL import SSL
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 
+DEFAULT_MINIMUM_EXPECTED_RECORDS = 10000
+
 #data structures to hold new ads
 AdRecord = namedtuple(
     "AdRecord",
@@ -114,12 +116,21 @@ class SearchRunner():
         self.existing_pages = set()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
+        self.total_ads_added_to_db = 0
+        self.total_impressions_added_to_db = 0
         self.stop_time = None
         if 'SOFT_MAX_RUNIME_IN_SECONDS' in config['SEARCH']:
             start_time = time.monotonic()
-            soft_deadline =  int(config['SEARCH']['SOFT_MAX_RUNIME_IN_SECONDS'])
+            soft_deadline = int(config['SEARCH']['SOFT_MAX_RUNIME_IN_SECONDS'])
             self.stop_time = start_time + soft_deadline
-            logging.info('Will cease execution after %d seconds.', soft_deadline)
+            logging.info(
+                'Will cease execution after %d seconds.', soft_deadline)
+
+    def num_ads_added_to_db(self):
+        return self.total_ads_added_to_db
+
+    def num_impressions_added_to_db(self):
+        return self.total_impressions_added_to_db
 
     def get_ad_from_result(self, result):
         url_parts = urlparse(result['ad_snapshot_url'])
@@ -330,7 +341,7 @@ class SearchRunner():
     def allowed_execution_time_remaining(self):
         # No deadline configured.
         if self.stop_time is None:
-          return True
+            return True
 
         if time.monotonic() >= self.stop_time:
             logging.info('Allowed execution time has elapsed. quiting.')
@@ -343,11 +354,18 @@ class SearchRunner():
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
         self.db.insert_pages(self.new_pages)
+
         #write new ads to our database
-        logging.info("writing " + str(len(self.new_ads)) + " new ads to db")
+        num_new_ads = len(self.new_ads)
+        logging.info("writing %d new ads to db", num_new_ads)
         self.db.insert_new_ads(self.new_ads)
-        logging.info("writing " + str(len(self.new_impressions)) + " impressions to db")
+        self.total_ads_added_to_db += num_new_ads
+
+        #write new impressions to our database
+        num_new_impressions = len(self.new_impressions)
+        logging.info("writing %d impressions to db", num_new_impressions)
         self.db.insert_new_impressions(self.new_impressions)
+        self.total_impressions_added_to_db += num_new_impressions
 
         logging.info("writing self.new_ad_demo_impressions to db")
         self.db.insert_new_impression_demos(self.new_ad_demo_impressions)
@@ -409,9 +427,42 @@ def get_pages_from_archive(archive_path):
 
     return page_ads
 
+def send_completion_slack_notification(
+        slack_url, country_code, completion_status, start_time, end_time,
+        num_ads_added, num_impressions_added, min_expected_records):
+    duration_minutes = (end_time - start_time).seconds / 60
+    if (num_ads_added < min_expected_records or
+            num_impressions_added < min_expected_records):
+        logging.error(
+            "Minimun expected records (%d) not met! Ads added: %d, "
+            "impressions added: %d", min_expected_records, num_ads_added,
+            num_impressions_added)
+        completion_status = 'Failure'
+        notify_slack(
+            slack_url,
+            f":rotating_light: :rotating_light: :rotating_light: expected "
+            f"minimum records ({min_expected_records}) not met! "
+            f":rotating_light: :rotating_light: :rotating_light: "
+            f"Collection started at {start_time} for "
+            f"{country_code} completed in {duration_minutes} minutes. Added "
+            f"{num_ads_added} ads, and {num_impressions_added} impressions. "
+            f"Completion status {completion_status}.")
+    else:
+        notify_slack(
+            slack_url, f"Collection started at {start_time} for "
+            f"{country_code} completed in {duration_minutes} minutes. Added "
+            f"{num_ads_added} ads, and {num_impressions_added} impressions. "
+            f"Completion status {completion_status}.")
+
 def main(config, country_code):
     logging.info("starting")
     slack_url = config['LOGGING']['SLACK_URL']
+    if 'MINIMUM_EXPECTED_RECORDS' in config['SEARCH']:
+        min_expected_records = int(config['SEARCH']['MINIMUM_EXPECTED_RECORDS'])
+    else:
+        min_expected_records = DEFAULT_MINIMUM_EXPECTED_RECORDS
+    logging.info('Expected minimum of %d new records.', min_expected_records)
+
     connection = get_db_connection(config)
     db = DBInterface(connection)
     search_runner = SearchRunner(
@@ -422,7 +473,10 @@ def main(config, country_code):
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
-    notify_slack(slack_url, f"Starting UNIFIED collection at {start_time} for {config['SEARCH']['COUNTRY_CODE']} for {page_string}")
+    country_code_uppercase = country_code.upper()
+    notify_slack(slack_url,
+                 f"Starting UNIFIED collection at {start_time} for "
+                 f"{country_code_uppercase} for {page_string}")
     completion_status = 'Failure'
     try:
         if page_ids:
@@ -446,10 +500,15 @@ def main(config, country_code):
         completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
     finally:
-        end_time = datetime.datetime.now()
-        duration_minutes = (end_time - start_time).seconds / 60
-        notify_slack(slack_url, f"Collection started at {start_time} for {config['SEARCH']['COUNTRY_CODE']} completed in {duration_minutes} minutes with completion status {completion_status}.")
         connection.close()
+        end_time = datetime.datetime.now()
+        num_ads_added = search_runner.num_ads_added_to_db()
+        num_impressions_added = search_runner.num_impressions_added_to_db()
+        send_completion_slack_notification(
+            slack_url, country_code_uppercase, completion_status, start_time,
+            end_time, num_ads_added, num_impressions_added,
+            min_expected_records)
+
 
 if __name__ == '__main__':
     config = configparser.ConfigParser()
