@@ -1,4 +1,5 @@
 """Centralized module for computing simhash of Ad creative text."""
+import re
 
 import simhash
 
@@ -12,5 +13,5 @@ def _get_features(src):
     src = re.sub(r'__', '', src)
     return [src[i:i + _WIDTH] for i in range(max(len(src) - _WIDTH + 1, 1))]
 
-def sim_hash_ad_creative_text(text):
-    return simhash.Simhash(_get_features(text))
+def hash_ad_creative_text(text):
+    return simhash.Simhash(_get_features(text)).value
