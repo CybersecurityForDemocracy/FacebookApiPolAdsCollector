@@ -190,15 +190,18 @@ class DBInterface():
     def insert_ad_creative_records(self, ad_creative_records):
       cursor = self.get_cursor()
       insert_query = ('INSERT INTO ad_creatives(archive_id, '
-          'snapshot_fetch_time, ad_creative_body, text_sha256_hash, '
-          'text_sim_hash, image_downloaded_url, image_bucket_path, '
-          'image_sim_hash, image_sha256_hash) VALUES %s ')
-          # TODO(macpd): figure out how to handle conflicts/updates
-          # ON CONFLICT (archive_id, image_sha256_hash) DO NOTHING')
+          'snapshot_fetch_time, ad_creative_body, ad_creative_link_url, '
+          'ad_creative_link_title, ad_creative_link_caption, '
+          'ad_creative_link_description, text_sha256_hash, text_sim_hash, '
+          'image_downloaded_url, image_bucket_path, image_sim_hash, '
+          'image_sha256_hash) VALUES %s ON CONFLICT (archive_id, '
+          'text_sha256_hash, image_sha256_hash) DO NOTHING')
       insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
-        '%(ad_creative_body)s, %(text_sha256_hash)s, %(text_sim_hash)s, '
-        '%(image_downloaded_url)s, %(image_bucket_path)s,  %(image_sim_hash)s, '
-        '%(image_sha256_hash)s)')
+        '%(ad_creative_body)s, %(ad_creative_link_url)s, '
+        '%(ad_creative_link_title)s, %(ad_creative_link_caption)s, '
+        '%(ad_creative_link_description)s, %(text_sha256_hash)s, '
+        '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
+        '%(image_sim_hash)s, %(image_sha256_hash)s)')
       ad_creative_record_list = [x._asdict() for x in ad_creative_records]
       psycopg2.extras.execute_values(cursor, insert_query, ad_creative_record_list,
           template=insert_template, page_size=250)

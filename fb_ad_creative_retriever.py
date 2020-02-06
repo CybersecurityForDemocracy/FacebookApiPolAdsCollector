@@ -81,6 +81,7 @@ FetchedAdCreativeData = collections.namedtuple(
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'archive_id',
     'ad_creative_body',
+    'ad_creative_link_url',
     'ad_creative_link_caption',
     'ad_creative_link_title',
     'ad_creative_link_description',
@@ -310,7 +311,7 @@ class FacebookAdImageRetriever:
           CREATIVE_CONTAINER_XPATH)
       creative_body = creative_container_element.find_element_by_class_name(
           CREATIVE_BODY_CSS_SELECTOR).text
-      creative_link = None
+      creative_link_url = None
       creative_link_caption = None
       creative_link_title = None
       creative_link_description = None
@@ -324,10 +325,13 @@ class FacebookAdImageRetriever:
             CREATIVE_LINK_CAPTION_XPATH).text
         creative_link_description = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_DESCRIPTION_XPATH).text
-      except NoSuchElementException:
-        pass
+      except NoSuchElementException as e:
+          logging.info(e)
 
-      logging.debug('Found creative text: \'%s\'', creative_body)
+      logging.debug('Found creative text: \'%s\', link_url: \'%s\', link_title: '
+                    '\'%s\', lingk_caption: \'%s\', link_description: \'%s\'',
+                    creative_body, creative_link_url, creative_link_title,
+                    creative_link_caption, creative_link_description)
       video_element = self.get_video_element_from_creative_container(
           creative_container_element)
       if video_element:
@@ -404,16 +408,20 @@ class FacebookAdImageRetriever:
             creative.image_url, len(image_bytes), error)
         self.num_image_download_failure += 1
         continue
+
       self.num_image_download_success += 1
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
       text = creative.creative_body
-      # TODO(macpd): figure out how to do text sim hash
-      text_sim_hash = sim_hash_ad_creative_text(text)
-      text_sha256_hash = hashlib.sha256(bytes(text, encoding='UTF-32')).hexdigest()
+      # Get simhash as hex without leading '0x'
+      text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
+              text)
+      text_sha256_hash = hashlib.sha256(
+              bytes(text, encoding='UTF-32')).hexdigest()
       bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_creative_records.append(
           AdCreativeRecord(
             ad_creative_body=text,
+            ad_creative_link_url=creative.creative_link_url,
             ad_creative_link_caption=creative.creative_link_caption,
             ad_creative_link_title=creative.creative_link_title,
             ad_creative_link_description=creative.creative_link_description,
@@ -426,7 +434,6 @@ class FacebookAdImageRetriever:
             image_sim_hash=image_dhash,
             image_sha256_hash=image_sha256
             ))
-      logging.debug('Creative: %s', creative_as_readable_str)
 
     logging.debug('Inserting AdCreativeRecords to DB: %r', ad_creative_records)
     self.db_interface.insert_ad_creative_records(ad_creative_records)
