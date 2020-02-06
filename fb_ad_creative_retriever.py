@@ -36,7 +36,7 @@ DEFAULT_BATCH_SIZE = 20
 logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                               logging.StreamHandler()],
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
-                    level=logging.DEBUG)
+                    level=logging.INFO)
 
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
 CREATIVE_LINK_CONTAINER_XPATH = (
@@ -51,14 +51,16 @@ CREATIVE_BODY_CSS_SELECTOR = '_7jyr'
 CREATIVE_IMAGE_URL_CSS_SELECTOR = '_7jys'
 CREATIVE_IMAGE_URL_XPATH = (
     CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']')
-MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = '//div[@class=\'_a2e\']/div[%d]/div/a'
+MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
+        '//div[@class=\'_a2e\']/div[%d]/div/a')
 IMAGE_URL_JSON_NAME = 'original_image_url'
 IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
 VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
 VIDEO_IMAGE_URL_JSON_NULL_PHRASE = '"video_preview_image_url":null'
 URL_REGEX_TEMPLATE = r'"%s":\s*?"(http[^"]+?)"'
 IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % IMAGE_URL_JSON_NAME)
-VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
+VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(
+        URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
 class ImageUrlFetchStatus(enum.IntEnum):
@@ -306,7 +308,9 @@ class FacebookAdImageRetriever:
         creative_link_description = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_DESCRIPTION_XPATH).text
       except NoSuchElementException as e:
-          logging.info(e)
+          logging.warn('Unable to find ad creative section for Archive ID: %s',
+                       archive_id)
+          break
 
       logging.debug('Found creative text: \'%s\', link_url: \'%s\', link_title: '
                     '\'%s\', lingk_caption: \'%s\', link_description: \'%s\'',
@@ -316,11 +320,11 @@ class FacebookAdImageRetriever:
           creative_container_element)
       if video_element:
         image_url = video_element.get_attribute('poster')
-        logging.info('Found <video> tag, assuming creative has video')
+        logging.debug('Found <video> tag, assuming creative has video')
       else:
         image_url = creative_container_element.find_element_by_xpath(
             CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
-        logging.info('Did not find <video> tag, assuming creative has still image.')
+        logging.debug('Did not find <video> tag, assuming creative has still image.')
       creatives.append(FetchedAdCreativeData(
           archive_id=archive_id, creative_body=creative_body,
           creative_link_url=creative_link_url,
