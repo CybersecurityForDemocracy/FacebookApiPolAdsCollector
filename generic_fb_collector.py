@@ -524,7 +524,7 @@ if __name__ == '__main__':
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
     logging.basicConfig(handlers=[logging.FileHandler(f"{country_code}_fb_api_collection.log"),
                               logging.StreamHandler()],
-                        format='[%(levelname)s\t%(asctime)s] %(message)s',
+                        format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
                         level=logging.INFO)
 
     if len(sys.argv) < 2:
