@@ -8,7 +8,6 @@ import io
 import os.path
 import re
 import sys
-import tempfile
 import time
 import urllib.parse
 
@@ -107,28 +106,11 @@ def chunks(original_list, chunk_size):
   for i in range(0, len(original_list), chunk_size):
     yield original_list[i:i + chunk_size]
 
-def get_headless_driver_with_downloads(path, webdriver_executable_path):
-  # This works around https://bugs.chromium.org/p/chromium/issues/detail?id=696481
-  # Using https://github.com/shawnbutton/PythonHeadlessChrome as a reference
-  download_dir = path or os.getcwd()
+def get_headless_chrome_driver(webdriver_executable_path):
   chrome_options = webdriver.ChromeOptions()
-  prefs = {
-      "download.default_directory": download_dir,
-      "download.prompt_for_download": False,
-      "download.directory_upgrade": True,
-      "safebrowsing.enabled": False,
-      "safebrowsing.disable_download_protection": True}
   chrome_options.add_argument("--headless")
-  chrome_options.add_experimental_option("prefs", prefs)
-
   driver = webdriver.Chrome(
       executable_path=webdriver_executable_path, chrome_options=chrome_options)
-  driver.command_executor._commands["send_command"] = (
-      "POST", "/session/$sessionId/chromium/send_command")
-
-  params = {"cmd": "Page.setDownloadBehavior", "params": {
-      "behavior": "allow", "downloadPath": download_dir}}
-  driver.execute("send_command", params)
   return driver
 
 
@@ -237,9 +219,7 @@ class FacebookAdImageRetriever:
     self.access_token = access_token
     self.batch_size = batch_size
     self.start_time = None
-    self.chromedriver_download_dir = tempfile.TemporaryDirectory(prefix='fb_ad_creative_retreiver.')
-    self.chromedriver = get_headless_driver_with_downloads(
-        self.chromedriver_download_dir.name, CHROMEDRIVER_PATH)
+    self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
 
 
   def get_seconds_elapsed_procesing(self):
