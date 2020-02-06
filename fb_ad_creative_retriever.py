@@ -330,7 +330,7 @@ class FacebookAdCreativeRetriever:
         image_url = video_element.get_attribute('poster')
         logging.debug('Found <video> tag, assuming creative has video')
       else:
-        image_url = get_image_url_from_creative_container(
+        image_url = self.get_image_url_from_creative_container(
                 creative_container_element)
         if image_url:
           logging.debug('Did not find <video> tag, but found <img> src')
