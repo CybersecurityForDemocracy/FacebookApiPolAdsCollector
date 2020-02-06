@@ -38,8 +38,19 @@ logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
                     level=logging.DEBUG)
 
-CREATIVE_TEXT_CSS_SELECTOR = '_7jyr'
+CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
+CREATIVE_LINK_CONTAINER_XPATH = (
+    CREATIVE_CONTAINER_XPATH + '//a[@class=\'_231w _231z _4yee\']')
+CREATIVE_LINK_XPATH_TEMPLATE = (
+    CREATIVE_LINK_CONTAINER_XPATH +
+    '/div/div/div[%d]/div/div[@class=\'_4ik4 _4ik5\']')
+CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
+CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
+CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+CREATIVE_BODY_CSS_SELECTOR = '_7jyr'
 CREATIVE_IMAGE_URL_CSS_SELECTOR = '_7jys'
+CREATIVE_IMAGE_URL_XPATH = (
+    CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = '//div[@class=\'_a2e\']/div[%d]/div/a'
 IMAGE_URL_JSON_NAME = 'original_image_url'
 IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
@@ -56,8 +67,15 @@ class ImageUrlFetchStatus(enum.IntEnum):
   TIMEOUT = 2
   NOT_FOUND = 3
 
-FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', ['creative_text',
-  'image_url'])
+FetchedAdCreativeData = collections.namedtuple(
+    'FetchedAdCreativeData',
+    ['archive_id',
+     'creative_body',
+     'creative_link_url',
+     'creative_link_title',
+     'creative_link_description',
+     'creative_link_caption',
+     'image_url'])
 
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'archive_id',
@@ -69,7 +87,7 @@ AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'image_sha256_hash',
     'snapshot_fetch_time',
     'image_downloaded_url',
-    'image_bucket_url',
+    'image_bucket_path',
     'text_sim_hash',
     'image_sim_hash'])
 
@@ -77,7 +95,7 @@ AdImageRecord = collections.namedtuple('AdImageRecord',
     ['archive_id',
      'fetch_time',
      'downloaded_url',
-     'bucket_url',
+     'bucket_path',
      'image_url_fetch_status',
      'sim_hash',
      'image_sha256'])
@@ -270,24 +288,60 @@ class FacebookAdImageRetriever:
     blob.upload_from_string(image_bytes)
     self.num_image_uploade_to_gcs_bucket += 1
     logging.debug('Image dhash: %s; uploaded to bucket path: %s', image_dhash, image_bucket_path)
-    logging.info('blob \npath: %s\nid: %s\nself_link:%s', blob.path, blob.id,
-        blob.self_link)
-    return blob.public_url
+    return image_bucket_path
+
+  def get_video_element_from_creative_container(self, creative_container_element):
+    try:
+      return creative_container_element.find_element_by_tag_name('video')
+    except NoSuchElementException:
+      return None
 
   def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
     logging.info('Getting creatives data from archive ID: %s\nURL: %s',
         archive_id, snapshot_url)
     self.chromedriver.get(snapshot_url)
-    self.chromedriver.save_screenshot('%s_snapshot.png' % archive_id)
     creatives = []
     # First find creative text and image as they exist at load time. Then see if
     # there are multiple versions by trying to select the next creative.
     # TODO(macpd): handle videos and extract link, link text, link caption
     for i in range(2, 12):
-      creative_text = self.chromedriver.find_element_by_class_name(CREATIVE_TEXT_CSS_SELECTOR).text
-      image_url = self.chromedriver.find_element_by_class_name(CREATIVE_IMAGE_URL_CSS_SELECTOR).get_attribute('src')
-      creatives.append(FetchedAdCreativeData(creative_text=creative_text,
-        image_url=image_url))
+      creative_container_element = self.chromedriver.find_element_by_xpath(
+          CREATIVE_CONTAINER_XPATH)
+      creative_body = creative_container_element.find_element_by_class_name(
+          CREATIVE_BODY_CSS_SELECTOR).text
+      creative_link = None
+      creative_link_caption = None
+      creative_link_title = None
+      creative_link_description = None
+      try:
+        creative_link_container = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_CONTAINER_XPATH)
+        creative_link_url = creative_link_container.get_attribute('href')
+        creative_link_title = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_TITLE_XPATH).text
+        creative_link_caption = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_CAPTION_XPATH).text
+        creative_link_description = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_DESCRIPTION_XPATH).text
+      except NoSuchElementException:
+        pass
+
+      logging.debug('Found creative text: \'%s\'', creative_body)
+      video_element = self.get_video_element_from_creative_container(
+          creative_container_element)
+      if video_element:
+        image_url = video_element.get_attribute('poster')
+        logging.info('Found <video> tag, assuming creative has video')
+      else:
+        image_url = creative_container_element.find_element_by_xpath(
+            CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
+        logging.info('Did not find <video> tag, assuming creative has still image.')
+      creatives.append(FetchedAdCreativeData(
+          archive_id=archive_id, creative_body=creative_body,
+          creative_link_url=creative_link_url,
+          creative_link_title=creative_link_title,
+          creative_link_description=creative_link_description,
+          creative_link_caption=creative_link_caption, image_url=image_url))
       xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (i)
       try:
         self.chromedriver.find_element_by_xpath(xpath).click()
@@ -299,8 +353,6 @@ class FacebookAdImageRetriever:
   def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
         archive_id_batch)
-    image_url_to_archive_id = {}
-    image_url_to_creative_text = {}
     archive_ids_without_image_url_found = []
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
       try:
@@ -313,35 +365,30 @@ class FacebookAdImageRetriever:
 
       self.num_snapshots_processed += 1
       if creatives:
-       for creative in creatives:
-         image_url_to_archive_id[creative.image_url] = archive_id
-         image_url_to_creative_text[creative.image_url] = creative.creative_text
-
-       logging.debug('Archive ID %s has image_url(s): %s', archive_id,
-                     ', '.join([c.image_url for c in creatives]))
+        logging.debug('Archive ID %s has creative data: %s', archive_id, creatives)
       else:
-       logging.info('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
+        logging.info('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
            '%s', archive_id, snapshot_url)
-       archive_ids_without_image_url_found.append(archive_id)
+        archive_ids_without_image_url_found.append(archive_id)
 
     if len(archive_ids_without_image_url_found) == self.batch_size:
       raise RuntimeError('Failed to find image URLs in any snapshot from this '
           'batch.  Assuming access_token has expired. Aborting!')
 
-    self.num_image_urls_found += len(image_url_to_archive_id.keys())
+    self.num_image_urls_found += len(creatives)
     self.num_ids_without_image_url_found += len(archive_ids_without_image_url_found)
 
-    ad_image_records = []
     ad_creative_records = []
-    for image_url in image_url_to_archive_id:
+    for creative in creatives:
       try:
         fetch_time = datetime.datetime.now()
-        image_request = requests.get(image_url, timeout=30)
+        image_request = requests.get(creative.image_url, timeout=30)
         # TODO(macpd): handle this more gracefully
         # TODO(macpd): check encoding
         image_request.raise_for_status()
       except requests.RequestException as request_exception:
-        logging.info('Exception %s when requesting image_url: %s', request_exception, image_url)
+        logging.info('Exception %s when requesting image_url: %s',
+                     request_exception, creative.image_url)
         self.num_image_download_failure += 1
         # TODO(macpd): handle all error types
         continue
@@ -352,32 +399,33 @@ class FacebookAdImageRetriever:
       except OSError as error:
         logging.warning(
             "Error generating dhash for archive ID: %s, image_url: %s. "
-            "images_bytes len: %d\n%s", image_url_to_archive_id[image_url],
-            image_url, len(image_bytes), error)
+            "images_bytes len: %d\n%s", creative.archive_id,
+            creative.image_url, len(image_bytes), error)
         self.num_image_download_failure += 1
         continue
       self.num_image_download_success += 1
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-      text = image_url_to_creative_text[creative.image_url]
+      text = creative.creative_body
       # TODO(macpd): figure out how to do text sim hash
-      text_sim_hash = ''
+      text_sim_hash = None
       text_sha256_hash = hashlib.sha256(bytes(text, encoding='UTF-32')).hexdigest()
-      bucket_url = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_creative_records.append(
           AdCreativeRecord(
             ad_creative_body=text,
-            ad_creative_link_caption='not yet implemented',
-            ad_creative_link_title='not yet implemented',
-            ad_creative_link_description='not yet implemented',
-            archive_id=image_url_to_archive_id[image_url],
+            ad_creative_link_caption=creative.creative_link_caption,
+            ad_creative_link_title=creative.creative_link_title,
+            ad_creative_link_description=creative.creative_link_description,
+            archive_id=creative.archive_id,
             snapshot_fetch_time=fetch_time,
             text_sha256_hash=text_sha256_hash,
             text_sim_hash=text_sim_hash,
-            image_downloaded_url=image_url,
-            image_bucket_url=bucket_url,
+            image_downloaded_url=creative.image_url,
+            image_bucket_path=bucket_path,
             image_sim_hash=image_dhash,
             image_sha256_hash=image_sha256
             ))
+      logging.debug('Creative: %s', creative_as_readable_str)
 
     logging.debug('Inserting AdCreativeRecords to DB: %r', ad_creative_records)
     self.db_interface.insert_ad_creative_records(ad_creative_records)
@@ -439,13 +487,13 @@ class FacebookAdImageRetriever:
         continue
 
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-      bucket_url = self.store_image_in_google_bucket(image_dhash, image_bytes)
+      bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_image_records.append(
           AdImageRecord(
             archive_id=image_url_to_archive_id[image_url],
             fetch_time=fetch_time,
             downloaded_url=image_url,
-            bucket_url=bucket_url,
+            bucket_path=bucket_path,
             image_url_fetch_status=int(ImageUrlFetchStatus.SUCCESS),
             sim_hash=image_dhash,
             image_sha256=image_sha256))
