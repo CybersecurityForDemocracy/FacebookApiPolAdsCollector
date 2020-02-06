@@ -308,8 +308,9 @@ class FacebookAdCreativeRetriever:
         creative_link_description = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_DESCRIPTION_XPATH).text
       except NoSuchElementException as e:
-          logging.warn('Unable to find ad creative section for Archive ID: %s',
-                       archive_id)
+          logging.warning(
+                  'Unable to find ad creative section for Archive ID: %s.\n'
+                  'Error: %s', archive_id, e)
           break
 
       logging.debug('Found creative text: \'%s\', link_url: \'%s\', link_title: '
@@ -334,6 +335,12 @@ class FacebookAdCreativeRetriever:
       xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (i)
       try:
         self.chromedriver.find_element_by_xpath(xpath).click()
+      except ElementNotInteractableException as elem_error:
+        logging.warning('Element to select from multiple creatives appears to '
+                        'be present at xpath \'%s\', but is not interactable. '
+                        'Archive ID: %s.\nerror: %s', xpath, archive_id,
+                        elem_error)
+        break
       except NoSuchElementException:
         break
 
