@@ -27,6 +27,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.keys import Keys
 
 import db_functions
+import sim_hash_ad_creative_text
 
 CHROMEDRIVER_PATH='/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
@@ -407,7 +408,7 @@ class FacebookAdImageRetriever:
       image_sha256 = hashlib.sha256(image_bytes).hexdigest()
       text = creative.creative_body
       # TODO(macpd): figure out how to do text sim hash
-      text_sim_hash = None
+      text_sim_hash = sim_hash_ad_creative_text(text)
       text_sha256_hash = hashlib.sha256(bytes(text, encoding='UTF-32')).hexdigest()
       bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_creative_records.append(
