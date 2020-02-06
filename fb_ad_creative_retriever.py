@@ -343,10 +343,11 @@ class FacebookAdCreativeRetriever:
     archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
         archive_id_batch)
     archive_ids_without_image_url_found = []
+    creatives = []
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
       try:
-        creatives = self.get_creative_data_list_via_chromedriver(archive_id,
-            snapshot_url)
+        creatives.extend(self.get_creative_data_list_via_chromedriver(archive_id,
+            snapshot_url))
       except requests.RequestException as request_exception:
         logging.info('Request exception while processing archive id:%s\n%s',
             archive_id, request_exception)
