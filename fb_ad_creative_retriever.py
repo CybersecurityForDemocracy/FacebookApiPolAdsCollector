@@ -280,6 +280,13 @@ class FacebookAdCreativeRetriever:
     except NoSuchElementException:
       return None
 
+  def get_image_url_from_creative_container(self, creative_container_element)
+    try:
+      return creative_container_element.find_element_by_xpath(
+          CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
+    except NoSuchElementException:
+      return None
+
   def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
     logging.info('Getting creatives data from archive ID: %s\nURL: %s',
         archive_id, snapshot_url)
@@ -308,9 +315,9 @@ class FacebookAdCreativeRetriever:
         creative_link_description = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_DESCRIPTION_XPATH).text
       except NoSuchElementException as e:
-          logging.warning(
-                  'Unable to find ad creative section for Archive ID: %s.\n'
-                  'Error: %s', archive_id, e)
+          logging.info(
+                  'Unable to find ad creative link section for Archive ID: %s. '
+                  '\nError: %s', archive_id, e)
           break
 
       logging.debug('Found creative text: \'%s\', link_url: \'%s\', link_title: '
@@ -323,9 +330,14 @@ class FacebookAdCreativeRetriever:
         image_url = video_element.get_attribute('poster')
         logging.debug('Found <video> tag, assuming creative has video')
       else:
-        image_url = creative_container_element.find_element_by_xpath(
-            CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
-        logging.debug('Did not find <video> tag, assuming creative has still image.')
+        image_url = get_image_url_from_creative_container(
+                creative_container_element)
+        if image_url:
+          logging.debug('Did not find <video> tag, but found <img> src')
+        else:
+          logging.info('Found neither <video> nor <img> tag. Assuming no video '
+                       'or image in ad creative.')
+
       creatives.append(FetchedAdCreativeData(
           archive_id=archive_id, creative_body=creative_body,
           creative_link_url=creative_link_url,
