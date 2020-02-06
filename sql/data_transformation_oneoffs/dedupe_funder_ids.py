@@ -1,3 +1,7 @@
+"""This script is a oneoff to remove duplicate funder_name entries from
+funder_metadata table, and update all references to funder_id of duplicate
+entries in ads_metadata table.
+"""
 import configparser
 import logging
 import sys
@@ -24,6 +28,7 @@ def get_database_connection(config):
   return connection
 
 def get_distint_funder_names_with_id(db_connection):
+  """Get map funder_name -> lowest funder_id."""
   cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
   query = ('SELECT funder_name, min(funder_id) as min_funder_id FROM '
         'funder_metadata GROUP BY funder_name;')
@@ -35,6 +40,7 @@ def get_distint_funder_names_with_id(db_connection):
   return funder_name_to_id
 
 def get_all_ids_for_funder_name(db_connection, funder_name):
+  """Get all funder_id entries for given funder_name."""
   cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
   if funder_name:
     query = ('SELECT funder_id FROM funder_metadata WHERE funder_name = %s')
@@ -46,6 +52,7 @@ def get_all_ids_for_funder_name(db_connection, funder_name):
 
 def update_all_ad_metadata_to_canonical_id(db_connection, canonical_id,
       ids_to_update):
+  """Update all ad_metadata rows referencing an undesired ID to canonical_id."""
   logging.info('Updating ids for canonical funder_id: %s', canonical_id)
   cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
   update_query = ('UPDATE ad_metadata SET funder_id = %s WHERE funder_id in (%s)' %
@@ -56,6 +63,7 @@ def update_all_ad_metadata_to_canonical_id(db_connection, canonical_id,
   logging.info('Updated %d rows', cursor.rowcount)
 
 def remove_undesired_funder_ids(db_connection, ids_to_delete):
+  """Delete rows from funder_metadata that have a non-canonical ID."""
   logging.info('Deleting funder IDs: %r', ids_to_delete)
   cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
   delete_query = ('DELETE FROM funder_metadata WHERE funder_id IN (%s)' %
@@ -66,6 +74,8 @@ def remove_undesired_funder_ids(db_connection, ids_to_delete):
 
 
 def dedup_all_funder_ids(db_connection):
+  """Update all non-canonical funder_id to canonical ID, and deleted
+  non-canonical funder_id from funder_metadata."""
   logging.info('Deduping all unneeded funder_ids')
   funder_name_to_canonical_id = get_distint_funder_names_with_id(db_connection)
   total_funder_names_to_process = len(funder_name_to_canonical_id)
@@ -92,8 +102,6 @@ def dedup_all_funder_ids(db_connection):
     num_processed += 1
     logging.info('Proccessed %d of %d funder_names.', num_processed,
         total_funder_names_to_process)
-
-
 
 
 def main(argv):
