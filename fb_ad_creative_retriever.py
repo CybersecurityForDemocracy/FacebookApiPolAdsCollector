@@ -280,7 +280,7 @@ class FacebookAdCreativeRetriever:
     except NoSuchElementException:
       return None
 
-  def get_image_url_from_creative_container(self, creative_container_element)
+  def get_image_url_from_creative_container(self, creative_container_element):
     try:
       return creative_container_element.find_element_by_xpath(
           CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
