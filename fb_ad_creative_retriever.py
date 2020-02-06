@@ -433,11 +433,14 @@ def main(argv):
     batch_size = int(config['LIMITS']['BATCH_SIZE'])
   else:
     batch_size = DEFAULT_BATCH_SIZE
+  logging.info('Batch size: %d', batch_size)
 
   if 'LIMITS' in config and 'MAX_ARCHIVE_IDS' in config['LIMITS']:
     max_archive_ids = int(config['LIMITS']['MAX_ARCHIVE_IDS'])
   else:
     max_archive_ids = DEFAULT_MAX_ARCHIVE_IDS
+
+  logging.info('Max archive IDs to process: %d', max_archive_ids)
 
   try:
     with get_database_connection(config) as db_connection:
