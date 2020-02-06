@@ -205,7 +205,7 @@ def get_image_dhash(image_bytes):
   return image_dhash
 
 
-class FacebookAdImageRetriever:
+class FacebookAdCreativeRetriever:
 
   def __init__(self, db_connection, bucket_client, access_token, batch_size):
     self.bucket_client = bucket_client
@@ -422,77 +422,6 @@ class FacebookAdImageRetriever:
     logging.debug('Inserting AdCreativeRecords to DB: %r', ad_creative_records)
     self.db_interface.insert_ad_creative_records(ad_creative_records)
 
-  def process_archive_images(self, archive_id_batch):
-    archive_id_to_snapshot_url = construct_snapshot_urls(self.access_token,
-        archive_id_batch)
-    image_url_to_archive_id = {}
-    archive_ids_without_image_url_found = []
-    for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
-      try:
-        image_url_list = get_image_url_list(archive_id, snapshot_url)
-      except requests.RequestException as request_exception:
-        logging.info('Request exception while processing archive id:%s\n%s',
-            archive_id, request_exception)
-        self.num_snapshots_fetch_failed += 1
-
-      self.num_snapshots_processed += 1
-      if image_url_list:
-       for image_url in image_url_list:
-         image_url_to_archive_id[image_url] = archive_id
-
-       logging.debug('Archive ID %s has image_url(s): %s', archive_id, image_url_list)
-      else:
-       logging.info('Unable to find image_url(s) for archive_id: %s, snapshot_url: '
-           '%s', archive_id, snapshot_url)
-       archive_ids_without_image_url_found.append(archive_id)
-
-    if len(archive_ids_without_image_url_found) == self.batch_size:
-      raise RuntimeError('Failed to find image URLs in any snapshot from this '
-          'batch.  Assuming access_token has expired. Aborting!')
-
-    self.num_image_urls_found += len(image_url_to_archive_id.keys())
-    self.num_ids_without_image_url_found += len(archive_ids_without_image_url_found)
-
-    ad_image_records = []
-    for image_url in image_url_to_archive_id:
-      try:
-        fetch_time = datetime.datetime.now()
-        image_request = requests.get(image_url, timeout=30)
-        # TODO(macpd): handle this more gracefully
-        # TODO(macpd): check encoding
-        image_request.raise_for_status()
-      except requests.RequestException as request_exception:
-        logging.info('Exception %s when requesting image_url: %s', request_exception, image_url)
-        self.num_image_download_failure += 1
-        # TODO(macpd): handle all error types
-        continue
-
-      self.num_image_download_success += 1
-      image_bytes = image_request.content
-      try:
-        image_dhash = get_image_dhash(image_bytes)
-      except OSError as error:
-        logging.warning(
-            "Error generating dhash for archive ID: %s, image_url: %s. "
-            "images_bytes len: %d\n%s", image_url_to_archive_id[image_url],
-            image_url, len(image_bytes), error)
-        continue
-
-      image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-      bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
-      ad_image_records.append(
-          AdImageRecord(
-            archive_id=image_url_to_archive_id[image_url],
-            fetch_time=fetch_time,
-            downloaded_url=image_url,
-            bucket_path=bucket_path,
-            image_url_fetch_status=int(ImageUrlFetchStatus.SUCCESS),
-            sim_hash=image_dhash,
-            image_sha256=image_sha256))
-
-    logging.debug('Inserting AdImageRecords to DB: %r', ad_image_records)
-    self.db_interface.insert_ad_image_records(ad_image_records)
-
 
 def main(argv):
   config = configparser.ConfigParser()
@@ -521,8 +450,10 @@ def main(argv):
 
     with get_database_connection(config) as db_connection:
       bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
-      image_retriever = FacebookAdImageRetriever(db_connection, bucket_client,
-          access_token, batch_size)
+      image_retriever = FacebookAdCreativeRetriever(db_connection,
+                                                    bucket_client,
+                                                    access_token,
+                                                    batch_size)
       image_retriever.retreive_and_store_images(archive_ids)
   finally:
     db_connection.close()
