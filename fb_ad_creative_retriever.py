@@ -292,14 +292,18 @@ class FacebookAdCreativeRetriever:
         archive_id, snapshot_url)
     self.chromedriver.get(snapshot_url)
     creatives = []
-    # First find creative text and image as they exist at load time. Then see if
-    # there are multiple versions by trying to select the next creative.
-    # TODO(macpd): handle videos and extract link, link text, link caption
+    # TODO(macpd): handle event links!!!!!
     for i in range(2, 12):
       creative_container_element = self.chromedriver.find_element_by_xpath(
           CREATIVE_CONTAINER_XPATH)
-      creative_body = creative_container_element.find_element_by_class_name(
-          CREATIVE_BODY_CSS_SELECTOR).text
+      try:
+          creative_body = creative_container_element.find_element_by_class_name(
+              CREATIVE_BODY_CSS_SELECTOR).text
+      except NoSuchElementException as e:
+          logging.info(
+                  'Unable to find ad creative section for Archive ID: %s, Ad '
+                  'appers to have NO creative(s). \nError: %s', archive_id, e)
+          break
       creative_link_url = None
       creative_link_caption = None
       creative_link_title = None
