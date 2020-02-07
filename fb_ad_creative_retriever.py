@@ -47,6 +47,11 @@ CREATIVE_LINK_XPATH_TEMPLATE = (
 CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
 CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (
+    CREATIVE_LINK_CONTAINER_XPATH + '/div/div[@class=\'_8jtf\']/div[%d]')
+EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
+EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
+EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
 CREATIVE_BODY_CSS_SELECTOR = '_7jyr'
 CREATIVE_IMAGE_URL_CSS_SELECTOR = '_7jys'
 CREATIVE_IMAGE_URL_XPATH = (
@@ -68,6 +73,15 @@ class ImageUrlFetchStatus(enum.IntEnum):
   SUCCESS = 1
   TIMEOUT = 2
   NOT_FOUND = 3
+
+AdCreativeLinkAttributes = collections.namedtuple(
+    'AdCreativeLinkAttributes',
+    [
+     'creative_link_url',
+     'creative_link_title',
+     'creative_link_description',
+     'creative_link_caption'
+     ])
 
 FetchedAdCreativeData = collections.namedtuple(
     'FetchedAdCreativeData',
@@ -287,27 +301,31 @@ class FacebookAdCreativeRetriever:
     except NoSuchElementException:
       return None
 
-  def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
-    logging.info('Getting creatives data from archive ID: %s\nURL: %s',
-        archive_id, snapshot_url)
-    self.chromedriver.get(snapshot_url)
-    creatives = []
-    # TODO(macpd): handle event links!!!!!
-    for i in range(2, 12):
+  def get_event_type_ad_creative_link_attributes(self):
       try:
-        creative_container_element = self.chromedriver.find_element_by_xpath(
-            CREATIVE_CONTAINER_XPATH)
-        creative_body = creative_container_element.find_element_by_class_name(
-            CREATIVE_BODY_CSS_SELECTOR).text
+        creative_link_container = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_CONTAINER_XPATH)
+        creative_link_url = creative_link_container.get_attribute('href')
+        creative_link_title = self.chromedriver.find_element_by_xpath(
+            EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH).text
+        creative_link_caption = self.chromedriver.find_element_by_xpath(
+            EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH).text
+        creative_link_description = self.chromedriver.find_element_by_xpath(
+            EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH).text
       except NoSuchElementException as e:
-          logging.info(
-                  'Unable to find ad creative section for Archive ID: %s, Ad '
-                  'appers to have NO creative(s). \nError: %s', archive_id, e)
-          break
-      creative_link_url = None
-      creative_link_caption = None
-      creative_link_title = None
-      creative_link_description = None
+        return AdCreativeLinkAttributes(
+            creative_link_url=None,
+            creative_link_caption=None,
+            creative_link_title=None,
+            creative_link_description=None)
+
+      return AdCreativeLinkAttributes(
+          creative_link_url=creative_link_url,
+          creative_link_caption=creative_link_caption,
+          creative_link_title=creative_link_title,
+          creative_link_description=creative_link_description)
+
+  def get_ad_creative_link_attributes(self):
       try:
         creative_link_container = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_CONTAINER_XPATH)
@@ -319,15 +337,47 @@ class FacebookAdCreativeRetriever:
         creative_link_description = self.chromedriver.find_element_by_xpath(
             CREATIVE_LINK_DESCRIPTION_XPATH).text
       except NoSuchElementException as e:
+        # If ad creative link attributes aren't found, parse page as an event
+        # type ad.
+        return self.get_event_type_ad_creative_link_attributes()
+
+      return AdCreativeLinkAttributes(
+          creative_link_url=creative_link_url,
+          creative_link_caption=creative_link_caption,
+          creative_link_title=creative_link_title,
+          creative_link_description=creative_link_description)
+
+  def get_displayed_ad_creative_data(self, archive_id):
+      try:
+        creative_container_element = self.chromedriver.find_element_by_xpath(
+            CREATIVE_CONTAINER_XPATH)
+        creative_body = creative_container_element.find_element_by_class_name(
+            CREATIVE_BODY_CSS_SELECTOR).text
+      except NoSuchElementException as e:
+          logging.info(
+                  'Unable to find ad creative section for Archive ID: %s, Ad '
+                  'appers to have NO creative(s). \nError: %s', archive_id, e)
+          return None
+
+      try:
+        creative_link_container = self.chromedriver.find_element_by_xpath(
+            CREATIVE_LINK_CONTAINER_XPATH)
+      except NoSuchElementException as e:
           logging.info(
                   'Unable to find ad creative link section for Archive ID: %s. '
                   '\nError: %s', archive_id, e)
-          break
+          return None
+
+      link_attrs = self.get_ad_creative_link_attributes()
 
       logging.debug('Found creative text: \'%s\', link_url: \'%s\', link_title: '
                     '\'%s\', lingk_caption: \'%s\', link_description: \'%s\'',
-                    creative_body, creative_link_url, creative_link_title,
-                    creative_link_caption, creative_link_description)
+                    creative_body, link_attrs.creative_link_url,
+                    link_attrs.creative_link_title,
+                    link_attrs.creative_link_caption,
+                    link_attrs.creative_link_description)
+
+      # TODO(macpd): handle image carousels, and "invalid IDs"
       video_element = self.get_video_element_from_creative_container(
           creative_container_element)
       if video_element:
@@ -342,12 +392,31 @@ class FacebookAdCreativeRetriever:
           logging.info('Found neither <video> nor <img> tag. Assuming no video '
                        'or image in ad creative.')
 
-      creatives.append(FetchedAdCreativeData(
+      return FetchedAdCreativeData(
           archive_id=archive_id, creative_body=creative_body,
-          creative_link_url=creative_link_url,
-          creative_link_title=creative_link_title,
-          creative_link_description=creative_link_description,
-          creative_link_caption=creative_link_caption, image_url=image_url))
+          creative_link_url=link_attrs.creative_link_url,
+          creative_link_title=link_attrs.creative_link_title,
+          creative_link_description=link_attrs.creative_link_description,
+          creative_link_caption=link_attrs.creative_link_caption,
+          image_url=image_url)
+
+  def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
+    logging.info('Getting creatives data from archive ID: %s\nURL: %s',
+        archive_id, snapshot_url)
+    self.chromedriver.get(snapshot_url)
+    creatives = []
+    # TODO(macpd): handle event links!!!!!
+    for i in range(2, 12):
+      fetched_ad_creative_data = self.get_displayed_ad_creative_data(archive_id)
+      if fetched_ad_creative_data:
+        creatives.append(fetched_ad_creative_data)
+      else:
+        break
+
+      # Attempt to select next ad creative version. If no such element, assume
+      # only one creative version is available.
+      # TODO(macpd): Figure out why, and properly handle,
+      # ElementNotInteractableException in this context.
       xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (i)
       try:
         self.chromedriver.find_element_by_xpath(xpath).click()
@@ -393,39 +462,44 @@ class FacebookAdCreativeRetriever:
 
     ad_creative_records = []
     for creative in creatives:
-      try:
-        fetch_time = datetime.datetime.now()
-        image_request = requests.get(creative.image_url, timeout=30)
-        # TODO(macpd): handle this more gracefully
-        # TODO(macpd): check encoding
-        image_request.raise_for_status()
-      except requests.RequestException as request_exception:
-        logging.info('Exception %s when requesting image_url: %s',
-                     request_exception, creative.image_url)
-        self.num_image_download_failure += 1
-        # TODO(macpd): handle all error types
-        continue
+      image_dhash = None
+      image_sha256 = None
+      bucket_path = None
+      fetch_time = datetime.datetime.now()
+      if creative.image_url:
+        try:
+          image_request = requests.get(creative.image_url, timeout=30)
+          # TODO(macpd): handle this more gracefully
+          # TODO(macpd): check encoding
+          image_request.raise_for_status()
+        except requests.RequestException as request_exception:
+          logging.info('Exception %s when requesting image_url: %s',
+                       request_exception, creative.image_url)
+          self.num_image_download_failure += 1
+          # TODO(macpd): handle all error types
+          continue
 
-      image_bytes = image_request.content
-      try:
-        image_dhash = get_image_dhash(image_bytes)
-      except OSError as error:
-        logging.warning(
-            "Error generating dhash for archive ID: %s, image_url: %s. "
-            "images_bytes len: %d\n%s", creative.archive_id,
-            creative.image_url, len(image_bytes), error)
-        self.num_image_download_failure += 1
-        continue
+        image_bytes = image_request.content
+        try:
+          image_dhash = get_image_dhash(image_bytes)
+        except OSError as error:
+          logging.warning(
+              "Error generating dhash for archive ID: %s, image_url: %s. "
+              "images_bytes len: %d\n%s", creative.archive_id,
+              creative.image_url, len(image_bytes), error)
+          self.num_image_download_failure += 1
+          continue
 
-      self.num_image_download_success += 1
-      image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        self.num_image_download_success += 1
+        image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+        bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
+
       text = creative.creative_body
       # Get simhash as hex without leading '0x'
       text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
               text)
       text_sha256_hash = hashlib.sha256(
               bytes(text, encoding='UTF-32')).hexdigest()
-      bucket_path = self.store_image_in_google_bucket(image_dhash, image_bytes)
       ad_creative_records.append(
           AdCreativeRecord(
             ad_creative_body=text,
