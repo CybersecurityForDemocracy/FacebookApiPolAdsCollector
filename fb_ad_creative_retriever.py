@@ -294,11 +294,11 @@ class FacebookAdCreativeRetriever:
     creatives = []
     # TODO(macpd): handle event links!!!!!
     for i in range(2, 12):
-      creative_container_element = self.chromedriver.find_element_by_xpath(
-          CREATIVE_CONTAINER_XPATH)
       try:
-          creative_body = creative_container_element.find_element_by_class_name(
-              CREATIVE_BODY_CSS_SELECTOR).text
+        creative_container_element = self.chromedriver.find_element_by_xpath(
+            CREATIVE_CONTAINER_XPATH)
+        creative_body = creative_container_element.find_element_by_class_name(
+            CREATIVE_BODY_CSS_SELECTOR).text
       except NoSuchElementException as e:
           logging.info(
                   'Unable to find ad creative section for Archive ID: %s, Ad '
@@ -369,8 +369,8 @@ class FacebookAdCreativeRetriever:
     creatives = []
     for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
       try:
-        creatives.extend(self.get_creative_data_list_via_chromedriver(archive_id,
-            snapshot_url))
+        creatives.extend(self.get_creative_data_list_via_chromedriver(
+            archive_id, snapshot_url))
       except requests.RequestException as request_exception:
         logging.info('Request exception while processing archive id:%s\n%s',
             archive_id, request_exception)
@@ -443,6 +443,8 @@ class FacebookAdCreativeRetriever:
             image_sha256_hash=image_sha256
             ))
 
+    logging.info('Inserting %d AdCreativeRecords to to DB.',
+                 len(ad_creative_records))
     logging.debug('Inserting AdCreativeRecords to DB: %r', ad_creative_records)
     self.db_interface.insert_ad_creative_records(ad_creative_records)
 
@@ -466,24 +468,24 @@ def main(argv):
 
   logging.info('Max archive IDs to process: %d', max_archive_ids)
 
-  try:
-    with get_database_connection(config) as db_connection:
-      logging.info('DB connection established')
-      db_interface = db_functions.DBInterface(db_connection)
-      if max_archive_ids == -1:
-        archive_ids = db_interface.all_archive_ids_without_creatives_data()
-      else:
-        archive_ids = db_interface.n_archive_ids_without_creatives_data(max_archive_ids)
+  with get_database_connection(config) as db_connection:
+    logging.info('DB connection established')
+    db_interface = db_functions.DBInterface(db_connection)
+    if max_archive_ids == -1:
+      archive_ids = db_interface.all_archive_ids_without_creatives_data()
+    else:
+      archive_ids = db_interface.n_archive_ids_without_creatives_data(max_archive_ids)
 
-    with get_database_connection(config) as db_connection:
+  with get_database_connection(config) as db_connection:
+    try:
       bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
       image_retriever = FacebookAdCreativeRetriever(db_connection,
                                                     bucket_client,
                                                     access_token,
                                                     batch_size)
       image_retriever.retreive_and_store_images(archive_ids)
-  finally:
-    db_connection.close()
+    finally:
+      db_connection.close()
 
 if __name__ == '__main__':
   if len(sys.argv) < 2:
