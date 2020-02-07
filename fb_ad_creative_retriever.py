@@ -16,7 +16,7 @@ from PIL import Image
 import psycopg2
 import psycopg2.extras
 from selenium import webdriver
-from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException
 
 import db_functions
 import sim_hash_ad_creative_text
