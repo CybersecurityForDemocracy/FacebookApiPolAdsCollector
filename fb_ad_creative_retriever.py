@@ -271,9 +271,11 @@ class FacebookAdCreativeRetriever:
           self.db_connection.commit()
           logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
           self.log_stats()
+          # if this batch succeeded then reset backoff.
+          backoff = DEFAULT_BACKOFF_IN_SECONDS
         except MaybeBackoffMoreException as e:
           logging.info('Was told to chill. Sleeping %d before resuming. error: %s', backof, e)
-          sleep(backof)
+          time.sleep(backof)
           if backoff < (10 * backoff):
             backoff += DEFAULT_BACKOFF_IN_SECONDS
 
