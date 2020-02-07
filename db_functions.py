@@ -36,6 +36,67 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
+    def duplicate_ad_creative_text_simhashes(self):
+        """Returns list of ad creative text simhashes appearing 2 or more times.
+        """
+        cursor = self.get_cursor()
+        duplicate_simhash_query =  (
+                'select text_sim_hash from ad_creatives group by text_sim_hash '
+                'having count(*) > 1')
+        cursor.execute(duplicate_simhash_query)
+        results = cursor.fetchall()
+        return [row['text_sim_hash'] for row in results]
+
+    def archive_ids_with_ad_creative_text_simhash(self, simhash):
+        """Returns list of archive_id with specified body text simhash.
+
+        Args:
+            simhash: simhash (hex value as string (without leading 0x) to look
+            for.
+        Returns:
+            list of archive_id where ads_creatives.text_sim_hash matches
+            specified simhash.
+        """
+        cursor = self.get_cursor()
+        ids_with_simhash_query_template = (
+                'SELECT archive_id FROM ad_creatives WHERE text_sim_hash = '
+                '%s')
+        cursor.execute(ids_with_simhash_query_template, (simhash,))
+        return [row['archive_id'] for row in cursor.fetchall()]
+
+    def ad_creative_ids_with_text_simhash(self, simhash):
+        """Returns list of ad_creative_id with specified body text simhash.
+
+        Args:
+            simhash: simhash (hex value as string (without leading 0x) to look
+            for.
+        Returns:
+            list of ad_creative_id where ads_creatives.text_sim_hash matches
+            specified simhash.
+        """
+        cursor = self.get_cursor()
+        ids_with_simhash_query_template = (
+                'SELECT ad_creative_id FROM ad_creatives WHERE text_sim_hash = '
+                '%s')
+        cursor.execute(ids_with_simhash_query_template, (simhash,))
+        return [row['ad_creative_id'] for row in cursor.fetchall()]
+
+    def all_ad_creative_ids_with_duplicated_simhash(self):
+        """Returns map of ad creative body simhash -> ad_creative_id for
+        simhashes that appear 2 or more times in database.
+
+        Returns: dict of simhash -> ad_creative_id where all ad_creative_body
+        simhash match the simhash key. Dict only hash simhashes that appear 2 or
+        more times in database.
+        """
+        duplicate_simhashes = self.duplicate_ad_creative_text_simhashes()
+        simhash_to_id = {}
+        for simhash in duplicate_simhashes:
+            simhash_to_id[simhash] = self.ad_creative_ids_with_text_simhash(
+                    simnash)
+        return simhash_to_id
+
+
     def all_archive_ids_without_image_hash(self):
       """Get ALL ad archive IDs that do not exist in ad_images table.
 
@@ -64,10 +125,9 @@ class DBInterface():
       cursor = self.get_cursor()
       archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
           'WHERE archive_id NOT IN (select archive_id FROM ad_images) '
-          'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
-      cursor.execute(archive_ids_sample_query)
-      results = cursor.fetchall()
-      return [row['archive_id'] for row in results]
+          'ORDER BY ad_creation_time DESC LIMIT %s;')
+      cursor.execute(archive_ids_sample_query, (max_archive_ids,))
+      return [row['archive_id'] for row in cursor.fetchall()]
 
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
@@ -85,7 +145,6 @@ class DBInterface():
         new_page_list = [x._asdict() for x in new_pages]
         psycopg2.extras.execute_values(
             cursor, insert_page_query, new_page_list, template=insert_template, page_size=250)
-
 
     def insert_new_ads(self, new_ads):
         cursor = self.get_cursor()
