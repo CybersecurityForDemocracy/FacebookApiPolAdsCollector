@@ -23,11 +23,15 @@ CREATE TABLE pages (
 );
 CREATE TABLE ads (
   archive_id bigint NOT NULL,
+  ad_creative_body character varying,
   ad_creation_time date,
   ad_delivery_start_time date,
   ad_delivery_stop_time date,
   page_id bigint,
   currency character varying (4),
+  ad_creative_link_caption character varying,
+  ad_creative_link_title character varying,
+  ad_creative_link_description character varying,
   ad_snapshot_url character varying,
   funding_entity character varying,
   PRIMARY KEY (archive_id),
