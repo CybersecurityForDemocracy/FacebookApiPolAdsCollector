@@ -5,7 +5,6 @@ import hashlib
 import logging
 import io
 import os.path
-import re
 import sys
 import time
 import urllib.parse
@@ -47,20 +46,11 @@ EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (
 EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
-CREATIVE_BODY_CSS_SELECTOR = '_7jyr'
-CREATIVE_IMAGE_URL_CSS_SELECTOR = '_7jys'
+CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
 CREATIVE_IMAGE_URL_XPATH = (
     CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
         '//div[@class=\'_a2e\']/div[%d]/div/a')
-IMAGE_URL_JSON_NAME = 'original_image_url'
-IMAGE_URL_JSON_NULL_PHRASE = '"original_image_url":null'
-VIDEO_IMAGE_URL_JSON_NAME = 'video_preview_image_url'
-VIDEO_IMAGE_URL_JSON_NULL_PHRASE = '"video_preview_image_url":null'
-URL_REGEX_TEMPLATE = r'"%s":\s*?"(http[^"]+?)"'
-IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % IMAGE_URL_JSON_NAME)
-VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(
-        URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
 AdCreativeLinkAttributes = collections.namedtuple(
@@ -151,50 +141,6 @@ def construct_snapshot_urls(access_token, archive_ids):
     archive_id_to_snapshot_url[archive_id] = url
   return archive_id_to_snapshot_url
 
-def get_image_url_list(archive_id, snapshot_url):
-  ad_snapshot_request = requests.get(snapshot_url, timeout=30)
-  # TODO(macpd): handle this more gracefully
-  # TODO(macpd): check encoding
-  ad_snapshot_request.raise_for_status()
-  ad_snapshot_text = ad_snapshot_request.text
-
-  if VIDEO_IMAGE_URL_JSON_NAME in ad_snapshot_text:
-    logging.debug('%s found snapshot. Assuming ad has video with preview image.', VIDEO_IMAGE_URL_JSON_NAME)
-    image_url_list = search_for_image_urls_by_regex(VIDEO_PREVIEW_IMAGE_URL_REGEX, ad_snapshot_text)
-    if image_url_list:
-      return image_url_list
-
-    logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
-        VIDEO_IMAGE_URL_JSON_NAME, archive_id, VIDEO_PREVIEW_IMAGE_URL_REGEX)
-
-  if IMAGE_URL_JSON_NAME in ad_snapshot_text:
-    logging.debug('%s found in snapshot. Assuming ad has image.', IMAGE_URL_JSON_NAME)
-    image_url_list = search_for_image_urls_by_regex(IMAGE_URL_REGEX, ad_snapshot_text)
-    if image_url_list:
-      return image_url_list
-
-    logging.info('%s found in archive ID %s snapshot, but regex %s did not match.',
-        IMAGE_URL_JSON_NAME, archive_id, IMAGE_URL_REGEX)
-
-  logging.debug('Expected JSON element not found in ad snapshot: ("%s" OR "%s")', IMAGE_URL_JSON_NAME, VIDEO_IMAGE_URL_JSON_NAME)
-  # TODO(macpd): raise appropriate error here.
-  return None
-
-def search_for_image_urls_by_regex(search_regex, ad_snapshot_text):
-  matched_strings = re.findall(search_regex, ad_snapshot_text)
-  if not matched_strings:
-    logging.debug('Unable to locate image url in ad snapshot using regex: "%s"', search_regex)
-    # TODO(macpd): raise appropriate error here.
-    return None
-  image_url_list = []
-  for match in matched_strings:
-    raw_image_url_str = match
-    logging.debug('Found raw image URL value in ad snapshot: "%s"', raw_image_url_str)
-    image_url = raw_image_url_str.replace('\\', '')
-    logging.debug('Found image URL value in ad snapshot: "%s"', image_url)
-    image_url_list.append(image_url)
-
-  return image_url_list
 
 def make_image_hash_file_path(image_hash):
   base_file_name = '%s.jpg' % image_hash
@@ -269,7 +215,8 @@ class FacebookAdCreativeRetriever:
         try:
           self.process_archive_creatives_via_chrome_driver(archive_id_batch)
           self.db_connection.commit()
-          logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
+          logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed,
+                       len(archive_ids))
           self.log_stats()
           # if this batch succeeded then reset backoff.
           backoff = DEFAULT_BACKOFF_IN_SECONDS
@@ -354,8 +301,8 @@ class FacebookAdCreativeRetriever:
       try:
         creative_container_element = self.chromedriver.find_element_by_xpath(
             CREATIVE_CONTAINER_XPATH)
-        creative_body = creative_container_element.find_element_by_class_name(
-            CREATIVE_BODY_CSS_SELECTOR).text
+        creative_body = creative_container_element.find_element_by_xpath(
+            CREATIVE_BODY_XPATH).text
       except NoSuchElementException as e:
           logging.info(
                   'Unable to find ad creative section for Archive ID: %s, Ad '
