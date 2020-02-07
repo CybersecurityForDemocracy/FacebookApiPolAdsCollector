@@ -1,7 +1,6 @@
 import collections
 import configparser
 import datetime
-import enum
 import hashlib
 import logging
 import io
@@ -19,11 +18,6 @@ import psycopg2
 import psycopg2.extras
 from selenium import webdriver
 from selenium.common.exceptions import ElementClickInterceptedException, ElementNotInteractableException, NoSuchElementException
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.common.keys import Keys
 
 import db_functions
 import sim_hash_ad_creative_text
@@ -33,6 +27,7 @@ GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
+DEFAULT_BACKOFF_IN_SECONDS=60
 logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                               logging.StreamHandler()],
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
@@ -67,12 +62,6 @@ IMAGE_URL_REGEX = re.compile(URL_REGEX_TEMPLATE % IMAGE_URL_JSON_NAME)
 VIDEO_PREVIEW_IMAGE_URL_REGEX = re.compile(
         URL_REGEX_TEMPLATE % VIDEO_IMAGE_URL_JSON_NAME)
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
-
-class ImageUrlFetchStatus(enum.IntEnum):
-  UNKNOWN_ERROR = 0
-  SUCCESS = 1
-  TIMEOUT = 2
-  NOT_FOUND = 3
 
 AdCreativeLinkAttributes = collections.namedtuple(
     'AdCreativeLinkAttributes',
@@ -117,10 +106,15 @@ AdImageRecord = collections.namedtuple('AdImageRecord',
      'sim_hash',
      'image_sha256'])
 
+class MaybeBackoffMoreException(Exception):
+    """Exception to be raised when the retriever probably needs to backoff before resuming."""
+    pass
+
 def chunks(original_list, chunk_size):
   """Yield successive chunks (of size chunk_size) from original_list."""
   for i in range(0, len(original_list), chunk_size):
     yield original_list[i:i + chunk_size]
+
 
 def get_headless_chrome_driver(webdriver_executable_path):
   chrome_options = webdriver.ChromeOptions()
@@ -128,7 +122,6 @@ def get_headless_chrome_driver(webdriver_executable_path):
   driver = webdriver.Chrome(
       executable_path=webdriver_executable_path, chrome_options=chrome_options)
   return driver
-
 
 
 def get_database_connection(config):
@@ -271,11 +264,19 @@ class FacebookAdCreativeRetriever:
     logging.info('Processing %d archive snapshots in batches of %d',
         len(archive_ids), self.batch_size)
     try:
+      backoff = DEFAULT_BACKOFF_IN_SECONDS
       for archive_id_batch in chunks(archive_ids, self.batch_size):
-        self.process_archive_creatives_via_chrome_driver(archive_id_batch)
-        self.db_connection.commit()
-        logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
-        self.log_stats()
+        try:
+          self.process_archive_creatives_via_chrome_driver(archive_id_batch)
+          self.db_connection.commit()
+          logging.info('Processed %d of %d archive snapshots.', self.num_snapshots_processed, len(archive_ids))
+          self.log_stats()
+        except MaybeBackoffMoreException as e:
+          logging.info('Was told to chill. Sleeping %d before resuming. error: %s', backof, e)
+          sleep(backof)
+          if backoff < (10 * backoff):
+            backoff += DEFAULT_BACKOFF_IN_SECONDS
+
     finally:
       self.log_stats()
       self.chromedriver.quit()
@@ -454,7 +455,7 @@ class FacebookAdCreativeRetriever:
         archive_ids_without_image_url_found.append(archive_id)
 
     if len(archive_ids_without_image_url_found) == self.batch_size:
-      raise RuntimeError('Failed to find image URLs in any snapshot from this '
+      raise MaybeBackoffMoreException('Failed to find image URLs in any snapshot from this '
           'batch.  Assuming access_token has expired. Aborting!')
 
     self.num_image_urls_found += len(creatives)
