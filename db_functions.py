@@ -54,7 +54,7 @@ class DBInterface():
             simhash: simhash (hex value as string (without leading 0x) to look
             for.
         Returns:
-            list of archive_id where ads_creatives.text_sim_hash matches
+            list of archive_id (str) where ads_creatives.text_sim_hash matches
             specified simhash.
         """
         cursor = self.get_cursor()
@@ -71,8 +71,8 @@ class DBInterface():
             simhash: simhash (hex value as string (without leading 0x) to look
             for.
         Returns:
-            list of ad_creative_id where ads_creatives.text_sim_hash matches
-            specified simhash.
+            list of ad_creative_id (str) where ads_creatives.text_sim_hash
+            matches specified simhash.
         """
         cursor = self.get_cursor()
         ids_with_simhash_query_template = (
@@ -85,9 +85,9 @@ class DBInterface():
         """Returns map of ad creative body simhash -> ad_creative_id for
         simhashes that appear 2 or more times in database.
 
-        Returns: dict of simhash -> ad_creative_id where all ad_creative_body
-        simhash match the simhash key. Dict only hash simhashes that appear 2 or
-        more times in database.
+        Returns: dict of simhash (str) -> ad_creative_id (str) where all
+        ad_creative_body simhash match the simhash key. Dict only hash simhashes
+        that appear 2 or more times in database.
         """
         duplicate_simhashes = self.duplicate_ad_creative_text_simhashes()
         simhash_to_id = {}
