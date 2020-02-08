@@ -21,12 +21,12 @@ from selenium.common.exceptions import ElementNotInteractableException, NoSuchEl
 import db_functions
 import sim_hash_ad_creative_text
 
-CHROMEDRIVER_PATH='/usr/bin/chromedriver'
+CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
-DEFAULT_BACKOFF_IN_SECONDS=60
+DEFAULT_BACKOFF_IN_SECONDS = 60
 logging.basicConfig(handlers=[logging.FileHandler("fb_ad_image_retriever.log"),
                               logging.StreamHandler()],
                     format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
@@ -221,8 +221,8 @@ class FacebookAdCreativeRetriever:
           # if this batch succeeded then reset backoff.
           backoff = DEFAULT_BACKOFF_IN_SECONDS
         except MaybeBackoffMoreException as e:
-          logging.info('Was told to chill. Sleeping %d before resuming. error: %s', backof, e)
-          time.sleep(backof)
+          logging.info('Was told to chill. Sleeping %d before resuming. error: %s', backoff, e)
+          time.sleep(backoff)
           if backoff < (10 * backoff):
             backoff += DEFAULT_BACKOFF_IN_SECONDS
 
@@ -310,8 +310,7 @@ class FacebookAdCreativeRetriever:
           return None
 
       try:
-        creative_link_container = self.chromedriver.find_element_by_xpath(
-            CREATIVE_LINK_CONTAINER_XPATH)
+        self.chromedriver.find_element_by_xpath(CREATIVE_LINK_CONTAINER_XPATH)
       except NoSuchElementException as e:
           logging.info(
                   'Unable to find ad creative link section for Archive ID: %s. '
