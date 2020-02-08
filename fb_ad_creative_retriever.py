@@ -316,7 +316,7 @@ class FacebookAdCreativeRetriever:
           return None
 
       link_attrs = self.get_ad_creative_link_attributes()
-      if not link_attrs
+      if not link_attrs:
         # If ad creative link attributes aren't found, parse page as an event
         # type ad.
         link_attrs = self.get_event_type_ad_creative_link_attributes()
