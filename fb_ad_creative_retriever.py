@@ -44,16 +44,26 @@ CREATIVE_LINK_XPATH_TEMPLATE = (
 CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
 CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+
 EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
                                            '/div/div[@class=\'_8jtf\']/div[%d]')
 EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
 CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
                             '//img[@class=\'_7jys img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
+
+CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
+CAROUSEL_TYPE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
+CAROUSEL_TYPE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
+CAROUSEL_TYPE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+
+CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
+
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
 AdCreativeLinkAttributes = collections.namedtuple('AdCreativeLinkAttributes', [
@@ -247,16 +257,15 @@ class FacebookAdCreativeRetriever:
                       image_dhash, image_bucket_path)
         return image_bucket_path
 
-    def get_video_element_from_creative_container(self,
-                                                  creative_container_element):
+    def get_video_element_from_creative_container(self):
         try:
-            return creative_container_element.find_element_by_tag_name('video')
+            return self.chromedriver.find_element_by_tag_name('video')
         except NoSuchElementException:
             return None
 
-    def get_image_url_from_creative_container(self, creative_container_element):
+    def get_image_url_from_creative_container(self):
         try:
-            return creative_container_element.find_element_by_xpath(
+            return self.chromedriver.find_element_by_xpath(
                 CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
         except NoSuchElementException:
             return None
@@ -304,7 +313,16 @@ class FacebookAdCreativeRetriever:
             creative_link_title=creative_link_title,
             creative_link_description=creative_link_description)
 
-    def get_displayed_ad_creative_data(self, archive_id):
+    def ad_snapshot_has_carousel_navigation_element(self):
+        try:
+            self.chromedriver.find_element_by_xpath(CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
+        except NoSuchElementException:
+            return False
+
+        return True
+
+    def get_ad_creative_body(self, archive_id):
+        creative_body = None
         try:
             creative_container_element = self.chromedriver.find_element_by_xpath(
                 CREATIVE_CONTAINER_XPATH)
@@ -314,7 +332,44 @@ class FacebookAdCreativeRetriever:
             logging.info(
                 'Unable to find ad creative section for Archive ID: %s, Ad '
                 'appers to have NO creative(s). \nError: %s', archive_id, e)
+
+        return creative_body
+
+    def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
+        try:
+            xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH % carousel_index
+            creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
+            creative_link_url = creative_link_container.get_attribute('href')
+            creative_link_title = creative_link_container.text
+            xpath = '%s/img' % CAROUSEL_TYPE_LINK_TITLE_XPATH
+            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
+        except NoSuchElementException as e:
             return None
+
+        return FetchedAdCreativeData(
+            achive_id=archive_id,
+            creative_body=creative_body,
+            creative_link_url=creative_link_url,
+            creative_link_title=creative_link_title,
+            creative_link_caption=None,
+            creative_link_description=None,
+            image_url=image_url)
+
+    def get_carousel_ad_creative_data(self, archive_id):
+        fetched_ad_creatives = []
+        creative_body = self.get_ad_creative_body(archive_id)
+        for carousel_index in range(1, 10):
+            fetched_ad_creative_data = self.get_ad_creative_carousel_link_attributes(
+                carousel_index, archive_id, creative_body)
+            if fetched_ad_creative_data:
+                fetched_ad_creatives.append(fetched_ad_creative_data)
+            else:
+                break
+        return fetched_ad_creatives
+
+
+    def get_displayed_ad_creative_data(self, archive_id):
+        creative_body = self.get_ad_creative_body(archive_id)
 
         try:
             self.chromedriver.find_element_by_xpath(
@@ -324,6 +379,7 @@ class FacebookAdCreativeRetriever:
                 'Unable to find ad creative link section for Archive ID: %s. '
                 '\nError: %s', archive_id, e)
             return None
+
 
         link_attrs = self.get_ad_creative_link_attributes()
         if not link_attrs:
@@ -339,14 +395,12 @@ class FacebookAdCreativeRetriever:
             link_attrs.creative_link_description)
 
         # TODO(macpd): handle image carousels, and "invalid IDs"
-        video_element = self.get_video_element_from_creative_container(
-            creative_container_element)
+        video_element = self.get_video_element_from_creative_container()
         if video_element:
             image_url = video_element.get_attribute('poster')
             logging.debug('Found <video> tag, assuming creative has video')
         else:
-            image_url = self.get_image_url_from_creative_container(
-                creative_container_element)
+            image_url = self.get_image_url_from_creative_container()
             if image_url:
                 logging.debug('Did not find <video> tag, but found <img> src')
             else:
@@ -367,9 +421,19 @@ class FacebookAdCreativeRetriever:
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
         self.chromedriver.get(snapshot_url)
+
+        # If ad has carousel, it should not have multiple versions. Instead it will have multiple
+        # images with different images and links.
+        if self.ad_snapshot_has_carousel_navigation_element():
+            fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
+            if fetched_ad_creative_data_list:
+                return fetched_ad_creative_data_list
+
+
+        # If ad does not have carousel navigation elements, or no ad creatives data was found when
+        # parsed as a caroursel type, ad likely has one image/body per version.
         creatives = []
-        # TODO(macpd): handle event links!!!!!
-        for i in range(2, 12):
+        for i in range(2, 11):
             fetched_ad_creative_data = self.get_displayed_ad_creative_data(
                 archive_id)
             if fetched_ad_creative_data:
