@@ -532,12 +532,17 @@ class FacebookAdCreativeRetriever:
                 bucket_path = self.store_image_in_google_bucket(
                     image_dhash, image_bytes)
 
-            text = creative.creative_body
-            # Get simhash as hex without leading '0x'
-            text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
-                text)
-            text_sha256_hash = hashlib.sha256(bytes(
-                text, encoding='UTF-32')).hexdigest()
+            text = None
+            text_sim_hash = None
+            text_sha256_hash = None
+            if creative.creative_body:
+                text = creative.creative_body
+                # Get simhash as hex without leading '0x'
+                text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
+                    text)
+                text_sha256_hash = hashlib.sha256(bytes(
+                    text, encoding='UTF-32')).hexdigest()
+
             ad_creative_records.append(
                 AdCreativeRecord(
                     ad_creative_body=text,
