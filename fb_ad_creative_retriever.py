@@ -62,6 +62,10 @@ CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
 
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
 
+INVALID_ID_ERROR_XPATH = '//div[@class=\'_4aws\']'
+INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
+    "the Graph API response.")
+
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
 AdCreativeLinkAttributes = collections.namedtuple('AdCreativeLinkAttributes', [
@@ -414,10 +418,25 @@ class FacebookAdCreativeRetriever:
             creative_link_caption=link_attrs.creative_link_caption,
             image_url=image_url)
 
+    def page_has_invalid_id_error(self):
+        error_text = None
+        try:
+            error_text = self.chromedriver.find_element_by_xpath(INVALID_ID_ERROR_XPATH).text
+        except NoSuchElementException:
+            return False
+
+        return error_text == INVALID_ID_ERROR_TEXT
+
+
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
         self.chromedriver.get(snapshot_url)
+
+        if self.page_has_invalid_id_error():
+            logging.info('Received invalid ID error message for archive ID: %d, snapshot URL: %s',
+                         archive_id, snapshot_url)
+            return []
 
         # If ad has carousel, it should not have multiple versions. Instead it will have multiple
         # images with different images and links.
