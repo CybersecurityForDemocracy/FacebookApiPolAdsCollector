@@ -328,8 +328,8 @@ class FacebookAdCreativeRetriever:
                 CREATIVE_BODY_XPATH).text
         except NoSuchElementException as e:
             logging.info(
-                'Unable to find ad creative section for Archive ID: %s, Ad '
-                'appers to have NO creative(s). \nError: %s', archive_id, e)
+                'Unable to find ad creative body section for Archive ID: %s, Ad appers to have NO '
+                'creative(s). \nError: %s', archive_id, e)
 
         return creative_body
 
