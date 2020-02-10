@@ -362,6 +362,10 @@ class FacebookAdCreativeRetriever:
       if fetched_ad_creative_data:
         creatives.append(fetched_ad_creative_data)
       else:
+        # creative index is i-1 because loop first looks at current creative and then attempts to
+        # interact with page to select next creative.
+        logging.warning(
+                'No ad creative data for archive ID: %d creative index %d', archive_id, i-1)
         break
 
       # Attempt to select next ad creative version. If no such element, assume
