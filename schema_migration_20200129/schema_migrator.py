@@ -84,7 +84,9 @@ NewAdRecord = collections.namedtuple(
         "spend__upper_bound",
     ],
 )
-NewPageRecord = collections.namedtuple("PageRecord", ["id", "name", "url"])
+NewPageRecord = collections.namedtuple("NewPageRecord", ["id", "name"])
+PageMetadataRecord = collections.namedtuple("PageMetadataRecord", ["id", "url", "federal_candidate"])
+PageMetadataCategoriesRecord = collections.namedtuple("PageMetadataCategories", ["id", "category"])
 NewSnapshotRegionRecord = collections.namedtuple(
     "SnapshotRegionRecord",
     [
@@ -153,50 +155,98 @@ class SchemaMigrator:
 
     def run_migration(self):
         logging.info('Starting migration.')
+
         # migrate page_id as it is foreign key in a lot of tables
         self.migrate_pages_table()
 
+        # migrate funder_id as it is next most refrenced foreign key
+        funder_id_to_name = self.migrate_funder_table()
+
         # migrate archive_id as it is second most refrenced foreign key. Also,
         # migrate impressions for archive IDs.
-        self.migrate_ads_and_impressions_table()
-
-        # migrate funder_id as it is next most refrenced foreign key
-        self.migrate_funder_table()
+        self.migrate_ads_and_impressions_table(funder_id_to_name)
 
         # computations required for demographic and regional impressions and
         # spending
         # maybe demo and regional impressions -> results
+        self.migrate_demo_impressions_table()
+        self.migrate_region_impressions_table()
+
 
     def migrate_pages_table(self):
         logging.info('Migrating pages table.')
-        src_pages_query = 'SELECT page_id, page_name, url FROM pages'
+        src_pages_query = 'SELECT page_id, page_name, url, federal_candidate FROM pages'
         src_cursor = self.get_src_cursor()
         src_cursor.execute(src_cursor.mogrify(src_pages_query))
         logging.info("%d rows retrieved.", src_cursor.rowcount)
         fetched_rows = src_cursor.fetchmany()
+        NewPageMetadataCategoriesRecord = collections.namedtuple("PageMetadataCategories", ["id", "category"])
 
         num_rows_processed = 0
         page_records = []
+        page_metadata_records = []
         while fetched_rows:
             for row in fetched_rows:
                 logging.debug('Processing row: %r', row)
                 page_records.append(
                     NewPageRecord(id=row['page_id'],
-                                  name=row['page_name'],
-                                  url=row['url']))
+                                  name=row['page_name']))
+                page_metadata_records.append(PageMetadataRecord(id=row['page_id'],
+                                                                url=row['url'],
+                                                                federal_candidate=row['federal_candidate']))
 
             fetched_rows = src_cursor.fetchmany()
 
         self.dest_db_interface.insert_pages(page_records)
+        self.dest_db_interface.insert_page_metadata(page_metadata_records)
         num_rows_processed += len(page_records)
         logging.info('Migrated %d page rows so far.', num_rows_processed)
 
         logging.info('Migrated %d page rows total.', num_rows_processed)
 
-    def migrate_ads_and_impressions_table(self):
+    def migrate_funder_table(self):
+        logging.info('Migrationg funder table.')
+        src_cursor = self.get_src_cursor()
+        src_sponsor_query = src_cursor.mogrify('SELECT * FROM ad_sponsors')
+        src_cursor.execute(src_sponsor_query)
+        fetched_rows = src_cursor.fetchmany()
+        num_rows_processed = 0
+        id_to_name = {}
+        while fetched_rows:
+            funder_records = []
+            for row in fetched_rows:
+                id_to_name[row['id']] = row['name']
+                funder_records.append(
+                    FunderRecord(funder_id=row['id'],
+                                 funder_name=row['name'],
+                                 funder_type=row['nyu_category'],
+                                 parent_id=row['parent_ad_sponsor_id']))
+
+
+            insert_funder_query = (
+                "INSERT INTO funder_metadata( "
+                "funder_name, funder_type, parent_id) VALUES %s "
+                "on conflict(funder_name) do nothing;")
+            insert_template = (
+                "(%(funder_name)s, %(funder_type)s, "
+                "%(parent_id)s)")
+            funder_records_list = [x._asdict() for x in funder_records]
+            psycopg2.extras.execute_values(self.get_dest_cursor(),
+                                           insert_funder_query,
+                                           funder_records_list,
+                                           template=insert_template,
+                                           page_size=250)
+            num_rows_processed += len(funder_records)
+            fetched_rows = src_cursor.fetchmany()
+
+        logging.info('Migrated %d funder rows total.', num_rows_processed)
+        return id_to_name
+
+    def migrate_ads_and_impressions_table(self, funder_id_to_name):
         logging.info('Migrating ads table.')
         src_cursor = self.get_src_cursor()
-        src_ads_query = 'SELECT * FROM ads;'
+        src_ads_query = ('SELECT creation_date, text, link_caption, link_description, link_title, start_date, end_date, snapshot_url, is_active, archive_id, '
+                        'country_code, currency, page_id, ad_sponsors.name FROM ads join ad_sponsors on ads.ad_sponsor_id = ad_sponsors.id;')
         src_cursor.execute(src_cursor.mogrify(src_ads_query))
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
@@ -218,9 +268,9 @@ class SchemaMigrator:
                     ad_status=int(row['is_active']),
                     archive_id=row['archive_id'],
                     country_code='US',
-                    currency='USD',
+                    currency=row['currency'],
                     first_crawl_time=None,
-                    funding_entity=row['funding_entity'],
+                    funding_entity=row['name'],
                     page_id=row['page_id'],
                     # Below are args required to construct NamedTuple, but not used in ads
                     # table
@@ -237,7 +287,8 @@ class SchemaMigrator:
             self.migrate_impressions_for_archive_id_batch(
                 archive_id_to_ad_record)
             num_rows_processed += len(archive_id_to_ad_record)
-            logging.info('Migrated %d page rows so far.', num_rows_processed)
+            logging.info('Migrated %d ad rows so far.', num_rows_processed)
+            fetched_rows = src_cursor.fetchmany()
 
         logging.info('Migrated %d page rows total.', num_rows_processed)
 
@@ -264,7 +315,7 @@ class SchemaMigrator:
                     impressions__upper_bound=row['max_impressions'],
                     spend__lower_bound=row['min_spend'],
                     spend__upper_bound=row['max_spend']))
-            fetched_rows = src_cursor.fetchall()
+            #fetched_rows = src_cursor.fetchall()
 
         archive_ids_to_fetch = set(archive_id_to_ad_record.keys())
         if archive_ids_in_results != archive_ids_to_fetch:
@@ -278,48 +329,50 @@ class SchemaMigrator:
         logging.info('Migrated %d impression rows for %d archive IDs.',
                      num_rows_processed, len(archive_ids))
 
-    def migrate_funder_table(self):
-        logging.info('Migrationg funder table.')
+    def migrate_demo_impressions_table(self):
+        logging.info('Migrating demo_impressions table.')
         src_cursor = self.get_src_cursor()
-        src_sponsor_query = src_cursor.mogrify('SELECT * FROM ad_sponsors')
-        src_cursor.execute(src_sponsor_query)
-        fetched_rows = src_cursor.fetchmany()
-        num_rows_processed = 0
-        while fetched_rows:
-            funder_records = []
-            for row in fetched_rows:
-                funder_records.append(
-                    FunderRecord(funder_id=row['id'],
-                                 funder_name=row['name'],
-                                 funder_type=row['nyu_category'],
-                                 parent_id=row['parent_ad_sponsor_id']))
+        src_demo_group_query = 'SELECT * from demo_groups'
+        src_cursor.execute(src_cursor.mogrify(src_demo_group_query))
+        demo_groups = {}
+        gender_list = ['male', 'female', 'unknown']
+        for row in src_cursor:
+            id = row['id']
+            if row['gender'] not in gender_list:
+                age = row['gender']
+                gender = row['age']
+                demo_groups[id] = (age,gender)
+            else: 
+                age = row['age']
+                gender = row['gender']
+                demo_groups[id] = (age,gender)
 
-            insert_funder_query = (
-                "INSERT INTO funder_metadata(funder_id, "
-                "funder_name, funder_type, parent_id) VALUES %s;")
-            insert_template = (
-                "(%(funder_id)s, %(funder_name)s, %(funder_type)s, "
-                "%(parent_id)s)")
-            psycopg2.extras.execute_values(self.get_dest_cursor(),
-                                           insert_funder_query,
-                                           funder_records,
-                                           template=insert_template,
-                                           page_size=250)
-            num_rows_processed += len(funder_records)
+        #handle case with no demo id
+        demo_groups[None] = (None, None)
 
-        logging.info('Migrated %d funder rows total.', num_rows_processed)
+        src_demo_impressions_query = 'SELECT * from demo_impressions'
+        src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
+        demo_impression_records = []
+        for row in src_cursor:
+            demo_impression_records.append(NewSnapshotDemoRecord(archive_id=row['ad_archive_id'],
+                                                                 age_range=demo_groups[row['demo_id']][0],
+                                                                 gender=demo_groups[row['demo_id']][1],
+                                                                 spend_percentage=None,
+                                                                 min_impressions=row['min_impressions'],
+                                                                 max_impressions=row['max_impressions'],
+                                                                 min_spend=row['min_spend'],
+                                                                 max_spend=row['max_spend']))
 
-    #  def migrate_demo_impressions_table(self):
-    #  logging.info('Migrating demo_impressions table.')
-    #  src_cursor = self.get_src_cursor()
-    #  src_demo_impressions_query = 'SELECT (page_id, page_name) from demo_impressions'
-    #  src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
-    #  fetched_rows = src_cursor.fetchmany()
-    #  num_rows_processed = 0
-    #  while fetched_rows:
-    #  demo_impression_records = []
-    #  for row in fetched_rows:
-    #  demo_impression_records.append(NewPageRecord(demo_impression_id=row['demo_impression_id'],
+        self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
+        num_rows_processed = len(demo_impression_records)
+
+        logging.info('Migrated %d demo_impression rows total.', num_rows_processed)
+
+    #    src_demo_impressions_query = 'SELECT * from demo_impressions'
+    #    src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
+    #    for row in src_cursor:
+    #        demo_impression_records = []
+    #        demo_impression_records.append(NewPageRecord(demo_impression_id=row['demo_impression_id'],
     #  demo_impression_name=row['demo_impression_name']))
 
     #  self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
@@ -328,6 +381,35 @@ class SchemaMigrator:
 
     #  logging.info('Migrated %d demo_impression rows total.', num_rows_processed)
 
+    def migrate_region_impressions_table(self):
+        logging.info('Migrating region_impressions table.')
+        src_cursor = self.get_src_cursor()
+        src_region_query = 'SELECT * from regions'
+        src_cursor.execute(src_cursor.mogrify(src_region_query))
+
+        regions = {}
+        for row in src_cursor:
+            id = row['id']
+            region = row['name']
+            regions[id] = region
+
+        src_region_impressions_query = 'SELECT * from region_impressions'
+        src_cursor.execute(src_cursor.mogrify(src_region_impressions_query))
+        region_impression_records = []
+
+        for row in src_cursor:
+            region_impression_records.append(NewSnapshotRegionRecord(archive_id=row['ad_archive_id'],
+                                                                 region=regions[row['region_id']],
+                                                                 spend_percentage=None,
+                                                                 min_impressions=row['min_impressions'],
+                                                                 max_impressions=row['max_impressions'],
+                                                                 min_spend=row['min_spend'],
+                                                                 max_spend=row['max_spend']))
+
+        self.dest_db_interface.insert_new_impression_region(region_impression_records)
+        num_rows_processed = len(region_impression_records)
+
+        logging.info('Migrated %d region_impression rows total.', num_rows_processed)
 
 def main(src_db_connection, dest_db_connection, batch_size=1000):
     schema_migrator = SchemaMigrator(src_db_connection, dest_db_connection,
