@@ -378,7 +378,6 @@ class FacebookAdCreativeRetriever:
             logging.info(
                 'Unable to find ad creative link section for Archive ID: %s. '
                 '\nError: %s', archive_id, e)
-            return None
 
 
         link_attrs = self.get_ad_creative_link_attributes()
