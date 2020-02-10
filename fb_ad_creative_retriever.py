@@ -58,9 +58,7 @@ MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 
 CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
-CAROUSEL_TYPE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
-CAROUSEL_TYPE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
-CAROUSEL_TYPE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
 
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
 
@@ -337,11 +335,11 @@ class FacebookAdCreativeRetriever:
 
     def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
         try:
-            xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH % carousel_index
+            xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
-            xpath = '%s/img' % CAROUSEL_TYPE_LINK_TITLE_XPATH
+            xpath = '%s/img' % xpath
             image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
         except NoSuchElementException as e:
             return None
