@@ -176,17 +176,6 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
 
-    def insert_ad_image_records(self, ad_image_records):
-      cursor = self.get_cursor()
-      insert_query = ('INSERT INTO ad_images(archive_id, '
-          'fetch_time, downloaded_url, bucket_url, sim_hash, sha256_hash) '
-          'VALUES %s ON CONFLICT (archive_id, sha256_hash) DO NOTHING')
-      insert_template = ('(%(archive_id)s, %(fetch_time)s, '
-        '%(downloaded_url)s, %(bucket_url)s,  %(sim_hash)s, %(image_sha256)s)')
-      ad_image_record_list = [x._asdict() for x in ad_image_records]
-      psycopg2.extras.execute_values(cursor, insert_query, ad_image_record_list,
-          template=insert_template, page_size=250)
-
     def insert_ad_creative_records(self, ad_creative_records):
       cursor = self.get_cursor()
       insert_query = ('INSERT INTO ad_creatives(archive_id, '
