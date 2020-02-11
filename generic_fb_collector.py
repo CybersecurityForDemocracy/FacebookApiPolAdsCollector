@@ -472,6 +472,7 @@ def main(config, country_code):
     logging.info('Expecting minimum %d new impressions.', min_expected_new_impressions)
 
     connection = get_db_connection(config)
+    logging.info('Established conneciton to %s', connection.dsn)
     db = DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),

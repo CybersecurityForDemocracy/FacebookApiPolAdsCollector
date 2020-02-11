@@ -36,8 +36,8 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
-    def all_archive_ids_without_creatives_data(self):
-      """Get ALL ad archive IDs that do not exist in ad_creatives table.
+    def all_archive_ids_that_need_scrape(self):
+      """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
 
       Args:
         cursor: pyscopg2.Cursor DB cursor for query execution.
@@ -45,15 +45,14 @@ class DBInterface():
         list of archive IDs (str).
       """
       cursor = self.get_cursor()
-      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-          'WHERE archive_id NOT IN (select archive_id FROM ad_creatives) ORDER '
-          'BY ad_creation_time DESC')
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ad_snapshot_metadata '
+          'WHERE needs_scrape = TRUE')
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
 
-    def n_archive_ids_without_creatives_data(self, max_archive_ids=200):
-      """Get ad archive IDs that do not exist in ad_creatives table.
+    def n_archive_ids_that_need_scrape(self, max_archive_ids=200):
+      """Get N number of archive IDs marked as needs_scrape in ad_snapshot_metadata.
 
       Args:
         cursor: pyscopg2.Cursor DB cursor for query execution.
@@ -62,9 +61,8 @@ class DBInterface():
         list of archive IDs (str).
       """
       cursor = self.get_cursor()
-      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ads '
-          'WHERE archive_id NOT IN (select archive_id FROM ad_creatives) '
-          'ORDER BY ad_creation_time DESC LIMIT %s;' % max_archive_ids)
+      archive_ids_sample_query = cursor.mogrify('SELECT archive_id from ad_snapshot_metadata '
+          'WHERE needs_scrape = TRUE LIMIT %s;' % max_archive_ids)
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
@@ -97,18 +95,28 @@ class DBInterface():
         insert_template = (
             "(%(archive_id)s, %(ad_creative_body)s, %(ad_creation_time)s, %(ad_delivery_start_time)s, "
             "%(ad_delivery_stop_time)s, %(page_id)s, %(currency)s, %(ad_creative_link_caption)s, "
-            "%(ad_creative_link_title)s, %(ad_creative_link_description)s, %(ad_snapshot_url)s, %(funding_entity)s)")
+            "%(ad_creative_link_title)s, %(ad_creative_link_description)s, %(ad_snapshot_url)s, "
+            "%(funding_entity)s )")
         new_ad_list = [x._asdict() for x in new_ads]
         psycopg2.extras.execute_values(
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
+
         ad_insert_query = (
             "INSERT INTO ad_countries(archive_id, country_code) "
             "VALUES %s on conflict (archive_id, country_code) do nothing;")
         insert_template = (
             "(%(archive_id)s, %(country_code)s)")
-        new_ad_list = [x._asdict() for x in new_ads]
         psycopg2.extras.execute_values(
             cursor, ad_insert_query, new_ad_list, template=insert_template, page_size=250)
+
+        # Mark newly found archive_id as needing scrape.
+        snapshot_metadata_insert_query = (
+            "INSERT INTO ad_snapshot_metadata (archive_id, needs_scrape) "
+            "VALUES %s on conflict (archive_id) do nothing;")
+        insert_template = ("(%(archive_id)s, TRUE)")
+        psycopg2.extras.execute_values(
+            cursor, snapshot_metadata_insert_query, new_ad_list, template=insert_template,
+            page_size=250)
 
     def insert_new_impressions(self, new_impressions):
         cursor = self.get_cursor()
@@ -178,14 +186,15 @@ class DBInterface():
 
     def insert_ad_creative_records(self, ad_creative_records):
       cursor = self.get_cursor()
+      # First insert ad creatives to ad_creatives table.
       insert_query = ('INSERT INTO ad_creatives(archive_id, '
-          'snapshot_fetch_time, ad_creative_body, ad_creative_link_url, '
+          'ad_creative_body, ad_creative_link_url, '
           'ad_creative_link_title, ad_creative_link_caption, '
           'ad_creative_link_description, text_sha256_hash, text_sim_hash, '
           'image_downloaded_url, image_bucket_path, image_sim_hash, '
           'image_sha256_hash) VALUES %s ON CONFLICT (archive_id, '
           'text_sha256_hash, image_sha256_hash) DO NOTHING')
-      insert_template = ('(%(archive_id)s, %(snapshot_fetch_time)s, '
+      insert_template = ('(%(archive_id)s, '
         '%(ad_creative_body)s, %(ad_creative_link_url)s, '
         '%(ad_creative_link_title)s, %(ad_creative_link_caption)s, '
         '%(ad_creative_link_description)s, %(text_sha256_hash)s, '
@@ -194,3 +203,9 @@ class DBInterface():
       ad_creative_record_list = [x._asdict() for x in ad_creative_records]
       psycopg2.extras.execute_values(cursor, insert_query, ad_creative_record_list,
           template=insert_template, page_size=250)
+
+      # Update ad_snapshot_metadata.needs_scrape to False now that ad_creatives have been scraped
+      # and stored.
+      update_query = ('UPDATE ad_snapshot_metdata SET snapshot_fetch_time = %(snapshot_fetch_time)s, '
+                      'needs_scrape = FALSE WHERE archive_id = %(archive_id)s')
+      psycopg2.extras.execute_values(cursor, update_query, ad_creative_record_list, page_size=250)

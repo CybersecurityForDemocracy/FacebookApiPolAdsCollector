@@ -609,10 +609,9 @@ def main(argv):
         logging.info('DB connection established')
         db_interface = db_functions.DBInterface(db_connection)
         if max_archive_ids == -1:
-            archive_ids = db_interface.all_archive_ids_without_creatives_data()
+            archive_ids = db_interface.all_archive_ids_that_need_scrape()
         else:
-            archive_ids = db_interface.n_archive_ids_without_creatives_data(
-                max_archive_ids)
+            archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
     with get_database_connection(config) as db_connection:
         try:
