@@ -20,6 +20,7 @@ from selenium.common.exceptions import ElementNotInteractableException, NoSuchEl
 
 import db_functions
 import sim_hash_ad_creative_text
+import snapshot_url_util
 
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
@@ -149,19 +150,6 @@ def make_gcs_bucket_client(bucket_name, credentials_file):
     storage_client = storage.Client.from_service_account_json(credentials_file)
     bucket_client = storage_client.get_bucket(bucket_name)
     return bucket_client
-
-
-def construct_snapshot_urls(access_token, archive_ids):
-    archive_id_to_snapshot_url = {}
-    for archive_id in archive_ids:
-        url = '%s?%s' % (FB_AD_SNAPSHOT_BASE_URL,
-                         urllib.parse.urlencode({
-                             'id': archive_id,
-                             'access_token': access_token
-                         }))
-        logging.debug('Constructed snapshot URL %s', url)
-        archive_id_to_snapshot_url[archive_id] = url
-    return archive_id_to_snapshot_url
 
 
 def make_image_hash_file_path(image_hash):
@@ -482,7 +470,7 @@ class FacebookAdCreativeRetriever:
         return creatives
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
-        archive_id_to_snapshot_url = construct_snapshot_urls(
+        archive_id_to_snapshot_url = snapshot_url_util.construct_snapshot_urls(
             self.access_token, archive_id_batch)
         archive_ids_without_creative_found = []
         creatives = []
