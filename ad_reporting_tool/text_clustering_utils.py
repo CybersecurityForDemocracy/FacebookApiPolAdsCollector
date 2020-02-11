@@ -1,5 +1,3 @@
-import psycopg2
-
 import db_functions
 import snapshot_url_util
 
@@ -37,3 +35,4 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
     simhash_to_id = {}
     for simhash in duplicate_simhashes:
         simhash_to_id[simhash] = db_interface.ad_creative_ids_with_text_simhash(simhash)
+    return simhash_to_id
