@@ -185,27 +185,28 @@ class DBInterface():
             cursor, impression_region_insert_query, region_impressions_list, template=insert_template, page_size=250)
 
     def insert_ad_creative_records(self, ad_creative_records):
-      cursor = self.get_cursor()
-      # First insert ad creatives to ad_creatives table.
-      insert_query = ('INSERT INTO ad_creatives(archive_id, '
+        cursor = self.get_cursor()
+        # First insert ad creatives to ad_creatives table.
+        insert_query = ('INSERT INTO ad_creatives(archive_id, '
           'ad_creative_body, ad_creative_link_url, '
           'ad_creative_link_title, ad_creative_link_caption, '
           'ad_creative_link_description, text_sha256_hash, text_sim_hash, '
           'image_downloaded_url, image_bucket_path, image_sim_hash, '
           'image_sha256_hash) VALUES %s ON CONFLICT (archive_id, '
           'text_sha256_hash, image_sha256_hash) DO NOTHING')
-      insert_template = ('(%(archive_id)s, '
+        insert_template = ('(%(archive_id)s, '
         '%(ad_creative_body)s, %(ad_creative_link_url)s, '
         '%(ad_creative_link_title)s, %(ad_creative_link_caption)s, '
         '%(ad_creative_link_description)s, %(text_sha256_hash)s, '
         '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
         '%(image_sim_hash)s, %(image_sha256_hash)s)')
-      ad_creative_record_list = [x._asdict() for x in ad_creative_records]
-      psycopg2.extras.execute_values(cursor, insert_query, ad_creative_record_list,
+        ad_creative_record_list = [x._asdict() for x in ad_creative_records]
+        psycopg2.extras.execute_values(cursor, insert_query, ad_creative_record_list,
           template=insert_template, page_size=250)
 
-      # Update ad_snapshot_metadata.needs_scrape to False now that ad_creatives have been scraped
-      # and stored.
-      update_query = ('UPDATE ad_snapshot_metdata SET snapshot_fetch_time = %(snapshot_fetch_time)s, '
-                      'needs_scrape = FALSE WHERE archive_id = %(archive_id)s')
-      psycopg2.extras.execute_values(cursor, update_query, ad_creative_record_list, page_size=250)
+        # Update ad_snapshot_metadata.needs_scrape to False now that ad_creatives have been scraped
+        # and stored.
+        update_query = ('UPDATE ad_snapshot_metadata SET '
+                        'snapshot_fetch_time = %(snapshot_fetch_time)s, '
+                        'needs_scrape = FALSE WHERE archive_id = %(archive_id)s')
+        psycopg2.extras.execute_batch(cursor, update_query, ad_creative_record_list, page_size=250)

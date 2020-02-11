@@ -186,8 +186,8 @@ class FacebookAdCreativeRetriever:
         self.bucket_client = bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
-        self.num_image_urls_found = 0
-        self.num_ids_without_image_url_found = 0
+        self.num_ad_creatives_found = 0
+        self.num_snapshots_without_creative_found = 0
         self.num_image_download_success = 0
         self.num_image_download_failure = 0
         self.num_image_uploade_to_gcs_bucket = 0
@@ -209,15 +209,15 @@ class FacebookAdCreativeRetriever:
         logging.info(
             'Processed %d archive snapshots in %d seconds.\n'
             'Failed to fetch %d archive snapshots.\n'
-            'Image URLs found: %d\n'
-            'Archive snapshots without image URL found: %d\n'
+            'Ad creatives found: %d\n'
+            'Archive snapshots without ad creative found: %d\n'
             'Images downloads successful: %d\n'
             'Images downloads failed: %d\n'
             'Images uploaded to GCS bucket: %d\n'
-            'Average time spent per image: %f seconds',
+            'Average time spent per ad creative: %f seconds',
             self.num_snapshots_processed, seconds_elapsed_procesing,
-            self.num_snapshots_fetch_failed, self.num_image_urls_found,
-            self.num_ids_without_image_url_found,
+            self.num_snapshots_fetch_failed, self.num_ad_creatives_found,
+            self.num_snapshots_without_creative_found,
             self.num_image_download_success, self.num_image_download_failure,
             self.num_image_uploade_to_gcs_bucket, seconds_elapsed_procesing /
             (self.num_image_uploade_to_gcs_bucket or 1))
@@ -484,7 +484,7 @@ class FacebookAdCreativeRetriever:
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
         archive_id_to_snapshot_url = construct_snapshot_urls(
             self.access_token, archive_id_batch)
-        archive_ids_without_image_url_found = []
+        archive_ids_without_creative_found = []
         creatives = []
         for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
             try:
@@ -503,18 +503,18 @@ class FacebookAdCreativeRetriever:
                               creatives)
             else:
                 logging.info(
-                    'Unable to find image_url(s) for archive_id: %s, snapshot_url: '
+                    'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
                     '%s', archive_id, snapshot_url)
-                archive_ids_without_image_url_found.append(archive_id)
+                archive_ids_without_creative_found.append(archive_id)
 
-        if len(archive_ids_without_image_url_found) == self.batch_size:
+        if len(archive_ids_without_creative_found) == self.batch_size:
             raise MaybeBackoffMoreException(
-                'Failed to find image URLs in any snapshot from this '
+                'Failed to find ad creatives in any snapshot from this '
                 'batch.  Assuming access_token has expired. Aborting!')
 
-        self.num_image_urls_found += len(creatives)
-        self.num_ids_without_image_url_found += len(
-            archive_ids_without_image_url_found)
+        self.num_ad_creatives_found += len(creatives)
+        self.num_snapshots_without_creative_found += len(
+            archive_ids_without_creative_found)
 
         ad_creative_records = []
         for creative in creatives:
@@ -614,14 +614,11 @@ def main(argv):
             archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
     with get_database_connection(config) as db_connection:
-        try:
-            bucket_client = make_gcs_bucket_client(GCS_BUCKET,
-                                                   GCS_CREDENTIALS_FILE)
-            image_retriever = FacebookAdCreativeRetriever(
-                db_connection, bucket_client, access_token, batch_size)
-            image_retriever.retreive_and_store_images(archive_ids)
-        finally:
-            db_connection.close()
+        bucket_client = make_gcs_bucket_client(GCS_BUCKET,
+                                               GCS_CREDENTIALS_FILE)
+        image_retriever = FacebookAdCreativeRetriever(
+            db_connection, bucket_client, access_token, batch_size)
+        image_retriever.retreive_and_store_images(archive_ids)
 
 
 if __name__ == '__main__':
