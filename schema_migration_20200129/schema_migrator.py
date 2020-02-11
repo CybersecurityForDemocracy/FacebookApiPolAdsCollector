@@ -158,19 +158,24 @@ class SchemaMigrator:
 
         # migrate page_id as it is foreign key in a lot of tables
         self.migrate_pages_table()
+        self.dest_db_connection.commit()
 
         # migrate funder_id as it is next most refrenced foreign key
         funder_id_to_name = self.migrate_funder_table()
+        self.dest_db_connection.commit()
 
         # migrate archive_id as it is second most refrenced foreign key. Also,
         # migrate impressions for archive IDs.
         self.migrate_ads_and_impressions_table(funder_id_to_name)
+        self.dest_db_connection.commit()
 
         # computations required for demographic and regional impressions and
         # spending
         # maybe demo and regional impressions -> results
         self.migrate_demo_impressions_table()
+        self.dest_db_connection.commit()
         self.migrate_region_impressions_table()
+        self.dest_db_connection.commit()
 
 
     def migrate_pages_table(self):
@@ -415,6 +420,7 @@ def main(src_db_connection, dest_db_connection, batch_size=1000):
     schema_migrator = SchemaMigrator(src_db_connection, dest_db_connection,
                                      batch_size)
     schema_migrator.run_migration()
+    dest_db_connection.commit()
 
 
 if __name__ == '__main__':
