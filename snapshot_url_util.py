@@ -1,5 +1,5 @@
 """Basic utility module for working with facebook ad library snapshot URLs."""
-import urllib
+import urllib.parse
 import logging
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
