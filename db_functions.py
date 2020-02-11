@@ -113,20 +113,37 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
-    def all_ad_creative_ids_with_duplicated_simhash(self):
-        """Returns map of ad creative body simhash -> ad_creative_id for
-        simhashes that appear 2 or more times in database.
+    def all_archive_ids_without_image_hash(self):
+        """Get ALL ad archive IDs that do not exist in ad_images table.
 
-        Returns: dict of simhash (str) -> ad_creative_id (str) where all
-        ad_creative_body simhash match the simhash key. Dict only hash simhashes
-        that appear 2 or more times in database.
+        Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+        Returns:
+        list of archive IDs (str).
         """
-        duplicate_simhashes = self.duplicate_ad_creative_text_simhashes()
-        simhash_to_id = {}
-        for simhash in duplicate_simhashes:
-            simhash_to_id[simhash] = self.ad_creative_ids_with_text_simhash(
-                simhash)
-        return simhash_to_id
+        cursor = self.get_cursor()
+        archive_ids_sample_query = cursor.mogrify(
+            'SELECT archive_id from ads WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+            'ORDER BY ad_creation_time DESC')
+        cursor.execute(archive_ids_sample_query)
+        results = cursor.fetchall()
+        return [row['archive_id'] for row in results]
+
+    def n_archive_ids_without_image_hash(self, max_archive_ids=200):
+        """Get ad archive IDs that do not exist in ad_images table.
+
+        Args:
+        cursor: pyscopg2.Cursor DB cursor for query execution.
+        max_archive_ids: int, limit on how many IDs to query DB for.
+        Returns:
+        list of archive IDs (str).
+        """
+        cursor = self.get_cursor()
+        archive_ids_sample_query = cursor.mogrify(
+            'SELECT archive_id from ads WHERE archive_id NOT IN (select archive_id FROM ad_images) '
+            'ORDER BY ad_creation_time DESC LIMIT %s')
+        cursor.execute(archive_ids_sample_query, (max_archive_ids,))
+        return [row['archive_id'] for row in cursor.fetchall()]
 
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
