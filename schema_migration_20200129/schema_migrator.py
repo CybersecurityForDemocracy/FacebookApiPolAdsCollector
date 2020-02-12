@@ -164,13 +164,10 @@ class SchemaMigrator:
         funder_id_to_name = self.migrate_funder_table()
         self.dest_db_connection.commit()
 
-        # migrate archive_id as it is second most refrenced foreign key.
-        self.migrate_ads_table(funder_id_to_name)
+        # migrate archive_id as it is second most refrenced foreign key. Also,
+        # migrate impressions for archive IDs.
+        self.migrate_ads_and_impressions_table(funder_id_to_name)
         self.dest_db_connection.commit()
-
-        # migrate impressions
-        self.migrate_impressions_table()
-        self.dest_db_interface.commit()
 
         # computations required for demographic and regional impressions and
         # spending
@@ -250,19 +247,19 @@ class SchemaMigrator:
         logging.info('Migrated %d funder rows total.', num_rows_processed)
         return id_to_name
 
-    def migrate_ads_table(self, funder_id_to_name):
+    def migrate_ads_and_impressions_table(self, funder_id_to_name):
         logging.info('Migrating ads table.')
         src_cursor = self.get_src_cursor()
         src_ads_query = ('SELECT creation_date, text, link_caption, link_description, link_title, start_date, end_date, snapshot_url, is_active, archive_id, '
-                        'country_code, currency, page_id, ad_sponsors.name FROM ads join ad_sponsors on ads.ad_sponsor_id = ad_sponsors.id;')
+                        'country_code, currency, page_id, ad_sponsors.name FROM ads LEFT JOIN ad_sponsors on ads.ad_sponsor_id = ad_sponsors.id;')
         src_cursor.execute(src_cursor.mogrify(src_ads_query))
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
         while fetched_rows:
-            ad_records = []
+            archive_id_to_ad_record = {}
             for row in fetched_rows:
                 logging.debug('Processing row: %r', row)
-                ad_records.append(NewAdRecord(
+                new_record = NewAdRecord(
                     ad_creation_time=row['creation_date'],
                     ad_creative_body=row['text'],
                     ad_creative_link_caption=row['link_caption'],
@@ -287,42 +284,55 @@ class SchemaMigrator:
                     impressions__lower_bound=None,
                     impressions__upper_bound=None,
                     spend__lower_bound=None,
-                    spend__upper_bound=None))
+                    spend__upper_bound=None)
+                archive_id_to_ad_record[row['archive_id']] = new_record
 
-            self.dest_db_interface.insert_new_ads(ad_records)
-            num_rows_processed += len(ad_records)
+            self.dest_db_interface.insert_new_ads(
+                archive_id_to_ad_record.values())
+            self.migrate_impressions_for_archive_id_batch(
+                archive_id_to_ad_record)
+            num_rows_processed += len(archive_id_to_ad_record)
             logging.info('Migrated %d ad rows so far.', num_rows_processed)
             fetched_rows = src_cursor.fetchmany()
 
         logging.info('Migrated %d page rows total.', num_rows_processed)
 
-    def migrate_impressions_table(self, archive_id_to_ad_record):
+    def migrate_impressions_for_archive_id_batch(self, archive_id_to_ad_record):
         logging.info('Migrationg impressions for archive ID batch.')
         src_cursor = self.get_src_cursor()
         archive_ids = [str(k) for k in archive_id_to_ad_record]
-        src_impressions_query = ('SELECT * FROM impressions;')
-        src_cursor.execute(src_impressions_query)
+        src_impressions_query = (
+            'SELECT * FROM impressions WHERE ad_archive_id IN '
+            '(%s)' % (','.join(archive_ids)))
+        src_cursor.execute(src_cursor.mogrify(src_impressions_query))
 
         num_rows_processed = 0
-        fetched_rows = src_cursor.fetchmany()
-        while fetched_rows:
-            impression_records = []
-            for row in fetched_rows:
-                logging.debug('Processing row: %r', row)
-                archive_id = row['ad_archive_id']
-                impression_records.append(
-                    archive_id_to_ad_record[archive_id]._replace(
-                        impressions__lower_bound=row['min_impressions'],
-                        impressions__upper_bound=row['max_impressions'],
-                        spend__lower_bound=row['min_spend'],
-                        spend__upper_bound=row['max_spend']))
+        impression_records = []
+        archive_ids_in_results = set()
+        fetched_rows = src_cursor.fetchall()
+        for row in fetched_rows:
+            logging.debug('Processing row: %r', row)
+            archive_id = row['ad_archive_id']
+            archive_ids_in_results.add(archive_id)
+            impression_records.append(
+                archive_id_to_ad_record[archive_id]._replace(
+                    impressions__lower_bound=row['min_impressions'],
+                    impressions__upper_bound=row['max_impressions'],
+                    spend__lower_bound=row['min_spend'],
+                    spend__upper_bound=row['max_spend']))
+            #fetched_rows = src_cursor.fetchall()
 
-            self.dest_db_interface.insert_new_impressions(impression_records)
-            num_rows_processed += len(impression_records)
-            logging.info('Migrated %d impression rows so far.', num_rows_processed)
-            fetched_rows = src_cursor.fetchmany()
+        archive_ids_to_fetch = set(archive_id_to_ad_record.keys())
+        if archive_ids_in_results != archive_ids_to_fetch:
+            logging.error(
+                'Did not get impressions for archive IDs: %s. IMPRESSIONS '
+                'TABLE MIGRATION MAY BE INCOMPLETE.',
+                archive_ids_to_fetch.difference(archive_ids_in_results))
 
-        logging.info('Migrated %d impression rows total', num_rows_processed)
+        self.dest_db_interface.insert_new_impressions(impression_records)
+        num_rows_processed += len(impression_records)
+        logging.info('Migrated %d impression rows for %d archive IDs.',
+                     num_rows_processed, len(archive_ids))
 
     def migrate_demo_impressions_table(self):
         logging.info('Migrating demo_impressions table.')
