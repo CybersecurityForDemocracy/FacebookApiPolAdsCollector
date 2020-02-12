@@ -342,34 +342,43 @@ class SchemaMigrator:
         demo_groups = {}
         gender_list = ['male', 'female', 'unknown']
         for row in src_cursor:
-            id = row['id']
+            row_id = row['id']
             if row['gender'] not in gender_list:
                 age = row['gender']
                 gender = row['age']
-                demo_groups[id] = (age,gender)
+                demo_groups[row_id] = (age,gender)
             else: 
                 age = row['age']
                 gender = row['gender']
-                demo_groups[id] = (age,gender)
+                demo_groups[row_id] = (age,gender)
 
         #handle case with no demo id
         demo_groups[None] = (None, None)
 
         src_demo_impressions_query = 'SELECT * from demo_impressions'
         src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
-        demo_impression_records = []
-        for row in src_cursor:
-            demo_impression_records.append(NewSnapshotDemoRecord(archive_id=row['ad_archive_id'],
-                                                                 age_range=demo_groups[row['demo_id']][0],
-                                                                 gender=demo_groups[row['demo_id']][1],
-                                                                 spend_percentage=None,
-                                                                 min_impressions=row['min_impressions'],
-                                                                 max_impressions=row['max_impressions'],
-                                                                 min_spend=row['min_spend'],
-                                                                 max_spend=row['max_spend']))
 
-        self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
-        num_rows_processed = len(demo_impression_records)
+        num_rows_processed = 0
+        fetched_rows = src_cursor.fetchmany()
+        while fetched_rows:
+            demo_impression_records = []
+            for row in fetched_rows:
+                demo_impression_records.append(
+                        NewSnapshotDemoRecord(
+                                archive_id=row['ad_archive_id'],
+                                age_range=demo_groups[row['demo_id']][0],
+                                gender=demo_groups[row['demo_id']][1],
+                                spend_percentage=None,
+                                min_impressions=row['min_impressions'],
+                                max_impressions=row['max_impressions'],
+                                min_spend=row['min_spend'],
+                                max_spend=row['max_spend']))
+
+            self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
+            num_rows_processed += len(demo_impression_records)
+            logging.info("Migrated %d demo_impressions rows so far", num_rows_processed)
+            fetched_rows = src_cursor.fetchmany()
+
 
         logging.info('Migrated %d demo_impression rows total.', num_rows_processed)
 
@@ -394,25 +403,30 @@ class SchemaMigrator:
 
         regions = {}
         for row in src_cursor:
-            id = row['id']
+            row_id = row['id']
             region = row['name']
-            regions[id] = region
+            regions[row_id] = region
 
         src_region_impressions_query = 'SELECT * from region_impressions'
         src_cursor.execute(src_cursor.mogrify(src_region_impressions_query))
-        region_impression_records = []
 
-        for row in src_cursor:
-            region_impression_records.append(NewSnapshotRegionRecord(archive_id=row['ad_archive_id'],
-                                                                 region=regions[row['region_id']],
-                                                                 spend_percentage=None,
-                                                                 min_impressions=row['min_impressions'],
-                                                                 max_impressions=row['max_impressions'],
-                                                                 min_spend=row['min_spend'],
-                                                                 max_spend=row['max_spend']))
+        num_rows_processed = 0
+        fetched_rows = src_cursor.fetchmany()
+        while fetched_rows:
+            region_impression_records = []
+            for row in fetched_rows:
+                region_impression_records.append(NewSnapshotRegionRecord(archive_id=row['ad_archive_id'],
+                                                                     region=regions[row['region_id']],
+                                                                     spend_percentage=None,
+                                                                     min_impressions=row['min_impressions'],
+                                                                     max_impressions=row['max_impressions'],
+                                                                     min_spend=row['min_spend'],
+                                                                     max_spend=row['max_spend']))
 
-        self.dest_db_interface.insert_new_impression_region(region_impression_records)
-        num_rows_processed = len(region_impression_records)
+            self.dest_db_interface.insert_new_impression_region(region_impression_records)
+            num_rows_processed += len(region_impression_records)
+            logging.info('Migrated %d region_impression rows so far.', num_rows_processed)
+            fetched_rows = src_cursor.fetchmany()
 
         logging.info('Migrated %d region_impression rows total.', num_rows_processed)
 
@@ -436,7 +450,7 @@ if __name__ == '__main__':
         ],
         format=
         '[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
-        level=logging.DEBUG)
+        level=logging.INFO)
     src_db_config = config['SRC_POSTGRES']
     src_db_connection = get_db_connection(src_db_config)
     logging.info('Established connection to src database: %s',
