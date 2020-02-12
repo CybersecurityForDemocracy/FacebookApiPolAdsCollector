@@ -358,7 +358,7 @@ class SchemaMigrator:
         src_demo_impressions_query = 'SELECT * from demo_impressions'
         src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
 
-        commit_every_n_rows = self.batch * 100
+        commit_every_n_rows = self.batch_size * 100
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
         while fetched_rows:
@@ -413,7 +413,7 @@ class SchemaMigrator:
         src_region_impressions_query = 'SELECT * from region_impressions'
         src_cursor.execute(src_cursor.mogrify(src_region_impressions_query))
 
-        commit_every_n_rows = self.batch * 100
+        commit_every_n_rows = self.batch_size * 100
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
         while fetched_rows:
@@ -436,7 +436,7 @@ class SchemaMigrator:
 
         logging.info('Migrated %d region_impression rows total.', num_rows_processed)
 
-def main(src_db_connection, dest_db_connection, batch_size=1000):
+def main(src_db_connection, dest_db_connection, batch_size):
     schema_migrator = SchemaMigrator(src_db_connection, dest_db_connection,
                                      batch_size)
     schema_migrator.run_migration()
@@ -465,6 +465,6 @@ if __name__ == '__main__':
     dest_db_connection = get_db_connection(dest_db_config)
     logging.info('Established connection to dest database: %s',
                  dest_db_connection.dsn)
-    main(src_db_connection, dest_db_connection)
+    main(src_db_connection, dest_db_connection, batch_size=2000)
     src_db_connection.close()
     dest_db_connection.close()
