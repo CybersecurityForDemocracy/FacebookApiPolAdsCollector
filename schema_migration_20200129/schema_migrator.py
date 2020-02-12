@@ -358,6 +358,7 @@ class SchemaMigrator:
         src_demo_impressions_query = 'SELECT * from demo_impressions'
         src_cursor.execute(src_cursor.mogrify(src_demo_impressions_query))
 
+        commit_every_n_rows = self.batch * 100
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
         while fetched_rows:
@@ -376,6 +377,8 @@ class SchemaMigrator:
 
             self.dest_db_interface.insert_new_impression_demos(demo_impression_records)
             num_rows_processed += len(demo_impression_records)
+            if num_rows_processed % commit_every_n_rows == 0:
+                self.dest_db_connection.commit()
             logging.info("Migrated %d demo_impressions rows so far", num_rows_processed)
             fetched_rows = src_cursor.fetchmany()
 
@@ -410,6 +413,7 @@ class SchemaMigrator:
         src_region_impressions_query = 'SELECT * from region_impressions'
         src_cursor.execute(src_cursor.mogrify(src_region_impressions_query))
 
+        commit_every_n_rows = self.batch * 100
         num_rows_processed = 0
         fetched_rows = src_cursor.fetchmany()
         while fetched_rows:
@@ -425,6 +429,8 @@ class SchemaMigrator:
 
             self.dest_db_interface.insert_new_impression_region(region_impression_records)
             num_rows_processed += len(region_impression_records)
+            if num_rows_processed % commit_every_n_rows == 0:
+                self.dest_db_connection.commit()
             logging.info('Migrated %d region_impression rows so far.', num_rows_processed)
             fetched_rows = src_cursor.fetchmany()
 
