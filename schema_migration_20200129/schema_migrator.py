@@ -427,7 +427,7 @@ class SchemaMigrator:
                                                                      min_spend=row['min_spend'],
                                                                      max_spend=row['max_spend']))
 
-            self.dest_db_interface.insert_new_impression_region(region_impression_records)
+            self.dest_db_interface.insert_new_impression_regions(region_impression_records)
             num_rows_processed += len(region_impression_records)
             if num_rows_processed % commit_every_n_rows == 0:
                 self.dest_db_connection.commit()
