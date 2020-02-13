@@ -144,11 +144,23 @@ class DBInterface():
                              "on conflict (page_id) do nothing;")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
+
         psycopg2.extras.execute_values(cursor,
                                        insert_page_query,
                                        new_page_list,
                                        template=insert_template,
                                        page_size=250)
+
+    def insert_page_metadata(self, new_page_metadata):
+        cursor = self.get_cursor()
+        insert_page_metadata_query = (
+            "INSERT INTO page_metadata(page_id, page_url, federal_candidate) VALUES %s "
+            "on conflict (page_id) do nothing;")
+        insert_template = "(%(id)s, %(url)s, %(federal_candidate)s)"
+        new_page_metadata_list = [x._asdict() for x in new_page_metadata]
+        psycopg2.extras.execute_values(
+            cursor, insert_page_metadata_query, new_page_metadata_list, template=insert_template, page_size=250)
+
 
     def insert_new_ads(self, new_ads):
         cursor = self.get_cursor()
