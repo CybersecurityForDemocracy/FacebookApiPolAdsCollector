@@ -7,7 +7,8 @@
 --  DROP TABLE IF EXISTS funder_metadata cascade;
 --  DROP TABLE IF EXISTS ad_metadata cascade;
 --  DROP TABLE IF EXISTS page_metadata cascade;
---  DROP TABLE IF EXISTS ad_images cascade;
+--  DROP TABLE IF EXISTS ad_snapshot_metadata cascade;
+--  DROP TABLE IF EXISTS ad_creatives cascade;
 --  DROP TABLE IF EXISTS ads cascade;
 --  DROP TABLE IF EXISTS demo_impressions cascade;
 --  DROP TABLE IF EXISTS region_impressions cascade;
@@ -70,7 +71,6 @@ CREATE TABLE ad_metadata (
   funder_id bigint,
   category character varying,
   ad_id bigint,
-  text_hash character varying,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT funder_id_fk FOREIGN KEY (funder_id) REFERENCES funder_metadata (funder_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -85,15 +85,31 @@ CREATE TABLE page_metadata (
   PRIMARY KEY (page_id),
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-CREATE TABLE ad_images (
-  archive_id bigint,
-  sha256_hash character varying,
-  fetch_time timestamp,
-  downloaded_url character varying,
-  bucket_url character varying,
-  sim_hash character varying,
-  PRIMARY KEY (archive_id, sha256_hash),
+CREATE TABLE ad_snapshot_metadata (
+  archive_id bigint NOT NULL,
+  needs_scrape boolean DEFAULT TRUE,
+  snapshot_fetch_time timestamp,
+  snapshot_fetch_status int,
+  PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+CREATE TABLE ad_creatives (
+  ad_creative_id bigserial PRIMARY KEY,
+  archive_id bigint NOT NULL,
+  ad_creative_body character varying,
+  ad_creative_link_url character varying,
+  ad_creative_link_caption character varying,
+  ad_creative_link_title character varying,
+  ad_creative_link_description character varying,
+  -- TODO(macpd): how to store/differentiate videos?
+  text_sim_hash character varying,
+  text_sha256_hash character varying,
+  image_downloaded_url character varying,
+  image_bucket_path character varying,
+  image_sim_hash character varying,
+  image_sha256_hash character varying,
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_creative_per_archive_id UNIQUE(archive_id, text_sha256_hash, image_sha256_hash)
 );
 CREATE TABLE demo_impressions (
   archive_id bigint,
