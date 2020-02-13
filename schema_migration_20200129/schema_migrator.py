@@ -379,6 +379,7 @@ class SchemaMigrator:
             num_rows_processed += len(demo_impression_records)
             if num_rows_processed % commit_every_n_rows == 0:
                 self.dest_db_connection.commit()
+                logging.info("Committing db actions after migrating %d rows", commit_every_n_rows)
             logging.info("Migrated %d demo_impressions rows so far", num_rows_processed)
             fetched_rows = src_cursor.fetchmany()
 
@@ -431,6 +432,7 @@ class SchemaMigrator:
             num_rows_processed += len(region_impression_records)
             if num_rows_processed % commit_every_n_rows == 0:
                 self.dest_db_connection.commit()
+                logging.info("Committing db actions after migrating %d rows", commit_every_n_rows)
             logging.info('Migrated %d region_impression rows so far.', num_rows_processed)
             fetched_rows = src_cursor.fetchmany()
 
