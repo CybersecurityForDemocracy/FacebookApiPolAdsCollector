@@ -39,7 +39,7 @@ class DBInterface():
 
     def all_archive_ids_that_need_scrape(self):
       """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
-      
+
         Args:
         cursor: pyscopg2.Cursor DB cursor for query execution.
         Returns:
@@ -51,7 +51,7 @@ class DBInterface():
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
-    
+
     def n_archive_ids_that_need_scrape(self, max_archive_ids=200):
       """Get N number of archive IDs marked as needs_scrape in ad_snapshot_metadata.
         Args:
@@ -66,7 +66,7 @@ class DBInterface():
       cursor.execute(archive_ids_sample_query)
       results = cursor.fetchall()
       return [row['archive_id'] for row in results]
-    
+
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
         """
@@ -156,7 +156,7 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, ad_insert_query, new_ad_list, template=insert_template,
             page_size=250)
-        
+
         ad_insert_query = (
             "INSERT INTO ad_countries(archive_id, country_code) VALUES %s on conflict (archive_id, "
             "country_code) do nothing;")
