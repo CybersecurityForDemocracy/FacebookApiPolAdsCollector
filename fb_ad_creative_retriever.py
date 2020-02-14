@@ -470,7 +470,7 @@ class FacebookAdCreativeRetriever:
         return creatives
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
-        archive_id_to_snapshot_url = snapshot_url_util.construct_snapshot_urls(
+        archive_id_to_snapshot_url = snapshot_url_util.construct_archive_id_to_snapshot_url_map(
             self.access_token, archive_id_batch)
         archive_ids_without_creative_found = []
         creatives = []
