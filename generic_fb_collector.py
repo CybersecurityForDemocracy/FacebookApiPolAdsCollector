@@ -447,7 +447,6 @@ def send_completion_slack_notification(
             ":rotating_light: :rotating_light: :rotating_light: "
             f" {error_log_msg} "
             ":rotating_light: :rotating_light: :rotating_light: ")
-        completion_status = 'Failure'
 
     completion_message = (
         f"{slack_msg_error_prefix}Collection started at{start_time} for "
