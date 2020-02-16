@@ -109,7 +109,6 @@ class SearchRunner():
         self.request_limit = int(config['SEARCH']['LIMIT'])
         self.max_requests = int(config['SEARCH']['MAX_REQUESTS'])
         self.new_ads = set()
-        self.new_ad_sponsors = set()
         self.new_funding_entities = set()
         self.new_pages = set()
         self.new_regions = set()
@@ -247,6 +246,7 @@ class SearchRunner():
                self.allowed_execution_time_remaining()):
             #structures to hold all the new stuff we find
             self.new_ads = set()
+            self.new_ad_sponsors = set()
             self.new_funding_entities = set()
             self.new_pages = set()
             self.new_regions = set()
