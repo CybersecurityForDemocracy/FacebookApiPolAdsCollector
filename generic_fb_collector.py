@@ -298,8 +298,7 @@ class SearchRunner():
                     continue
 
                 if e.code == 613: # Rate limit exceeded 'Calls to this api have exceeded the rate limit.'
-                    logging.info('Rate liimit exceeded, backing off %d seconds.', e.code)
-                    sleep(backoff)
+                    logging.info('Rate liimit exceeded, backing off %d seconds.', backoff)
                     continue
 
                 logging.info("resetting graph")
@@ -321,8 +320,9 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
             finally:
-                logging.info(f"waiting for {self.sleep_time} seconds before next query.")
-                sleep(self.sleep_time)
+                sleep_time = self.sleep_time * backoff
+                logging.info(f"waiting for {sleep_time} seconds before next query.")
+                sleep(sleep_time)
 
             for result in results['data']:
                 total_ad_count += 1
