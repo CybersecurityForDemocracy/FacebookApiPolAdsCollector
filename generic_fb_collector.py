@@ -246,7 +246,6 @@ class SearchRunner():
                self.allowed_execution_time_remaining()):
             #structures to hold all the new stuff we find
             self.new_ads = set()
-            self.new_ad_sponsors = set()
             self.new_funding_entities = set()
             self.new_pages = set()
             self.new_regions = set()
@@ -291,14 +290,20 @@ class SearchRunner():
                     logging.error(results)
                 else:
                     logging.error("No results")
+
                 if e.code == 4: # this means we've gotten to the FB max results per query
                     sleep(240)
                     has_next = False
                     continue
-                else:
-                    logging.info("resetting graph")
-                    graph = facebook.GraphAPI(access_token=self.fb_access_token)
+
+                if e.code == 613: # Rate limit exceeded 'Calls to this api have exceeded the rate limit.'
+                    logging.info('Rate liimit exceeded, backing off %d seconds.', e.code)
+                    sleep(backoff)
                     continue
+
+                logging.info("resetting graph")
+                graph = facebook.GraphAPI(access_token=self.fb_access_token)
+                continue
             except OSError as e:
                 backoff += backoff
                 logging.error("OS error: {0}".format(e))
