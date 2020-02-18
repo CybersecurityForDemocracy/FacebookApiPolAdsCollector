@@ -413,7 +413,17 @@ class FacebookAdCreativeRetriever:
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
-        self.chromedriver.get(snapshot_url)
+        # try to fetch URL via chromedirver. If there is an exception, restart chromedirver and try
+        # again.
+        try:
+            self.chromedriver.get(snapshot_url)
+        except selenium.common.exceptions.WebDriverException as chromedriver_exception:
+            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
+                         chromedriver_exception)
+            self.chromedriver.quit()
+            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
+            # Try again.
+            self.chromedriver.get(snapshot_url)
 
         if self.page_has_invalid_id_error():
             logging.info('Received invalid ID error message for archive ID: %d, snapshot URL: %s',
