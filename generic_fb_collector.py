@@ -282,6 +282,7 @@ class SearchRunner():
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
                 backoff_multiplier = 1
+                num_consecutive_rate_limit_errors = 0
             except facebook.GraphAPIError as e:
                 logging.error("Graph Error")
                 logging.error(e.code)
@@ -302,9 +303,11 @@ class SearchRunner():
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
+
             except OSError as e:
                 logging.error("OS error: {0}".format(e))
                 logging.error(datetime.datetime.now())
+                # Reset backoff multiplier since this is a local OS issue and not an API issue.
                 backoff_multiplier = 1
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
@@ -316,6 +319,7 @@ class SearchRunner():
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
+
             finally:
                 sleep_time = self.sleep_time * backoff_multiplier
                 logging.info(f"waiting for {sleep_time} seconds before next query.")
