@@ -524,7 +524,7 @@ if __name__ == '__main__':
     config.read(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
 
-    standard_logger.configure_logger(f"{country_code}_fb_api_collection.log")
+    standard_logger_config.configure_logger(f"{country_code}_fb_api_collection.log")
     if len(sys.argv) < 2:
         exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
     main(config, country_code)
