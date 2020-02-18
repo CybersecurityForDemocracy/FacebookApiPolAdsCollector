@@ -1,4 +1,3 @@
-import datetime
 import logging
 
 def ConfigureLogger(log_filename, include_date=True):
