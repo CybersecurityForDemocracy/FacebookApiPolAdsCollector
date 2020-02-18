@@ -20,6 +20,7 @@ from selenium.common.exceptions import ElementNotInteractableException, NoSuchEl
 
 import db_functions
 import sim_hash_ad_creative_text
+import standard_logger_config
 import snapshot_url_util
 
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
@@ -28,13 +29,6 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
-logging.basicConfig(
-    handlers=[
-        logging.FileHandler("fb_ad_image_retriever.log"),
-        logging.StreamHandler()
-    ],
-    format='[%(levelname)s\t%(asctime)s] {%(pathname)s:%(lineno)d} %(message)s',
-    level=logging.INFO)
 
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
 CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
@@ -612,4 +606,5 @@ def main(argv):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Usage: %s <config file>' % sys.argv[0])
+    standard_logger_config.ConfigureLogger("fb_ad_creative_retriever.log")
     main(sys.argv[1:])
