@@ -299,6 +299,8 @@ class SearchRunner():
                     backoff_multiplier *= 4
                     logging.info('Rate liimit exceeded, back off multiplier is now %d.',
                                  backoff_multiplier)
+                else:
+                    backoff_multiplier += 1
 
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
