@@ -606,5 +606,5 @@ def main(argv):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Usage: %s <config file>' % sys.argv[0])
-    standard_logger_config.ConfigureLogger("fb_ad_creative_retriever.log")
+    standard_logger_config.configure_logger("fb_ad_creative_retriever.log")
     main(sys.argv[1:])
