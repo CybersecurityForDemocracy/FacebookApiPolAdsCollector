@@ -282,7 +282,6 @@ class SearchRunner():
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
                 backoff_multiplier = 1
-                num_consecutive_rate_limit_errors = 0
             except facebook.GraphAPIError as e:
                 logging.error("Graph Error")
                 logging.error(e.code)
