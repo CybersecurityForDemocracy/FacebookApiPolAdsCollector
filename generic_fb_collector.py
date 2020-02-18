@@ -234,7 +234,7 @@ class SearchRunner():
         graph = facebook.GraphAPI(access_token=self.fb_access_token)
         has_next = True
         next_cursor = ""
-        backoff = 1
+        backoff_multiplier = 1
         logging.info(datetime.datetime.now())
         logging.info("page_id = %s", page_id)
         logging.info("page_name = %s", page_name)
@@ -281,9 +281,8 @@ class SearchRunner():
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
-                backoff = 1
+                backoff_multiplier = 1
             except facebook.GraphAPIError as e:
-                backoff += backoff
                 logging.error("Graph Error")
                 logging.error(e.code)
                 logging.error(e)
@@ -292,35 +291,33 @@ class SearchRunner():
                 else:
                     logging.error("No results")
 
-                if e.code == 4: # this means we've gotten to the FB max results per query
-                    sleep(240)
-                    has_next = False
-                    continue
-
-                if e.code == 613: # Rate limit exceeded 'Calls to this api have exceeded the rate limit.'
-                    logging.info('Rate liimit exceeded, backing off %d seconds.', backoff)
-                    continue
+                # Error 4 is application level throttling
+                # Error 613 is "Custom-level throttling" "Calls to this api have exceeded the rate limit."
+                # https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
+                if e.code == 4 or e.code == 613:
+                    backoff_multiplier *= 4
+                    logging.info('Rate liimit exceeded, back off multiplier is now %d.',
+                                 backoff_multiplier)
 
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
             except OSError as e:
-                backoff += backoff
                 logging.error("OS error: {0}".format(e))
                 logging.error(datetime.datetime.now())
-                sleep(60)
+                backoff_multiplier = 1
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
             except SSL.SysCallError as e:
                 logging.error(e)
-                backoff += backoff
+                backoff_multiplier += backoff_multiplier
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
             finally:
-                sleep_time = self.sleep_time * backoff
+                sleep_time = self.sleep_time * backoff_multiplier
                 logging.info(f"waiting for {sleep_time} seconds before next query.")
                 sleep(sleep_time)
 
