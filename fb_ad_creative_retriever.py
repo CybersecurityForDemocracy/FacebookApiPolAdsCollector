@@ -214,7 +214,6 @@ class FacebookAdCreativeRetriever:
                 try:
                     self.process_archive_creatives_via_chrome_driver(
                         archive_id_batch)
-
                     self.db_connection.commit()
                     logging.info('Processed %d of %d archive snapshots.',
                                  self.num_snapshots_processed, len(archive_ids))
