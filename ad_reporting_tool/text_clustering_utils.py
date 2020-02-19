@@ -36,3 +36,29 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
     for simhash in duplicate_simhashes:
         simhash_to_id[simhash] = db_interface.ad_creative_ids_with_text_simhash(simhash)
     return simhash_to_id
+
+def ad_creative_body_text_similarity_clusters(db_connection):
+    """Returns list of clusters of archive IDs with similar ad creative body text."""
+    db_interface = db_functions.DBInterface(db_connection)
+
+    # Get all ad creative body simhashes from database.
+    raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
+
+    # Convert map to str id -> Simhash obj
+    archive_id_to_simhash = {}
+    for a in raw_archive_id_to_simhash:
+        archive_id_to_simhash[str(a)] = simhash.Simhash(int(raw_archive_id_to_simhash[a],16))
+    # Create simhash index
+    text_simhash_index = simhash.SimhashIndex(archive_id_to_simhash.items(), k=3)
+
+    # Process all archive IDs to get clusters of archive_ids with similar text
+    seen_archive_ids = set()
+    archive_ids_with_similar_text = []
+    for archive_id in archive_id_to_simhash:
+        if len(seen_archive_ids) % 10000 == 0:
+            logging.info('Processed %d archive IDs.', len(seen_archive_ids))
+        if archive_id in seen_archive_ids:
+            continue
+
+        seen_archive_ids.add(archive_id)
+        archive_ids_with_similar_text.append(text_simhash_index.get_near_dups(archive_id_to_simhash[archive_id]))
