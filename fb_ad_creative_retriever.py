@@ -17,7 +17,7 @@ from PIL import Image
 import psycopg2
 import psycopg2.extras
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, WebDriverException
 
 import db_functions
 import sim_hash_ad_creative_text
@@ -452,7 +452,7 @@ class FacebookAdCreativeRetriever:
         """Attempts to get ad creative(s) data. Restarts webdriver and retries if error raised."""
         try:
            return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
-        except selenium.common.exceptions.WebDriverException as chromedriver_exception:
+        except WebDriverException as chromedriver_exception:
             logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
                          chromedriver_exception)
             self.chromedriver.quit()
@@ -464,17 +464,7 @@ class FacebookAdCreativeRetriever:
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
-        # try to fetch URL via chromedirver. If there is an exception, restart chromedirver and try
-        # again.
-        try:
-            self.chromedriver.get(snapshot_url)
-        except selenium.common.exceptions.WebDriverException as chromedriver_exception:
-            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
-                         chromedriver_exception)
-            self.chromedriver.quit()
-            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
-            # Try again.
-            self.chromedriver.get(snapshot_url)
+        self.chromedriver.get(snapshot_url)
 
         self.raise_if_page_has_age_restriction_or_id_error()
 
