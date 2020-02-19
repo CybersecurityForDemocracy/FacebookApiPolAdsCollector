@@ -459,12 +459,8 @@ def send_completion_slack_notification(
 def main(config, country_code):
     logging.info("starting")
 
-    # Make slack optional
-    if 'LOGGING' in config and 'SLACK_URL' in config['LOGGING']:
-        slack_url = config['LOGGING']['SLACK_URL']
-    else:
-        slack_url = False
-
+    slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
+       
     if 'MINIMUM_EXPECTED_NEW_ADS' in config['SEARCH']:
         min_expected_new_ads = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_ADS'])
     else:
