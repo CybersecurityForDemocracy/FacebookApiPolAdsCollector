@@ -70,12 +70,35 @@ class DBInterface():
         results = cursor.fetchall()
         return [row['archive_id'] for row in results]
 
+    def all_ad_creative_image_simhashes(self):
+        """Returns list of ad creative image simhashes.
+        """
+        cursor = self.get_cursor()
+        duplicate_simhash_query = (
+            'SELECT image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+        )
+        cursor.execute(duplicate_simhash_query)
+        results = cursor.fetchall()
+        return [row['image_sim_hash'] for row in results]
+
+    def all_ad_creative_text_simhashes(self):
+        """Returns list of ad creative text simhashes.
+        """
+        cursor = self.get_cursor()
+        duplicate_simhash_query = (
+            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+        )
+        cursor.execute(duplicate_simhash_query)
+        results = cursor.fetchall()
+        return dict([(row['archive_id'], row['text_sim_hash']) for row in results])
+
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'select text_sim_hash from ad_creatives group by text_sim_hash having count(*) > 1'
+            'SELECT text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL GROUP BY '
+            'text_sim_hash HAVING COUNT(*) > 1'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
