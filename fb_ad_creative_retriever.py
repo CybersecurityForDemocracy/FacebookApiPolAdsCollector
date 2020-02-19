@@ -447,6 +447,20 @@ class FacebookAdCreativeRetriever:
             raise SnapshotAgeRestrictionError
 
 
+    def get_creative_data_list_via_chromedriver_with_retry_on_driver_error(self, archive_id,
+                                                                           snapshot_url):
+        """Attempts to get ad creative(s) data. Restarts webdriver and retries if error raised."""
+        try:
+           return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
+        except selenium.common.exceptions.WebDriverException as chromedriver_exception:
+            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
+                         chromedriver_exception)
+            self.chromedriver.quit()
+            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
+
+        return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
+
+
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
@@ -517,7 +531,7 @@ class FacebookAdCreativeRetriever:
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
                 fetch_time = datetime.datetime.now()
-                new_creatives = self.get_creative_data_list_via_chromedriver(
+                new_creatives = self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
                         archive_id, snapshot_url)
                 if new_creatives:
                     creatives.extend(new_creatives)
