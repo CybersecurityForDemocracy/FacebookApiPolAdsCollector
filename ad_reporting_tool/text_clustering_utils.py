@@ -1,5 +1,14 @@
+import collections
+import logging
+
+import dhash
+import pybktree
+import simhash
+
 import db_functions
 import snapshot_url_util
+
+BIT_DIFFERENCE_THRESHOLD = 3
 
 def duplicated_ad_creative_body_simhash_snapshot_urls(access_token, db_connection):
     """Get map simhash -> snapshot urls of ads with that creative body simhash.
@@ -49,7 +58,7 @@ def ad_creative_body_text_similarity_clusters(db_connection):
     for a in raw_archive_id_to_simhash:
         archive_id_to_simhash[str(a)] = simhash.Simhash(int(raw_archive_id_to_simhash[a],16))
     # Create simhash index
-    text_simhash_index = simhash.SimhashIndex(archive_id_to_simhash.items(), k=3)
+    text_simhash_index = simhash.SimhashIndex(archive_id_to_simhash.items(), k=BIT_DIFFERENCE_THRESHOLD)
 
     # Process all archive IDs to get clusters of archive_ids with similar text
     seen_archive_ids = set()
@@ -61,4 +70,54 @@ def ad_creative_body_text_similarity_clusters(db_connection):
             continue
 
         seen_archive_ids.add(archive_id)
-        archive_ids_with_similar_text.append(text_simhash_index.get_near_dups(archive_id_to_simhash[archive_id]))
+        similar_archive_ids = text_simhash_index.get_near_dups(archive_id_to_simhash[archive_id])
+        # TODO(macpd): double check this set optimization logic
+        [seen_archive_ids.add(x) for x in similar_archive_ids]
+        archive_ids_with_similar_text.append(similar_archive_ids)
+
+    logging.info('Processed %d archive IDs. got %d clusters', len(seen_archive_ids),
+                 len(archive_ids_with_similar_text))
+
+    return archive_ids_with_similar_text
+
+def ad_creative_image_similarity_clusters(db_connection):
+    """Returns list of clusters of archive IDs with similar ad creative images."""
+    db_interface = db_functions.DBInterface(db_connection)
+
+    # Get all ad creative images simhashes from database.
+    archive_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
+
+    # Create BKTree with dhash bit difference function as distance_function, used to find similar
+    # hashes
+    image_simhash_tree = pybktree.BKTree(dhash.get_num_bits_different)
+
+    # Create invers map of simhash -> archive ID(s), and normalize archive_id_to_simhash values
+    # to ints.
+    simhash_to_archive_ids = collections.defaultdict(list)
+    for archive_id in archive_id_to_simhash:
+        image_simhash_as_int = int(archive_id_to_simhash[archive_id], 16)
+        simhash_to_archive_ids[image_simhash_as_int].append(archive_id)
+        image_simhash_tree.add(image_simhash_as_int)
+        archive_id_to_simhash[archive_id] = image_simhash_as_int
+
+    # Process all archive IDs to get clusters of archive_ids with similar text
+    seen_archive_ids = set()
+    archive_ids_with_similar_image = []
+    for archive_id in archive_id_to_simhash:
+        if len(seen_archive_ids) % 10000 == 0:
+            logging.info('Processed %d archive IDs.', len(seen_archive_ids))
+        if archive_id in seen_archive_ids:
+            continue
+
+        seen_archive_ids.add(archive_id)
+        found = image_simhash_tree.find(archive_id_to_simhash[archive_id], BIT_DIFFERENCE_THRESHOLD)
+        # BKTree.find returns tuples of form (bit difference, value), this extracts the values
+        similar_image_sim_hashes = [x[1] for x in found]
+        # TODO(macpd): get archive IDs from found simhashes
+        similar_archive_ids = [
+        [seen_archive_ids.add(x) for x in similar_archive_ids]
+        archive_ids_with_similar_image.append(similar_archive_ids)
+    logging.info('Processed %d archive IDs. got %d clusters', len(seen_archive_ids),
+                 len(archive_ids_with_similar_image))
+
+    return archive_ids_with_similar_image
