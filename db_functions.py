@@ -298,7 +298,7 @@ class DBInterface():
         # and stored.
         update_query = (
             'UPDATE ad_snapshot_metadata SET snapshot_fetch_time = %(snapshot_fetch_time)s, '
-            'needs_scrape = FALSE, snapshot_fetch_status = %(snapshot_fetch_status)d '
+            'needs_scrape = FALSE, snapshot_fetch_status = %(snapshot_fetch_status)s '
             'WHERE archive_id = %(archive_id)s')
         psycopg2.extras.execute_batch(cursor,
                                       update_query,

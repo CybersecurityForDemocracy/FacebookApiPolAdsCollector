@@ -92,7 +92,6 @@ AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'ad_creative_link_description',
     'text_sha256_hash',
     'image_sha256_hash',
-    'snapshot_fetch_time',
     'image_downloaded_url',
     'image_bucket_path',
     'text_sim_hash',
@@ -537,14 +536,14 @@ class FacebookAdCreativeRetriever:
                 self.num_snapshots_fetch_failed += 1
                 # TODO(macpd): decide how to count the errors below
             except SnapshotNoContentFoundError as error:
-                snapshot_fetch_status=SnapshotFetchStatus.NO_CONTENT_FOUND
+                snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
             except SnapshotAgeRestrictionError as error:
-                snapshot_fetch_status=SnapshotFetchStatus.AGE_RESTRICTION_ERROR
+                snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
             except SnapshotInvalidIdError as error:
-                snapshot_fetch_status=SnapshotFetchStatus.INVALID_ID_ERROR
+                snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
             snapshot_metadata_records.append(AdSnapshotMetadataRecord(
-                    archive_id=archive_id, snapshot_fetch_timefetch_time,
+                    archive_id=archive_id, snapshot_fetch_time=fetch_time,
                     snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
 
