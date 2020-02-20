@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 import time
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
 
@@ -16,7 +16,7 @@ from OpenSSL import SSL
 
 from db_functions import DBInterface
 from slack_notifier import notify_slack
-import standard_logger_config
+import config_utils
 
 DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
 DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
@@ -95,19 +95,27 @@ FIELDS_TO_REQUEST = [
     "spend",
 ]
 
+SearchRunnerParams = namedtuple(
+        'SearchRunnerParams',
+        ['country_code',
+         'facebook_access_token',
+         'sleep_time',
+         'request_limit',
+         'max_requests',
+         'soft_max_runtime_in_seconds'
+         ])
+
 class SearchRunner():
 
-    def __init__(self, crawl_date, connection, db, config):
+    def __init__(self, crawl_date, connection, db, search_runner_params):
         self.crawl_date = crawl_date
-        # TODO(macpd): refactor this to pass in config options, and not read
-        # directly from config
-        self.country_code = config['SEARCH']['COUNTRY_CODE']
+        self.country_code = search_runner_params.country_code
         self.connection = connection
         self.db = db
-        self.fb_access_token = config['FACEBOOK']['TOKEN']
-        self.sleep_time = int(config['SEARCH']['SLEEP_TIME'])
-        self.request_limit = int(config['SEARCH']['LIMIT'])
-        self.max_requests = int(config['SEARCH']['MAX_REQUESTS'])
+        self.fb_access_token = search_runner_params.fb_access_token
+        self.sleep_time = search_runner_params.sleep_time
+        self.request_limit = search_runner_params.request_limit
+        self.max_requests = search_runner_params.max_requests
         self.new_ads = set()
         self.new_funding_entities = set()
         self.new_pages = set()
@@ -121,9 +129,9 @@ class SearchRunner():
         self.total_ads_added_to_db = 0
         self.total_impressions_added_to_db = 0
         self.stop_time = None
-        if 'SOFT_MAX_RUNIME_IN_SECONDS' in config['SEARCH']:
+        if search_runner_params.soft_max_runtime_in_seconds:
             start_time = time.monotonic()
-            soft_deadline = int(config['SEARCH']['SOFT_MAX_RUNIME_IN_SECONDS'])
+            soft_deadline = search_runner_params.soft_max_runtime_in_seconds
             self.stop_time = start_time + soft_deadline
             logging.info(
                 'Will cease execution after %d seconds.', soft_deadline)
@@ -165,7 +173,6 @@ class SearchRunner():
         )
         return curr_ad
 
-    
     def process_funding_entity(self, ad):
         if ad.funding_entity not in self.existing_funding_entities:
             # We use tuples because it makes db updates simpler
@@ -406,16 +413,6 @@ def get_page_data(connection, config):
     return page_ids
 
 
-def get_db_connection(config):
-    host = config['POSTGRES']['HOST']
-    dbname = config['POSTGRES']['DBNAME']
-    user = config['POSTGRES']['USER']
-    password = config['POSTGRES']['PASSWORD']
-    port = config['POSTGRES']['PORT']
-    dbauthorize = "host=%s dbname=%s user=%s password=%s port=%s" % (
-        host, dbname, user, password, port)
-    return psycopg2.connect(dbauthorize)
-
 def get_pages_from_archive(archive_path):
     page_ads = {}
     if not archive_path:
@@ -456,11 +453,11 @@ def send_completion_slack_notification(
         f"Completion status {completion_status}.")
     notify_slack(slack_url, completion_message)
 
-def main(config, country_code):
+def main(config):
     logging.info("starting")
 
     slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
-       
+
     if 'MINIMUM_EXPECTED_NEW_ADS' in config['SEARCH']:
         min_expected_new_ads = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_ADS'])
     else:
@@ -473,18 +470,28 @@ def main(config, country_code):
         min_expected_new_impressions = DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS
     logging.info('Expecting minimum %d new impressions.', min_expected_new_impressions)
 
-    connection = get_db_connection(config)
+    search_runner_params = SearchRunnerParams(
+        country_code=config['SEARCH']['COUNTRY_CODE'],
+        facebook_access_token=config_utils.get_facebook_access_token(config)
+        sleep_time=int(config['SEARCH']['SLEEP_TIME']),
+        request_limit=int(config['SEARCH']['LIMIT']),
+        max_requests=int(config['SEARCH']['MAX_REQUESTS']),
+        soft_max_runtime_in_seconds=config.getint('SEARCH', 'SOFT_MAX_RUNIME_IN_SECONDS',
+                                                  fallback=None))
+
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    connection = config_utils.get_database_connection(database_connection_params)
     logging.info('Established conneciton to %s', connection.dsn)
     db = DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),
         connection,
         db,
-        config)
+        search_runner_params)
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
-    country_code_uppercase = country_code.upper()
+    country_code_uppercase = search_runner_params.country_code.upper()
     notify_slack(slack_url,
                  f"Starting UNIFIED collection at {start_time} for "
                  f"{country_code_uppercase} for {page_string}")
@@ -526,7 +533,7 @@ if __name__ == '__main__':
     config.read(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
 
-    standard_logger_config.configure_logger(f"{country_code}_fb_api_collection.log")
+    config_utils.configure_logger(f"{country_code}_fb_api_collection.log")
     if len(sys.argv) < 2:
         exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
-    main(config, country_code)
+    main(config)
