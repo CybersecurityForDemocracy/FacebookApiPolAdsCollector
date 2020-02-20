@@ -37,10 +37,6 @@ def main(config):
     logging.info('Archive IDs %s have similar text simhashes', random_archive_id_set)
 
     archive_ids_with_similar_image = text_clustering_utils.ad_creative_image_similarity_clusters(db_connection)
-    archive_ids_with_similar_image_without_optimization = text_clustering_utils.ad_creative_image_similarity_clusters_without_optimization(db_connection)
-    logging.info('archive_ids_with_similar_image == archive_ids_with_similar_image_without_optimization %s',
-                 (archive_ids_with_similar_image ==
-                 archive_ids_with_similar_image_without_optimization))
     logging.info('First 3 sets of archive IDs with similar image: %s',
                  archive_ids_with_similar_image[:3])
     random_archive_id_set = random.choice(archive_ids_with_similar_image)
