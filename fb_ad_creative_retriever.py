@@ -658,10 +658,8 @@ def main(argv):
 
     logging.info('Max archive IDs to process: %d', max_archive_ids)
 
-    if 'LIMITS' in config and 'MAX_THREADS' in config['LIMITS']:
-        max_threads = int(config['LIMITS']['MAX_THREADS'])
-    else:
-        max_threads = DEFAULT_NUM_THREADS
+    max_threads = int(config.get('LIMITS', {}).get('MAX_THREADS', DEFAULT_NUM_THREADS))
+    logging.info('Max threads: %d', max_threads)
 
     with get_database_connection(config) as db_connection:
         logging.info('DB connection established')
