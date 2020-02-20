@@ -634,19 +634,10 @@ def main(argv):
     config = configparser.ConfigParser()
     config.read(argv[0])
 
-    access_token = config['FACEBOOK_API']['ACCESS_TOKEN']
-
-    if 'LIMITS' in config and 'BATCH_SIZE' in config['LIMITS']:
-        batch_size = int(config['LIMITS']['BATCH_SIZE'])
-    else:
-        batch_size = DEFAULT_BATCH_SIZE
+    access_token = config['FACEBOOK']['TOKEN']
+    batch_size = int(config.get('LIMITS', {}).get('BATCH_SIZE', DEFAULT_BATCH_SIZE))
+    max_archive_ids = int(config.get('LIMITS', {}).get('MAX_ARCHIVE_IDS', DEFAULT_MAX_ARCHIVE_IDS))
     logging.info('Batch size: %d', batch_size)
-
-    if 'LIMITS' in config and 'MAX_ARCHIVE_IDS' in config['LIMITS']:
-        max_archive_ids = int(config['LIMITS']['MAX_ARCHIVE_IDS'])
-    else:
-        max_archive_ids = DEFAULT_MAX_ARCHIVE_IDS
-
     logging.info('Max archive IDs to process: %d', max_archive_ids)
 
     with get_database_connection(config) as db_connection:
