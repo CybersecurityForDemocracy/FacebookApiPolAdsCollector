@@ -1,6 +1,7 @@
 import collections
 import configparser
 import datetime
+import enum
 import hashlib
 import logging
 import io
@@ -16,7 +17,7 @@ from PIL import Image
 import psycopg2
 import psycopg2.extras
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, WebDriverException
 
 import db_functions
 import sim_hash_ad_creative_text
@@ -30,6 +31,7 @@ DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
 
+SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
 CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
                                  '//a[@class=\'_231w _231z _4yee\']')
@@ -57,9 +59,10 @@ CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
 
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
 
-INVALID_ID_ERROR_XPATH = '//div[@class=\'_4aws\']'
 INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
     "the Graph API response.")
+AGE_RESTRICTION_ERROR_TEXT = (
+        'Because we\'re unable to determine your age, we cannot show you this ad.')
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
@@ -89,12 +92,17 @@ AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'ad_creative_link_description',
     'text_sha256_hash',
     'image_sha256_hash',
-    'snapshot_fetch_time',
     'image_downloaded_url',
     'image_bucket_path',
     'text_sim_hash',
-    'image_sim_hash'
+    'image_sim_hash',
 ])
+
+AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
+    'archive_id',
+    'snapshot_fetch_time',
+    'snapshot_fetch_status'
+    ])
 
 AdImageRecord = collections.namedtuple('AdImageRecord', [
     'archive_id',
@@ -107,9 +115,34 @@ AdImageRecord = collections.namedtuple('AdImageRecord', [
 ])
 
 
-class MaybeBackoffMoreException(Exception):
+class Error(Exception):
+    """Generic error type for this module."""
+
+
+class MaybeBackoffMoreException(Error):
     """Exception to be raised when the retriever probably needs to backoff before resuming."""
-    pass
+
+
+class SnapshotNoContentFoundError(Error):
+    """Raised if unable to find content in fetched snapshot."""
+
+
+class SnapshotInvalidIdError(Error):
+    """Raised if fetched snapshot has Invalid ID error message."""
+
+
+class SnapshotAgeRestrictionError(Error):
+    """Raised if fetched Snapshot has age restriction error message."""
+
+
+@enum.unique
+class SnapshotFetchStatus(enum.IntEnum):
+    UNKNOWN = 0
+    SUCCESS = 1
+    NO_CONTENT_FOUND = 2
+    INVALID_ID_ERROR = 3
+    AGE_RESTRICTION_ERROR = 4
+    NO_AD_CREATIVES_FOUND = 5
 
 
 def chunks(original_list, chunk_size):
@@ -400,35 +433,40 @@ class FacebookAdCreativeRetriever:
             creative_link_caption=link_attrs.creative_link_caption,
             image_url=image_url)
 
-    def page_has_invalid_id_error(self):
+    def raise_if_page_has_age_restriction_or_id_error(self):
         error_text = None
         try:
-            error_text = self.chromedriver.find_element_by_xpath(INVALID_ID_ERROR_XPATH).text
+            error_text = self.chromedriver.find_element_by_xpath(SNAPSHOT_CONTENT_ROOT_XPATH).text
         except NoSuchElementException:
-            return False
+            raise SnapshotNoContentFoundError
 
-        return error_text == INVALID_ID_ERROR_TEXT
+        if INVALID_ID_ERROR_TEXT in error_text:
+            raise SnapshotInvalidIdError
+
+        if AGE_RESTRICTION_ERROR_TEXT in error_text:
+            raise SnapshotAgeRestrictionError
+
+
+    def get_creative_data_list_via_chromedriver_with_retry_on_driver_error(self, archive_id,
+                                                                           snapshot_url):
+        """Attempts to get ad creative(s) data. Restarts webdriver and retries if error raised."""
+        try:
+           return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
+        except WebDriverException as chromedriver_exception:
+            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
+                         chromedriver_exception)
+            self.chromedriver.quit()
+            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
+
+        return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
 
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
-        # try to fetch URL via chromedirver. If there is an exception, restart chromedirver and try
-        # again.
-        try:
-            self.chromedriver.get(snapshot_url)
-        except selenium.common.exceptions.WebDriverException as chromedriver_exception:
-            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
-                         chromedriver_exception)
-            self.chromedriver.quit()
-            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
-            # Try again.
-            self.chromedriver.get(snapshot_url)
+        self.chromedriver.get(snapshot_url)
 
-        if self.page_has_invalid_id_error():
-            logging.info('Received invalid ID error message for archive ID: %d, snapshot URL: %s',
-                         archive_id, snapshot_url)
-            return []
+        self.raise_if_page_has_age_restriction_or_id_error()
 
         # If ad has carousel, it should not have multiple versions. Instead it will have multiple
         # images with different images and links.
@@ -478,26 +516,40 @@ class FacebookAdCreativeRetriever:
             self.access_token, archive_id_batch)
         archive_ids_without_creative_found = []
         creatives = []
+        snapshot_metadata_records = []
         for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
+            snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
-                creatives.extend(
-                    self.get_creative_data_list_via_chromedriver(
-                        archive_id, snapshot_url))
+                fetch_time = datetime.datetime.now()
+                new_creatives = self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                        archive_id, snapshot_url)
+                if new_creatives:
+                    creatives.extend(new_creatives)
+                    snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
+                else:
+                    archive_ids_without_creative_found.append(archive_id)
+                    snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
+                    logging.info(
+                        'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
+                        '%s', archive_id, snapshot_url)
+
             except requests.RequestException as request_exception:
                 logging.info(
                     'Request exception while processing archive id:%s\n%s',
                     archive_id, request_exception)
                 self.num_snapshots_fetch_failed += 1
+                # TODO(macpd): decide how to count the errors below
+            except SnapshotNoContentFoundError as error:
+                snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
+            except SnapshotAgeRestrictionError as error:
+                snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
+            except SnapshotInvalidIdError as error:
+                snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
+            snapshot_metadata_records.append(AdSnapshotMetadataRecord(
+                    archive_id=archive_id, snapshot_fetch_time=fetch_time,
+                    snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
-            if creatives:
-                logging.debug('Archive ID %s has creative data: %s', archive_id,
-                              creatives)
-            else:
-                logging.info(
-                    'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
-                    '%s', archive_id, snapshot_url)
-                archive_ids_without_creative_found.append(archive_id)
 
         if len(archive_ids_without_creative_found) == self.batch_size:
             raise MaybeBackoffMoreException(
@@ -560,10 +612,8 @@ class FacebookAdCreativeRetriever:
                     ad_creative_link_url=creative.creative_link_url,
                     ad_creative_link_caption=creative.creative_link_caption,
                     ad_creative_link_title=creative.creative_link_title,
-                    ad_creative_link_description=creative.
-                    creative_link_description,
+                    ad_creative_link_description=creative.creative_link_description,
                     archive_id=creative.archive_id,
-                    snapshot_fetch_time=fetch_time,
                     text_sha256_hash=text_sha256_hash,
                     text_sim_hash=text_sim_hash,
                     image_downloaded_url=creative.image_url,
@@ -576,6 +626,8 @@ class FacebookAdCreativeRetriever:
         logging.debug('Inserting AdCreativeRecords to DB: %r',
                       ad_creative_records)
         self.db_interface.insert_ad_creative_records(ad_creative_records)
+        logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
+        self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
 def main(argv):
