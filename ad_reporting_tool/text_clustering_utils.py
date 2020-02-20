@@ -1,4 +1,5 @@
 import collections
+import itertools
 import logging
 
 import dhash
@@ -7,6 +8,7 @@ import simhash
 
 import db_functions
 import snapshot_url_util
+from lib.unionfind import unionfind
 
 BIT_DIFFERENCE_THRESHOLD = 3
 
@@ -53,6 +55,7 @@ def ad_creative_body_text_similarity_clusters(db_connection):
     # Get all ad creative body simhashes from database.
     raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
 
+    # TODO(macpd): use ad_creative_id instead of archive_id
     # Convert map to str id -> Simhash obj
     archive_id_to_simhash = {}
     for a in raw_archive_id_to_simhash:
@@ -85,43 +88,40 @@ def ad_creative_image_similarity_clusters(db_connection):
     db_interface = db_functions.DBInterface(db_connection)
 
     # Get all ad creative images simhashes from database.
-    archive_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
+    creative_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
 
     # Create BKTree with dhash bit difference function as distance_function, used to find similar
     # hashes
     image_simhash_tree = pybktree.BKTree(dhash.get_num_bits_different)
 
-    # Create invers map of simhash -> archive ID(s), and normalize archive_id_to_simhash values
+    # Create invers map of simhash -> creative ID(s), and normalize creative_id_to_simhash values
     # to ints.
-    simhash_to_archive_ids = collections.defaultdict(list)
-    for archive_id in archive_id_to_simhash:
-        image_simhash_as_int = int(archive_id_to_simhash[archive_id], 16)
-        simhash_to_archive_ids[image_simhash_as_int].append(archive_id)
+    simhash_to_creative_ids = collections.defaultdict(list)
+    for creative_id in creative_id_to_simhash:
+        image_simhash_as_int = int(creative_id_to_simhash[creative_id], 16)
+        simhash_to_creative_ids[image_simhash_as_int].append(creative_id)
         image_simhash_tree.add(image_simhash_as_int)
-        archive_id_to_simhash[archive_id] = image_simhash_as_int
+        creative_id_to_simhash[creative_id] = image_simhash_as_int
 
-    seen_archive_ids = set()
-    archive_ids_with_similar_image = []
-    # Process all archive IDs to get clusters of archive_ids with similar image
-    for archive_id in archive_id_to_simhash:
-        if len(seen_archive_ids) % 10000 == 0:
-            logging.info('Processed %d archive IDs.', len(seen_archive_ids))
-        if archive_id in seen_archive_ids:
-            continue
-
-        seen_archive_ids.add(archive_id)
-        found = image_simhash_tree.find(archive_id_to_simhash[archive_id], BIT_DIFFERENCE_THRESHOLD)
-        similar_archive_ids = []
+    uf = unionfind.UnionFind(simhash_to_creative_ids.keys())
+    # Process all creative IDs to get clusters of creative_ids with similar image
+    for creative_id in creative_id_to_simhash:
+        found = image_simhash_tree.find(creative_id_to_simhash[creative_id], BIT_DIFFERENCE_THRESHOLD)
+        similar_creative_ids = []
         # BKTree.find returns tuples of form (bit difference, value)
         for _, found_hash in found:
-            # Lookup archive IDs for matching simhash
-            similar_archive_ids.extend(simhash_to_archive_ids[found_hash])
+            # Lookup creative IDs for matching simhash
+            similar_creative_ids = simhash_to_creative_ids[found_hash]
+            # Mark all combinations of creative IDs as connected
+            for creative_id_pair in itertools.combinations(similar_creative_ids, 2):
+                uf.union(creative_id_pair[0], creative_id_pair[1])
 
-        # Add list of similar archive IDs to list of clusters
-        archive_ids_with_similar_image.append(similar_archive_ids)
-        # Add archive_ids matched on similarity to set of "seen" archive IDs.
-        [seen_archive_ids.add(x) for x in similar_archive_ids]
-    logging.info('Processed %d archive IDs. got %d clusters', len(seen_archive_ids),
-                 len(archive_ids_with_similar_image))
+        if len(uf) % 10000 == 0:
+            logging.info('Processed %d creative_ids', len(uf))
 
-    return archive_ids_with_similar_image
+
+    components = uf.components()
+    logging.info('Processed %d creative IDs. got %d clusters', len(seen_creative_ids),
+                 len(creative_ids_with_similar_image))
+
+    return creative_ids_with_similar_image

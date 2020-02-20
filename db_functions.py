@@ -75,11 +75,11 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+            'SELECT ad_creative_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['archive_id'], row['image_sim_hash']) for row in results])
+        return dict([(row['ad_creative_id'], row['image_sim_hash']) for row in results])
 
     def all_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes.
