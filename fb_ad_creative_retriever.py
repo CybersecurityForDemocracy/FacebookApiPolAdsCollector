@@ -644,12 +644,12 @@ def main(argv):
     config.read(argv[0])
 
     access_token = config['FACEBOOK']['TOKEN']
-    batch_size = int(config.get('LIMITS', {}).get('BATCH_SIZE', DEFAULT_BATCH_SIZE))
-    max_archive_ids = int(config.get('LIMITS', {}).get('MAX_ARCHIVE_IDS', DEFAULT_MAX_ARCHIVE_IDS))
+    batch_size = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
+    max_archive_ids = config.getint('LIMITS', 'MAX_ARCHIVE_IDS', fallback=DEFAULT_MAX_ARCHIVE_IDS)
     logging.info('Batch size: %d', batch_size)
     logging.info('Max archive IDs to process: %d', max_archive_ids)
 
-    max_threads = int(config.get('LIMITS', {}).get('MAX_THREADS', DEFAULT_NUM_THREADS))
+    max_threads = config.getint('LIMITS', 'MAX_THREADS', fallback=DEFAULT_NUM_THREADS)
     logging.info('Max threads: %d', max_threads)
 
     with get_database_connection(config) as db_connection:
