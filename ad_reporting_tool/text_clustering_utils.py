@@ -105,9 +105,9 @@ def ad_creative_image_similarity_clusters(db_connection):
 
     uf = unionfind.UnionFind(simhash_to_creative_ids.keys())
     # Process all creative IDs to get clusters of creative_ids with similar image
-    processed_creative_ids = []
+    num_processed_creative_ids = 0
     for creative_id in creative_id_to_simhash:
-        processed_creative_ids.append(creative_id)
+        num_processed_creative_ids += 1
         found = image_simhash_tree.find(creative_id_to_simhash[creative_id], BIT_DIFFERENCE_THRESHOLD)
         similar_creative_ids = []
         # BKTree.find returns tuples of form (bit difference, value)
@@ -118,8 +118,8 @@ def ad_creative_image_similarity_clusters(db_connection):
             for creative_id_pair in itertools.combinations(similar_creative_ids, 2):
                 uf.union(creative_id_pair[0], creative_id_pair[1])
 
-        if len(processed_creative_ids) % 10000 == 0:
-            logging.info('Processed %d creative_ids of %d', len(processed_creative_ids),
+        if num_processed_creative_ids % 10000 == 0:
+            logging.info('Processed %d creative_ids of %d', num_processed_creative_ids,
                          len(creative_id_to_simhash))
 
 
