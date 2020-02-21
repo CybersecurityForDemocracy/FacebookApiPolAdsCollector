@@ -642,7 +642,7 @@ def halt_if_too_many_requests_error(invoking_thread_future):
     #  if type(thread_exception)
     if isinstance(thread_exception, TooManyRequestsException):
         slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
-        slack_notifier.notify_slack(
+        slack_notifier.notify_slack(slack_url,
                 ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
                 'thread completed with TooManyRequestsException. Aborting! :rotating_light: '
                 ':rotating_light: :rotating_light:')
