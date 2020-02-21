@@ -164,6 +164,7 @@ def chunks(original_list, chunk_size):
 def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
     return driver
