@@ -27,9 +27,9 @@ def duplicated_ad_creative_body_simhash_snapshot_urls(access_token, db_connectio
     db_interface = db_functions.DBInterface(db_connection)
     simhash_to_snapshot_url = {}
     duplicated_simhashes = db_interface.duplicate_ad_creative_text_simhashes()
-    for simhash in duplicated_simhashes:
-        archive_ids = db_interface.archive_ids_with_ad_creative_text_simhash(simhash)
-        simhash_to_snapshot_url[simhash] = snapshot_url_util.construct_snapshot_urls(access_token,
+    for text_hash in duplicated_simhashes:
+        archive_ids = db_interface.archive_ids_with_ad_creative_text_simhash(text_hash)
+        simhash_to_snapshot_url[text_hash] = snapshot_url_util.construct_snapshot_urls(access_token,
                                                                                      archive_ids)
     return simhash_to_snapshot_url
 
@@ -44,8 +44,8 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
     db_interface = db_functions.DBInterface(db_connection)
     duplicate_simhashes = db_interface.duplicate_ad_creative_text_simhashes()
     simhash_to_id = {}
-    for simhash in duplicate_simhashes:
-        simhash_to_id[simhash] = db_interface.ad_creative_ids_with_text_simhash(simhash)
+    for text_hash in duplicate_simhashes:
+        simhash_to_id[text_hash] = db_interface.ad_creative_ids_with_text_simhash(text_hash)
     return simhash_to_id
 
 def ad_creative_body_text_similarity_clusters(db_connection):
@@ -124,7 +124,7 @@ def ad_creative_image_similarity_clusters(db_connection):
 
 
     components = uf.components()
-    logging.info('Processed %d creative IDs. got %d clusters', len(seen_creative_ids),
-                 len(creative_ids_with_similar_image))
+    logging.info('Processed %d creative IDs. got %d clusters', num_processed_creative_ids,
+                 len(components))
 
-    return creative_ids_with_similar_image
+    return components
