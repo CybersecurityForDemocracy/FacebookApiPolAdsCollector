@@ -436,7 +436,6 @@ class FacebookAdCreativeRetriever:
         try:
             error_text = self.chromedriver.find_element_by_xpath(SNAPSHOT_CONTENT_ROOT_XPATH).text
         except NoSuchElementException:
-            try:
             page_text = self.chromedriver.find_element_by_tag_name('html').text
             if TOO_MANY_REQUESTS_ERROR_TEXT in page_text:
                 raise TooManyRequestsException
