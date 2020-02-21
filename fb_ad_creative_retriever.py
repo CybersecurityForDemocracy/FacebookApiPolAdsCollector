@@ -21,6 +21,7 @@ from selenium.common.exceptions import ElementNotInteractableException, NoSuchEl
 
 import db_functions
 import sim_hash_ad_creative_text
+import slack_notifier
 import standard_logger_config
 import snapshot_url_util
 
@@ -29,8 +30,7 @@ GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
-DEFAULT_BACKOFF_IN_SECONDS = 60
-DEFAULT_NUM_THREADS = 2
+DEFAULT_NUM_THREADS = 1
 DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD = 1000
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
@@ -65,6 +65,9 @@ INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the s
     "the Graph API response.")
 AGE_RESTRICTION_ERROR_TEXT = (
         'Because we\'re unable to determine your age, we cannot show you this ad.')
+TOO_MANY_REQUESTS_ERROR_TEXT = (
+        'Blocked from Searching or Viewing the Ad Archive\nYou have been temporarily blocked from '
+        'searching or viewing the Ad Archive due to too many requests. Please try again later.')
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
@@ -123,6 +126,10 @@ class Error(Exception):
 
 class MaybeBackoffMoreException(Error):
     """Exception to be raised when the retriever probably needs to backoff before resuming."""
+
+class TooManyRequestsException(Error):
+    """Exception to be raised when the retriever is told it has made too many requests too quickly.
+    """
 
 
 class SnapshotNoContentFoundError(Error):
@@ -244,24 +251,13 @@ class FacebookAdCreativeRetriever:
         logging.info('Processing %d archive snapshots in batches of %d',
                      len(archive_ids), self.batch_size)
         try:
-            backoff = DEFAULT_BACKOFF_IN_SECONDS
             for archive_id_batch in chunks(archive_ids, self.batch_size):
-                try:
-                    self.process_archive_creatives_via_chrome_driver(
-                        archive_id_batch)
-                    self.db_connection.commit()
-                    logging.info('Processed %d of %d archive snapshots.',
-                                 self.num_snapshots_processed, len(archive_ids))
-                    self.log_stats()
-                    # if this batch succeeded then reset backoff.
-                    backoff = DEFAULT_BACKOFF_IN_SECONDS
-                except MaybeBackoffMoreException as e:
-                    logging.info(
-                        'Was told to chill. Sleeping %d before resuming. error: %s',
-                        backoff, e)
-                    time.sleep(backoff)
-                    if backoff < (10 * backoff):
-                        backoff += DEFAULT_BACKOFF_IN_SECONDS
+                self.process_archive_creatives_via_chrome_driver(
+                    archive_id_batch)
+                self.db_connection.commit()
+                logging.info('Processed %d of %d archive snapshots.',
+                             self.num_snapshots_processed, len(archive_ids))
+                self.log_stats()
 
         finally:
             self.log_stats()
@@ -440,6 +436,11 @@ class FacebookAdCreativeRetriever:
         try:
             error_text = self.chromedriver.find_element_by_xpath(SNAPSHOT_CONTENT_ROOT_XPATH).text
         except NoSuchElementException:
+            try:
+            page_text = self.chromedriver.find_element_by_tag_name('html').text
+            if TOO_MANY_REQUESTS_ERROR_TEXT in page_text:
+                raise TooManyRequestsException
+
             raise SnapshotNoContentFoundError
 
         if INVALID_ID_ERROR_TEXT in error_text:
@@ -554,11 +555,6 @@ class FacebookAdCreativeRetriever:
                     snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
 
-        if len(archive_ids_without_creative_found) == self.batch_size:
-            raise MaybeBackoffMoreException(
-                'Failed to find ad creatives in any snapshot from this '
-                'batch.  Assuming access_token has expired. Aborting!')
-
         self.num_ad_creatives_found += len(creatives)
         self.num_snapshots_without_creative_found += len(
             archive_ids_without_creative_found)
@@ -640,6 +636,20 @@ def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_siz
             db_connection, bucket_client, access_token, batch_size)
         image_retriever.retrieve_and_store_ad_creatives(archive_ids)
 
+def halt_if_too_many_requests_error(invoking_thread_future):
+    thread_exception = invoking_thread_future.exception()
+    logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
+                 type(thread_exception), thread_exception)
+    #  if type(thread_exception)
+    if isinstance(thread_exception, TooManyRequestsException):
+        slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
+        slack_notifier.notify_slack(
+                ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
+                'thread completed with TooManyRequestsException. Aborting! :rotating_light: '
+                ':rotating_light: :rotating_light:')
+        logging.error('Thread completed with TooManyRequestsException: %s. Aborting!')
+        sys.exit(1)
+
 def main(argv):
     config = configparser.ConfigParser()
     config.read(argv[0])
@@ -662,11 +672,14 @@ def main(argv):
             archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        futures = []
+        exectutor_futures = []
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
-            futures.append(executor.submit(
+            new_future = executor.submit(
                     retrieve_and_store_ad_creatives, config, access_token, archive_id_batch,
-                    batch_size))
+                    batch_size)
+            new_future.add_done_callback(halt_if_too_many_requests_error)
+            exectutor_futures.append(exectutor_futures)
+        #concurrent.futures.wait(exectutor_futures, return_when=FIRST_EXCEPTION)
 
 
 if __name__ == '__main__':
