@@ -642,7 +642,6 @@ def halt_if_too_many_requests_error(slack_url, invoking_thread_future):
     thread_exception = invoking_thread_future.exception()
     logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
                  type(thread_exception), thread_exception)
-    #  if type(thread_exception)
     if isinstance(thread_exception, TooManyRequestsException):
         slack_notifier.notify_slack(slack_url,
                 ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
@@ -683,7 +682,6 @@ def main(argv):
                     batch_size)
             new_future.add_done_callback(done_callback)
             exectutor_futures.append(exectutor_futures)
-        #concurrent.futures.wait(exectutor_futures, return_when=FIRST_EXCEPTION)
 
 
 if __name__ == '__main__':
