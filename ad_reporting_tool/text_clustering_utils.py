@@ -84,7 +84,14 @@ def ad_creative_body_text_similarity_clusters(db_connection):
     return archive_ids_with_similar_text
 
 def ad_creative_image_similarity_clusters(db_connection):
-    """Returns list of clusters of archive IDs with similar ad creative images."""
+    """Returns list of clusters of image simhashs of similar ad creative images.
+
+    Args:
+        db_connection: psycopg2.connection connection to database from which to retrieve ad creative
+        data.
+    Returns:
+        List of sets of image simhashes (as int) that are similar.
+    """
     db_interface = db_functions.DBInterface(db_connection)
 
     # Get all ad creative images simhashes from database.
@@ -94,37 +101,26 @@ def ad_creative_image_similarity_clusters(db_connection):
     # hashes
     image_simhash_tree = pybktree.BKTree(dhash.get_num_bits_different)
 
-    # Create invers map of simhash -> creative ID(s), and normalize creative_id_to_simhash values
+    # Create inverse map of simhash -> set of creative ID(s), and normalize creative_id_to_simhash values
     # to ints.
-    simhash_to_creative_ids = collections.defaultdict(list)
+    simhash_to_creative_ids = collections.defaultdict(set)
     for creative_id in creative_id_to_simhash:
         image_simhash_as_int = int(creative_id_to_simhash[creative_id], 16)
-        simhash_to_creative_ids[image_simhash_as_int].append(creative_id)
+        simhash_to_creative_ids[image_simhash_as_int].add(int(creative_id))
         image_simhash_tree.add(image_simhash_as_int)
-        creative_id_to_simhash[creative_id] = image_simhash_as_int
 
     uf = unionfind.UnionFind(simhash_to_creative_ids.keys())
-    # Process all creative IDs to get clusters of creative_ids with similar image
-    num_processed_creative_ids = 0
-    for creative_id in creative_id_to_simhash:
-        num_processed_creative_ids += 1
-        found = image_simhash_tree.find(creative_id_to_simhash[creative_id], BIT_DIFFERENCE_THRESHOLD)
-        similar_creative_ids = []
+    # Process all image sim hashes to get clusters of similar image simhashes
+    for curr_simhash in simhash_to_creative_ids:
+        found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
-        for _, found_hash in found:
-            # Lookup creative IDs for matching simhash
-            similar_creative_ids = simhash_to_creative_ids[found_hash]
-            # Mark all combinations of creative IDs as connected
-            for creative_id_pair in itertools.combinations(similar_creative_ids, 2):
-                uf.union(creative_id_pair[0], creative_id_pair[1])
-
-        if num_processed_creative_ids % 10000 == 0:
-            logging.info('Processed %d creative_ids of %d', num_processed_creative_ids,
-                         len(creative_id_to_simhash))
-
+        found_hashes = [x[1] for x in found]
+        # Connect all combinantions (regardless of order) of found simhashes
+        for hash_pair in itertools.combinations(found_hashes, 2):
+            uf.union(hash_pair[0], hash_pair[1])
 
     components = uf.components()
-    logging.info('Processed %d creative IDs. got %d clusters', num_processed_creative_ids,
-                 len(components))
+    logging.info('Processed %d creative IDs. got %d clusters', num_processed, len(components))
+    # TODO(macpd): Create map of cluster -> creative IDs
 
     return components

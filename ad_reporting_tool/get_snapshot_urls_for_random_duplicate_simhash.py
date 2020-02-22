@@ -3,6 +3,7 @@
 prints list of URLs (one per line).
 """
 import configparser
+import json
 import logging
 import sys
 import random
@@ -36,14 +37,14 @@ def main(config):
         random_archive_id_set = random.choice(archive_ids_with_similar_text)
     logging.info('Archive IDs %s have similar text simhashes', random_archive_id_set)
 
-    archive_ids_with_similar_image = text_clustering_utils.ad_creative_image_similarity_clusters(db_connection)
+    image_simhash_clusters = text_clustering_utils.ad_creative_image_similarity_clusters(db_connection)
     logging.info('First 3 sets of archive IDs with similar image: %s',
-                 archive_ids_with_similar_image[:3])
-    random_archive_id_set = random.choice(archive_ids_with_similar_image)
-    while len(random_archive_id_set) == 1:
-        random_archive_id_set = random.choice(archive_ids_with_similar_image)
-    logging.info('Archive IDs %s have similar image simhashes', random_archive_id_set)
-
+                 image_simhash_clusters[:3])
+    image_simhash_clusters_as_lists = [list(cluster) for cluster in image_simhash_clusters]
+    image_clusters_filename = 'image_clusters.json'
+    with open(image_clusters_filename, 'w') as f:
+        json.dump(image_simhash_clusters_as_lists, f)
+    print(f'Wrote image simhash clusters as JSON to {image_clusters_filename}')
 
 
 if __name__ == '__main__':
