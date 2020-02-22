@@ -634,9 +634,6 @@ def main(argv):
     logging.info('Batch size: %d', batch_size)
     logging.info('Max archive IDs to process: %d', max_archive_ids)
 
-    max_threads = config.getint('LIMITS', 'MAX_THREADS', fallback=DEFAULT_NUM_THREADS)
-    logging.info('Max threads: %d', max_threads)
-
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
@@ -648,7 +645,7 @@ def main(argv):
         else:
             archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
-    with get_database_connection(config) as db_connection:
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET,
                                                GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
