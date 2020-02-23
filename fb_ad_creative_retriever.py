@@ -631,7 +631,7 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size, slack_url):
+def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size):
     with get_database_connection(config) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
