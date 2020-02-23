@@ -3,6 +3,7 @@ import concurrent.futures
 import configparser
 import datetime
 import enum
+import functools
 import hashlib
 import logging
 import io
@@ -207,7 +208,7 @@ def get_image_dhash(image_bytes):
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, bucket_client, access_token, batch_size, slack_url):
+    def __init__(self, db_connection, bucket_client, access_token, batch_size):
         self.bucket_client = bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
@@ -221,7 +222,6 @@ class FacebookAdCreativeRetriever:
         self.access_token = access_token
         self.batch_size = batch_size
         self.start_time = None
-        self.slack_url = slack_url
         self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
 
     def get_seconds_elapsed_procesing(self):
@@ -538,15 +538,6 @@ class FacebookAdCreativeRetriever:
                         'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
                         '%s', archive_id, snapshot_url)
 
-            except TooManyRequestsException as error:
-                # TODO(macpd): implement logic to signal all threads to backoff.
-                slack_notifier.notify_slack(self.slack_url,
-                        ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
-                        'thread raised with TooManyRequestsException. Aborting! :rotating_light: '
-                        ':rotating_light: :rotating_light:')
-                logging.error('TooManyRequestsException raised aborting!')
-                sys.exit(1)
-
             except requests.RequestException as request_exception:
                 logging.info(
                     'Request exception while processing archive id:%s\n%s',
@@ -644,9 +635,20 @@ def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_siz
     with get_database_connection(config) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, batch_size, slack_url)
+            db_connection, bucket_client, access_token, batch_size)
         image_retriever.retrieve_and_store_ad_creatives(archive_ids)
 
+def halt_if_too_many_requests_error(slack_url, invoking_thread_future):
+    thread_exception = invoking_thread_future.exception()
+    logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
+                 type(thread_exception), thread_exception)
+    if isinstance(thread_exception, TooManyRequestsException):
+        slack_notifier.notify_slack(slack_url,
+                ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
+                'thread terminated with TooManyRequestsException. Aborting! :rotating_light: '
+                ':rotating_light: :rotating_light:')
+        logging.error('Thread completed with TooManyRequestsException. Aborting!')
+        sys.exit(1)
 
 def main(argv):
     config = configparser.ConfigParser()
@@ -673,11 +675,13 @@ def main(argv):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         exectutor_futures = []
+        done_callback = functools.partial(halt_if_too_many_requests_error, slack_url)
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
             new_future = executor.submit(
-                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
-                slack_url)
-            exectutor_futures.append(new_future)
+                    retrieve_and_store_ad_creatives, config, access_token, archive_id_batch,
+                    batch_size)
+            new_future.add_done_callback(done_callback)
+            exectutor_futures.append(exectutor_futures)
 
 
 if __name__ == '__main__':
