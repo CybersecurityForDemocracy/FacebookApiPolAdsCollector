@@ -645,7 +645,7 @@ def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_siz
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
             db_connection, bucket_client, access_token, batch_size, slack_url)
-        image_retriever.retrieve_and_store_ad_creatives(archive_ids)
+        return image_retriever.retrieve_and_store_ad_creatives(archive_ids)
 
 
 def main(argv):
@@ -663,21 +663,28 @@ def main(argv):
 
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
-    with get_database_connection(config) as db_connection:
-        logging.info('DB connection established')
-        db_interface = db_functions.DBInterface(db_connection)
-        if max_archive_ids == -1:
-            archive_ids = db_interface.all_archive_ids_that_need_scrape()
-        else:
-            archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
+    while True
+        with get_database_connection(config) as db_connection:
+            db_interface = db_functions.DBInterface(db_connection)
+            logging.info(
+                    'DB connection established. Getting archive_ids to retrieve ad creatives for.')
+            if max_archive_ids == -1:
+                archive_ids = db_interface.all_archive_ids_that_need_scrape()
+            else:
+                archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        exectutor_futures = []
-        for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
-            new_future = executor.submit(
-                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
-                slack_url)
-            exectutor_futures.append(new_future)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
+            exectutor_futures = []
+            for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
+                new_future = executor.submit(
+                    retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
+                    slack_url)
+                exectutor_futures.append(new_future)
+
+        # If max_archive_ids is -1 this process should keep running indefinitely. Otherwise stop
+        # after one iteration.
+        if max_archive_ids != -1
+            break
 
 
 if __name__ == '__main__':
