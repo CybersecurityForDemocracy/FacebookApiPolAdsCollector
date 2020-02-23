@@ -189,15 +189,20 @@ class SearchRunner():
             logging.info("no demo impression information for: %s", curr_ad.archive_id)
 
         for demo_result in demographic_distribution:
-            self.new_ad_demo_impressions.append(SnapshotDemoRecord(
-                curr_ad.archive_id,
-                demo_result['age'],
-                demo_result['gender'],
-                demo_result['percentage'],
-                float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            try:
+                self.new_ad_demo_impressions.append(SnapshotDemoRecord(
+                    curr_ad.archive_id,
+                    demo_result['age'],
+                    demo_result['gender'],
+                    demo_result['percentage'],
+                    float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                    float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                    float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
+                    float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            except KeyError as key_error:
+                logging.warning(
+                        '%s error while processing ad archive ID %s demographic_distribution: %s',
+                        key_error, curr_ad.archive_id, demo_result)
 
     def process_region_impressions(self, region_distribution, curr_ad):
         if not region_distribution:
@@ -212,14 +217,19 @@ class SearchRunner():
                 continue
             else:
                 regions.add(region_result['region'])
-            self.new_ad_region_impressions.append(SnapshotRegionRecord(
-            curr_ad.archive_id,
-            region_result['region'],
-            region_result['percentage'],
-            float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            try:
+                self.new_ad_region_impressions.append(SnapshotRegionRecord(
+                curr_ad.archive_id,
+                region_result['region'],
+                region_result['percentage'],
+                float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
+                float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            except KeyError as key_error:
+                logging.warning(
+                        '%s error while processing ad archive ID %s region_distribution: %s',
+                        key_error, curr_ad.archive_id, region_result)
 
 
     def run_search(self, page_id=None, page_name=None):
