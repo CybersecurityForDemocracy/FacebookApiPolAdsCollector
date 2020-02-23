@@ -213,19 +213,19 @@ class SearchRunner():
             # If we get the same region more than once for an ad, the second occurance
             # This is a data losing proposition but can't be helped till FB fixes the results
             # They provide on the API
-            if region_result['region'] in regions:
-                continue
-            else:
-                regions.add(region_result['region'])
             try:
-                self.new_ad_region_impressions.append(SnapshotRegionRecord(
-                curr_ad.archive_id,
-                region_result['region'],
-                region_result['percentage'],
-                float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
-                float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
-                float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
-                float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+                if region_result['region'] in regions:
+                    continue
+                else:
+                    regions.add(region_result['region'])
+                    self.new_ad_region_impressions.append(SnapshotRegionRecord(
+                    curr_ad.archive_id,
+                    region_result['region'],
+                    region_result['percentage'],
+                    float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                    float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                    float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
+                    float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
             except KeyError as key_error:
                 logging.warning(
                         '%s error while processing ad archive ID %s region_distribution: %s',
