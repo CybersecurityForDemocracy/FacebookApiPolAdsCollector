@@ -21,6 +21,7 @@ from selenium.common.exceptions import ElementNotInteractableException, NoSuchEl
 
 import db_functions
 import sim_hash_ad_creative_text
+import slack_notifier
 import standard_logger_config
 import snapshot_url_util
 
@@ -29,8 +30,7 @@ GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
-DEFAULT_BACKOFF_IN_SECONDS = 60
-DEFAULT_NUM_THREADS = 2
+DEFAULT_NUM_THREADS = 1
 DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD = 1000
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
@@ -65,6 +65,9 @@ INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the s
     "the Graph API response.")
 AGE_RESTRICTION_ERROR_TEXT = (
         'Because we\'re unable to determine your age, we cannot show you this ad.')
+TOO_MANY_REQUESTS_ERROR_TEXT = (
+        'Blocked from Searching or Viewing the Ad Archive\nYou have been temporarily blocked from '
+        'searching or viewing the Ad Archive due to too many requests. Please try again later.')
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
@@ -124,6 +127,10 @@ class Error(Exception):
 class MaybeBackoffMoreException(Error):
     """Exception to be raised when the retriever probably needs to backoff before resuming."""
 
+class TooManyRequestsException(Error):
+    """Exception to be raised when the retriever is told it has made too many requests too quickly.
+    """
+
 
 class SnapshotNoContentFoundError(Error):
     """Raised if unable to find content in fetched snapshot."""
@@ -156,6 +163,7 @@ def chunks(original_list, chunk_size):
 def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
     return driver
@@ -199,7 +207,7 @@ def get_image_dhash(image_bytes):
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, bucket_client, access_token, batch_size):
+    def __init__(self, db_connection, bucket_client, access_token, batch_size, slack_url):
         self.bucket_client = bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
@@ -213,6 +221,7 @@ class FacebookAdCreativeRetriever:
         self.access_token = access_token
         self.batch_size = batch_size
         self.start_time = None
+        self.slack_url = slack_url
         self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
 
     def get_seconds_elapsed_procesing(self):
@@ -244,24 +253,13 @@ class FacebookAdCreativeRetriever:
         logging.info('Processing %d archive snapshots in batches of %d',
                      len(archive_ids), self.batch_size)
         try:
-            backoff = DEFAULT_BACKOFF_IN_SECONDS
             for archive_id_batch in chunks(archive_ids, self.batch_size):
-                try:
-                    self.process_archive_creatives_via_chrome_driver(
-                        archive_id_batch)
-                    self.db_connection.commit()
-                    logging.info('Processed %d of %d archive snapshots.',
-                                 self.num_snapshots_processed, len(archive_ids))
-                    self.log_stats()
-                    # if this batch succeeded then reset backoff.
-                    backoff = DEFAULT_BACKOFF_IN_SECONDS
-                except MaybeBackoffMoreException as e:
-                    logging.info(
-                        'Was told to chill. Sleeping %d before resuming. error: %s',
-                        backoff, e)
-                    time.sleep(backoff)
-                    if backoff < (10 * backoff):
-                        backoff += DEFAULT_BACKOFF_IN_SECONDS
+                self.process_archive_creatives_via_chrome_driver(
+                    archive_id_batch)
+                self.db_connection.commit()
+                logging.info('Processed %d of %d archive snapshots.',
+                             self.num_snapshots_processed, len(archive_ids))
+                self.log_stats()
 
         finally:
             self.log_stats()
@@ -440,6 +438,11 @@ class FacebookAdCreativeRetriever:
         try:
             error_text = self.chromedriver.find_element_by_xpath(SNAPSHOT_CONTENT_ROOT_XPATH).text
         except NoSuchElementException:
+            page_text = self.chromedriver.find_element_by_tag_name('html').text
+            logging.warning('Could not find content in page:%s', page_text)
+            if TOO_MANY_REQUESTS_ERROR_TEXT in page_text:
+                raise TooManyRequestsException
+
             raise SnapshotNoContentFoundError
 
         if INVALID_ID_ERROR_TEXT in error_text:
@@ -535,6 +538,15 @@ class FacebookAdCreativeRetriever:
                         'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
                         '%s', archive_id, snapshot_url)
 
+            except TooManyRequestsException as error:
+                # TODO(macpd): implement logic to signal all threads to backoff.
+                slack_notifier.notify_slack(self.slack_url,
+                        ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
+                        'thread raised with TooManyRequestsException. Aborting! :rotating_light: '
+                        ':rotating_light: :rotating_light:')
+                logging.error('TooManyRequestsException raised aborting!')
+                sys.exit(1)
+
             except requests.RequestException as request_exception:
                 logging.info(
                     'Request exception while processing archive id:%s\n%s',
@@ -542,6 +554,7 @@ class FacebookAdCreativeRetriever:
                 self.num_snapshots_fetch_failed += 1
                 # TODO(macpd): decide how to count the errors below
             except SnapshotNoContentFoundError as error:
+                logging.info('No content found for archive_id %d, %s', archive_id, snapshot_url)
                 snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
             except SnapshotAgeRestrictionError as error:
                 snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
@@ -552,11 +565,6 @@ class FacebookAdCreativeRetriever:
                     archive_id=archive_id, snapshot_fetch_time=fetch_time,
                     snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
-
-        if len(archive_ids_without_creative_found) == self.batch_size:
-            raise MaybeBackoffMoreException(
-                'Failed to find ad creatives in any snapshot from this '
-                'batch.  Assuming access_token has expired. Aborting!')
 
         self.num_ad_creatives_found += len(creatives)
         self.num_snapshots_without_creative_found += len(
@@ -632,12 +640,13 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size):
+def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size, slack_url):
     with get_database_connection(config) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, batch_size)
+            db_connection, bucket_client, access_token, batch_size, slack_url)
         image_retriever.retrieve_and_store_ad_creatives(archive_ids)
+
 
 def main(argv):
     config = configparser.ConfigParser()
@@ -652,6 +661,8 @@ def main(argv):
     max_threads = config.getint('LIMITS', 'MAX_THREADS', fallback=DEFAULT_NUM_THREADS)
     logging.info('Max threads: %d', max_threads)
 
+    slack_url = config.get('LOGGING', 'SLACK_URL')
+
     with get_database_connection(config) as db_connection:
         logging.info('DB connection established')
         db_interface = db_functions.DBInterface(db_connection)
@@ -661,11 +672,12 @@ def main(argv):
             archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        futures = []
+        exectutor_futures = []
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
-            futures.append(executor.submit(
-                    retrieve_and_store_ad_creatives, config, access_token, archive_id_batch,
-                    batch_size))
+            new_future = executor.submit(
+                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
+                slack_url)
+            exectutor_futures.append(new_future)
 
 
 if __name__ == '__main__':
