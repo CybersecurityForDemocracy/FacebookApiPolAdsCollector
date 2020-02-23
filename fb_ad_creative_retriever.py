@@ -640,7 +640,7 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size):
+def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size, slack_url):
     with get_database_connection(config) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
@@ -675,9 +675,9 @@ def main(argv):
         exectutor_futures = []
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
             new_future = executor.submit(
-                    retrieve_and_store_ad_creatives, config, access_token, archive_id_batch,
-                    batch_size, slack_url)
-            exectutor_futures.append(exectutor_futures)
+                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
+                slack_url)
+            exectutor_futures.append(new_future)
 
 
 if __name__ == '__main__':
