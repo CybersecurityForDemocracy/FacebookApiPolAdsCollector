@@ -327,3 +327,8 @@ class DBInterface():
                                        ad_creative_record_list,
                                        template=insert_template,
                                        page_size=250)
+
+    def cluster_ids(self, country, start_time, end_time):
+        """ Return cluster_ids for all clusters which were active/started in a certain timeframe. """
+        # TODO: Implement this to fetch clusters for the given country in the last 
+        return []

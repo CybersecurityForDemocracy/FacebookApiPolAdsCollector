@@ -7,13 +7,19 @@ export GOOGLE_APPLICATION_CREDENTIALS=[PATH TO credentials.json]
 You can generate a new key here: https://console.cloud.google.com/apis/credentials/serviceaccountkey?project=nyupoladstransparency&folder=&organizationId=&angularJsUrl=%2Fapis%2Fcredentials%2Fserviceaccountkey%3Fsupportedpurview%3Dproject%26project%3Dnyupoladstransparency%26folder%3D%26organizationId%3D&supportedpurview=project
 """
 import logging
+import sys
+import json
 from collections import defaultdict
 
 from google.cloud import language_v1
 from google.cloud.language_v1 import enums
 from google.protobuf.json_format import MessageToDict
 
+import db_functions
+import generic_fb_collector
+
 GCS_CREDENTIALS_FILE = '/home/divam/credentials.json'
+ENTITY_MAP_FILE = '/home/divam/map_for_date.json'
 
 
 class NamedEntityAnalysis(object):
@@ -105,8 +111,27 @@ class NamedEntityAnalysis(object):
 
         return entity_cluster_map
 
+def generate_entity_cluster_report():
+    # TODO: This if False is gated by productionization
+    if False:
+        config = generic_fb_collector.get_config(sys.argv[1])
+        country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+        connection = generic_fb_collector.get_db_connection(config)
+        db_interface = db_functions.DBInterface(connection)
+        cluster_ids = db_interface.cluster_ids(country_code, '01312020', '02292020')
+    else:
+        cluster_ids = [1234, 123]
+
+    analysis = NamedEntityAnalysis()
+    entity_map = analysis.get_entity_list_for_clusters(cluster_ids)
+    logging.debug('Analysis result: %s', entity_map)
+
+    # TODO: This should write to GCS somewhere daily?
+    with open(ENTITY_MAP_FILE, 'w') as outfile:
+        json.dump(entity_map, outfile)
+    
+
+
 
 if __name__ == '__main__':
-    analysis = NamedEntityAnalysis()
-    cluster_ids = [1234, 123]
-    print('Analysis result:', analysis.get_entity_list_for_clusters(cluster_ids))
+    generate_entity_cluster_report()

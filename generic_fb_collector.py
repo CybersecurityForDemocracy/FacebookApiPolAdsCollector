@@ -447,7 +447,7 @@ def send_completion_slack_notification(
     if (num_ads_added < min_expected_new_ads or
             num_impressions_added < min_expected_new_impressions):
         error_log_msg = (
-            f"Minimun expected records not met! Ads expected: "
+            f"Minimum expected records not met! Ads expected: "
             f"{min_expected_new_ads} added: {num_ads_added}, "
             f"impressions expected: {min_expected_new_impressions} added: "
             f"{num_impressions_added} ")
@@ -528,10 +528,14 @@ def main(config, country_code):
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions)
 
+def get_config(config_path):
+    config = configparser.ConfigParser()
+    config.read()
+    return config
+    
 
 if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read(sys.argv[1])
+    config = get_config(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
 
     standard_logger_config.configure_logger(f"{country_code}_fb_api_collection.log")
