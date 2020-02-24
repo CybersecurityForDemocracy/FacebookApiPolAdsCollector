@@ -86,11 +86,11 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+            'SELECT ad_creative_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['archive_id'], row['text_sim_hash']) for row in results])
+        return dict([(row['ad_creative_id'], row['text_sim_hash']) for row in results])
 
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.

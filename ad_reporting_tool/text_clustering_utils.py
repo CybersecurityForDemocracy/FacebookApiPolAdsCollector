@@ -53,35 +53,36 @@ def ad_creative_body_text_similarity_clusters(db_connection):
     db_interface = db_functions.DBInterface(db_connection)
 
     # Get all ad creative body simhashes from database.
-    raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
+    raw_creative_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
 
-    # TODO(macpd): use ad_creative_id instead of archive_id
     # Convert map to str id -> Simhash obj
-    archive_id_to_simhash = {}
-    for a in raw_archive_id_to_simhash:
-        archive_id_to_simhash[str(a)] = simhash.Simhash(int(raw_archive_id_to_simhash[a],16))
+    creative_id_to_simhash = {}
+    simhash_to_creative_ids = collections.defaultdict(set)
+    for creative_id in raw_creative_id_to_simhash:
+        text_simhash_as_int = int(raw_creative_id_to_simhash[creative_id],16)
+        simhash_to_creative_ids[text_simhash_as_int].add(creative_id)
+        creative_id_to_simhash[str(creative_id)] = simhash.Simhash(text_simhash_as_int)
+
     # Create simhash index
-    text_simhash_index = simhash.SimhashIndex(archive_id_to_simhash.items(), k=BIT_DIFFERENCE_THRESHOLD)
+    text_simhash_index = simhash.SimhashIndex(creative_id_to_simhash.items(), k=BIT_DIFFERENCE_THRESHOLD)
 
-    # Process all archive IDs to get clusters of archive_ids with similar text
-    seen_archive_ids = set()
-    archive_ids_with_similar_text = []
-    for archive_id in archive_id_to_simhash:
-        if len(seen_archive_ids) % 10000 == 0:
-            logging.info('Processed %d archive IDs.', len(seen_archive_ids))
-        if archive_id in seen_archive_ids:
-            continue
+    # Process all archive IDs to get clusters of creative_ids with similar text
+    uf = unionfind.UnionFind()
+    creative_ids_with_similar_text = []
+    for curr_simhash_as_int in simhash_to_creative_ids:
+        found = text_simhash_index.get_near_dups(simhash.Simhash(curr_simhash_as_int))
+        # Convert found creative IDs back to ints since SimhashIndex converts returns them as
+        # strings regardless of the provided type.
+        found = [int(x) for x in found]
+        # Connect all combinantions (regardless of order) of found simhashes
+        for creative_id_pair in itertools.combinations(found, 2):
+            uf.union(creative_id_pair[0], creative_id_pair[1])
 
-        seen_archive_ids.add(archive_id)
-        similar_archive_ids = text_simhash_index.get_near_dups(archive_id_to_simhash[archive_id])
-        # TODO(macpd): double check this set optimization logic
-        [seen_archive_ids.add(x) for x in similar_archive_ids]
-        archive_ids_with_similar_text.append(similar_archive_ids)
+    components = uf.components()
+    logging.info('Processed %d text simhashes. got %d clusters', len(simhash_to_creative_ids), len(components))
+    # TODO(macpd): Create map of cluster -> creative IDs
 
-    logging.info('Processed %d archive IDs. got %d clusters', len(seen_archive_ids),
-                 len(archive_ids_with_similar_text))
-
-    return archive_ids_with_similar_text
+    return components
 
 def ad_creative_image_similarity_clusters(db_connection):
     """Returns list of clusters of image simhashs of similar ad creative images.
@@ -109,18 +110,19 @@ def ad_creative_image_similarity_clusters(db_connection):
         simhash_to_creative_ids[image_simhash_as_int].add(int(creative_id))
         image_simhash_tree.add(image_simhash_as_int)
 
-    uf = unionfind.UnionFind(simhash_to_creative_ids.keys())
+    uf = unionfind.UnionFind() #simhash_to_creative_ids.keys())
     # Process all image sim hashes to get clusters of similar image simhashes
     for curr_simhash in simhash_to_creative_ids:
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
         found_hashes = [x[1] for x in found]
-        # Connect all combinantions (regardless of order) of found simhashes
-        for hash_pair in itertools.combinations(found_hashes, 2):
-            uf.union(hash_pair[0], hash_pair[1])
+        for _, found_hash in found:
+            # Connect all combinantions (regardless of order) of found simhashes
+            for creative_id_pair in itertools.combinations(simhash_to_creative_ids[found_hash], 2):
+                uf.union(creative_id_pair[0], creative_id_pair[1])
 
     components = uf.components()
-    logging.info('Processed %d creative IDs. got %d clusters', num_processed, len(components))
+    logging.info('Processed %d creative IDs. got %d clusters', len(simhash_to_creative_ids), len(components))
     # TODO(macpd): Create map of cluster -> creative IDs
 
     return components
