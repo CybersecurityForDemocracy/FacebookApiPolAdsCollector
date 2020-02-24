@@ -1,10 +1,7 @@
 """ Wrapper for all GCP Language API code.
 
 You can read more about it here: https://cloud.google.com/natural-language/docs/basics
-You will have to export GOOGLE_APPLICATION_CREDENTIALS before running this file.
-export GOOGLE_APPLICATION_CREDENTIALS=[PATH TO credentials.json]
-
-You can generate a new key here: https://console.cloud.google.com/apis/credentials/serviceaccountkey?project=nyupoladstransparency&folder=&organizationId=&angularJsUrl=%2Fapis%2Fcredentials%2Fserviceaccountkey%3Fsupportedpurview%3Dproject%26project%3Dnyupoladstransparency%26folder%3D%26organizationId%3D&supportedpurview=project
+You can generate a new credentials file here: https://console.cloud.google.com/apis/credentials/serviceaccountkey?project=nyupoladstransparency&folder=&organizationId=&angularJsUrl=%2Fapis%2Fcredentials%2Fserviceaccountkey%3Fsupportedpurview%3Dproject%26project%3Dnyupoladstransparency%26folder%3D%26organizationId%3D&supportedpurview=project
 """
 import logging
 import sys
@@ -18,8 +15,8 @@ from google.protobuf.json_format import MessageToDict
 import db_functions
 import generic_fb_collector
 
-GCS_CREDENTIALS_FILE = '/home/divam/credentials.json'
-ENTITY_MAP_FILE = '/home/divam/map_for_date.json'
+GCS_CREDENTIALS_FILE = 'credentials.json'
+ENTITY_MAP_FILE = 'map_for_date.json'
 
 
 class NamedEntityAnalysis(object):
@@ -99,8 +96,9 @@ class NamedEntityAnalysis(object):
             cluster_text = self.get_cluster_text(cluster_id)
 
             # Always try to fetch a result from storage if possible.
-            ner_analysis_result = self._load_all_results(
-                cluster_id) or self._analyze_entities(cluster_text)
+            ner_analysis_result = self._load_all_results( cluster_id)
+            if not ner_analysis_result:
+                ner_analysis_result = self._analyze_entities(cluster_text)
 
             self._store_all_results(cluster_id, ner_analysis_result)
 
