@@ -73,6 +73,16 @@ SnapshotDemoRecord = namedtuple(
         "max_spend",
     ],
 )
+SearchRunnerParams = namedtuple(
+        'SearchRunnerParams',
+        ['country_code',
+         'facebook_access_token',
+         'sleep_time',
+         'request_limit',
+         'max_requests',
+         'soft_max_runtime_in_seconds'
+         ])
+
 
 FIELDS_TO_REQUEST = [
     "ad_creation_time",
@@ -94,16 +104,6 @@ FIELDS_TO_REQUEST = [
     "spend",
 ]
 
-SearchRunnerParams = namedtuple(
-        'SearchRunnerParams',
-        ['country_code',
-         'facebook_access_token',
-         'sleep_time',
-         'request_limit',
-         'max_requests',
-         'soft_max_runtime_in_seconds'
-         ])
-
 class SearchRunner():
 
     def __init__(self, crawl_date, connection, db, search_runner_params):
@@ -111,7 +111,7 @@ class SearchRunner():
         self.country_code = search_runner_params.country_code
         self.connection = connection
         self.db = db
-        self.fb_access_token = search_runner_params.fb_access_token
+        self.fb_access_token = search_runner_params.facebook_access_token
         self.sleep_time = search_runner_params.sleep_time
         self.request_limit = search_runner_params.request_limit
         self.max_requests = search_runner_params.max_requests
