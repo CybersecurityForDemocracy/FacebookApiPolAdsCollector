@@ -634,8 +634,10 @@ def retrieve_and_store_ad_creatives(database_connection_params, access_token, ar
 
 def halt_if_too_many_requests_error(slack_url, invoking_thread_future):
     thread_exception = invoking_thread_future.exception()
-    logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
-                 type(thread_exception), thread_exception)
+    if thread_exception:
+        logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
+                     type(thread_exception), thread_exception)
+
     if isinstance(thread_exception, TooManyRequestsException):
         slack_notifier.notify_slack(slack_url,
                 ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
