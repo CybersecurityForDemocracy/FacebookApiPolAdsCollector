@@ -361,4 +361,15 @@ class DBInterface():
     def cluster_ids(self, country, start_time, end_time):
         """ Return cluster_ids for all clusters which were active/started in a certain timeframe. """
         # TODO: Implement this to fetch clusters for the given country in the last 
-        return []
+        # TODO(macpd): handle end_time being none, or NULL in DB
+        query = ('SELECT ad_clusters.ad_cluster_id FROM ad_clusters '
+                 '    JOIN ad_creatives ON ad_clusters.ad_creative_id = ad_creatives.ad_creative_id '
+                 '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
+                 '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+                 '    WHERE ads_countries.country_code = \'%(country)s\' AND '
+                 '    ads.ad_delivery_start_time >=  %(start_time)s AND '
+                 '    (ads.ad_delivery_stop_time <= %(end_time)s OR '
+                 '    ads.ad_delivery_stop_time IS NULL')
+        cursor = self.get_cursor()
+        cursor.execute(query)
+        return [row['id'] for row in cursor.fetchall()]
