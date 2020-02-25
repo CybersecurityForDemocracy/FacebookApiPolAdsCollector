@@ -24,16 +24,14 @@ def get_db_connection(config):
     return psycopg2.connect(dbauthorize)
 
 def main(config):
-    with get_db_connection(config) as db_connection:
-        logging.info('DB connection %s', db_connection.dsn)
-
-        all_clusters = text_clustering_utils.update_ad_creative_clusters(db_connection)
-        all_simhash_clusters_as_lists = [list(cluster) for cluster in all_simhash_clusters]
-        # TODO(macpd): persist clusters somehow.
-        all_clusters_filename = 'all_clusters.json'
-        with open(all_clusters_filename, 'w') as f:
-            json.dump(all_simhash_clusters_as_lists, f)
-        print(f'Wrote all simhash clusters as JSON to {all_clusters_filename}')
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    all_clusters = text_clustering_utils.update_ad_creative_clusters(database_connection_params)
+    all_simhash_clusters_as_lists = [list(cluster) for cluster in all_simhash_clusters]
+    # TODO(macpd): persist clusters somehow.
+    all_clusters_filename = 'all_clusters.json'
+    with open(all_clusters_filename, 'w') as f:
+        json.dump(all_simhash_clusters_as_lists, f)
+    print(f'Wrote all simhash clusters as JSON to {all_clusters_filename}')
 
 
 if __name__ == '__main__':
