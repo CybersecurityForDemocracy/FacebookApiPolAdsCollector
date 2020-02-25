@@ -45,7 +45,7 @@ class DBInterface():
         existing_ad_clusters = dict()
         for row in cursor:
             existing_ad_clusters[row['ad_creative_id']] = row['ad_cluster_id']
-        return existing ad_creative_clusters
+        return existing_ad_clusters
 
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.

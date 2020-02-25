@@ -53,10 +53,11 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
 
 def _ad_creative_body_text_similarity_clusters(db_connection, existing_clusters_union_find):
     """Returns unionfind.UnionFind of clusters of creative IDs with similar ad creative body text."""
-    db_interface = db_functions.DBInterface(db_connection)
+    with db_connection:
+        db_interface = db_functions.DBInterface(db_connection)
 
-    # Get all ad creative body simhashes from database.
-    raw_creative_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
+        # Get all ad creative body simhashes from database.
+        raw_creative_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
 
     # Convert map to str id -> Simhash obj
     creative_id_to_simhash = {}
@@ -91,10 +92,11 @@ def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_unio
         unionfind.UnionFind passed in as arg with ad creatives with similar images added and
         connected.
     """
-    db_interface = db_functions.DBInterface(db_connection)
+    with db_connection:
+        db_interface = db_functions.DBInterface(db_connection)
 
-    # Get all ad creative images simhashes from database.
-    creative_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
+        # Get all ad creative images simhashes from database.
+        creative_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
 
     # Create BKTree with dhash bit difference function as distance_function, used to find similar
     # hashes
@@ -111,7 +113,7 @@ def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_unio
     # Process all image sim hashes to get clusters of similar image simhashes
     num_simhash_processed = 0
     for curr_simhash in simhash_to_creative_ids:
-        if num_simhash_processed % 10000 == 0:
+        if num_simhash_processed % 1000 == 0:
             logging.info('Processed %d image simhashses.', num_simhash_processed)
         num_simhash_processed += 1
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
@@ -136,15 +138,13 @@ def _get_lowest_creative_id_cluster_id(existing_ad_creative_id_to_ad_cluster_id,
 def update_ad_creative_clusters(db_connection):
     all_clusters_union_find = unionfind.UnionFind()
     logging.info('Starting text clustering')
-    _ad_creative_body_text_similarity_clusters(db_connection,
-                                                                 all_clusters_union_find)
+    _ad_creative_body_text_similarity_clusters(db_connection, all_clusters_union_find)
     components = all_clusters_union_find.components()
     logging.info('Got %d text clusters', len(components))
     logging.info('Starting image cluster. Passing in text clusters.')
     _ad_creative_image_similarity_clusters(db_connection, all_clusters_union_find)
     components = all_clusters_union_find.components()
     logging.info('Got %d text image clusters', len(components))
-    creative_id_to_cluster = all_clusters_union_find.component_mapping()
     db_interface = db_functions.DBInterface(db_connection)
     existing_ad_creative_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
     next_new_cluster_id = max(existing_ad_creative_id_to_ad_cluster_id.values())
@@ -152,15 +152,15 @@ def update_ad_creative_clusters(db_connection):
     ad_creative_cluster_records = []
     for component in components:
         cluster_id = _get_lowest_creative_id_cluster_id(
-                existing_ad_creative_id_to_ad_cluster_id, component)
+            existing_ad_creative_id_to_ad_cluster_id, component)
         if cluster_id is None:
             cluster_id = next_new_cluster_id
             next_new_cluster_id += 1
-        for creative_id in component_mapping:
-            ad_creative_records.append(AdCreativeClusterRecord(ad_creative_id=creative_id,
-                                                               ad_cluster_id=cluster_id))
+        for creative_id in component:
+            ad_creative_cluster_records.append(AdCreativeClusterRecord(ad_creative_id=creative_id,
+                                                                       ad_cluster_id=cluster_id))
 
 
-    logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_creative_records))
-    db_interface.insert_or_update_ad_cluster_records(ad_creative_records)
+    logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_creative_cluster_records))
+    db_interface.insert_or_update_ad_cluster_records(ad_creative_cluster_records)
     return components
