@@ -39,7 +39,7 @@ class DBInterface():
         return existing_funders
 
     def existing_ad_clusters(self):
-        cursor = self.get_cluster()
+        cursor = self.get_cursor()
         existing_ad_clusters_query = 'SELECT ad_creative_id, ad_cluster_id FROM ad_clusters VALUES'
         cursor.execute(existing_ad_clusters_query)
         existing_ad_clusters = dict()

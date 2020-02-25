@@ -161,7 +161,11 @@ def update_ad_creative_clusters(database_connection_params):
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
         existing_ad_creative_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
-        next_new_cluster_id = max(existing_ad_creative_id_to_ad_cluster_id.values())
+        if existing_ad_creative_id_to_ad_cluster_id:
+            next_new_cluster_id = max(existing_ad_creative_id_to_ad_cluster_id.values())
+        else:
+            next_new_cluster_id = 0
+
 
         ad_creative_cluster_records = []
         for component in components:
