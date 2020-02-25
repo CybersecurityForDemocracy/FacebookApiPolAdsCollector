@@ -43,8 +43,27 @@ def get_database_connection(database_connection_params):
     logging.info('Established connecton to %s', connection.dsn)
     return connection
 
+
+def get_database_connection_from_config(config):
+    """Get pyscopg2 database connection from the provided ConfigParser.
+
+    Args:
+        config: configparser.ConfigParser initialized from desired file.
+    Returns:
+        psycopg2.connection ready to be used.
+    """
+    connection_params = get_database_connection_params_from_config(config)
+    return get_database_connection(connection_params)
+
+
 def get_facebook_access_token(config):
     return config['FACEBOOK']['TOKEN']
+
+
+def get_config(config_path):
+    config = configparser.ConfigParser()
+    config.read()
+    return config
 
 
 def configure_logger(log_filename):

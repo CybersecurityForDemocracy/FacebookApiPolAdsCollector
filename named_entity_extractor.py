@@ -13,7 +13,7 @@ from google.cloud.language_v1 import enums
 from google.protobuf.json_format import MessageToDict
 
 import db_functions
-import generic_fb_collector
+import config_utils
 
 GCS_CREDENTIALS_FILE = 'credentials.json'
 ENTITY_MAP_FILE = 'map_for_date.json'
@@ -112,9 +112,9 @@ class NamedEntityAnalysis(object):
 def generate_entity_cluster_report():
     # TODO: This if False is gated by productionization
     if False:
-        config = generic_fb_collector.get_config(sys.argv[1])
+        config = config_utils.get_config(sys.argv[1])
         country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-        connection = generic_fb_collector.get_db_connection(config)
+        connection = config_utils.get_database_connection_from_config(config)
         db_interface = db_functions.DBInterface(connection)
         cluster_ids = db_interface.cluster_ids(country_code, '01312020', '02292020')
     else:

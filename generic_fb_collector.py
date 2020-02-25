@@ -497,8 +497,7 @@ def main(config):
         soft_max_runtime_in_seconds=config.getint('SEARCH', 'SOFT_MAX_RUNIME_IN_SECONDS',
                                                   fallback=None))
 
-    database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    connection = config_utils.get_database_connection(database_connection_params)
+    connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
     db = DBInterface(connection)
     search_runner = SearchRunner(
@@ -545,14 +544,8 @@ def main(config):
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions)
 
-def get_config(config_path):
-    config = configparser.ConfigParser()
-    config.read()
-    return config
-    
-
 if __name__ == '__main__':
-    config = get_config(sys.argv[1])
+    config = config_utils.get_config(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
 
     config_utils.configure_logger(f"{country_code}_fb_api_collection.log")
