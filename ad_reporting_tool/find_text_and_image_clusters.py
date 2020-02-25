@@ -50,6 +50,7 @@ def main(config):
     #  print(f'Wrote image simhash clusters as JSON to {image_clusters_filename}')
     all_clusters = text_clustering_utils.ad_creative_clusters(db_connection)
     all_simhash_clusters_as_lists = [list(cluster) for cluster in all_simhash_clusters]
+    # TODO(macpd): persist clusters somehow.
     all_clusters_filename = 'all_clusters.json'
     with open(all_clusters_filename, 'w') as f:
         json.dump(all_simhash_clusters_as_lists, f)

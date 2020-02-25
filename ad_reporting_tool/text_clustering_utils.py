@@ -105,7 +105,11 @@ def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_unio
         image_simhash_tree.add(image_simhash_as_int)
 
     # Process all image sim hashes to get clusters of similar image simhashes
+    num_simhash_processed = 0
     for curr_simhash in simhash_to_creative_ids:
+        if num_simhash_processed % 10000 == 0:
+            logging.info('Processed %d image simhashses.', num_simhash_processed)
+        num_simhash_processed += 1
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
         for _, found_hash in found:
