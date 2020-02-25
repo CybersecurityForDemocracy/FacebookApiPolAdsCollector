@@ -62,8 +62,15 @@ def get_facebook_access_token(config):
 
 
 def get_config(config_path):
+    """Get configparser object initialized from config path.
+
+    Args:
+        config_path: str file path to config.
+    Returns:
+        configparser.ConfigParser initialized from config_path.
+    """
     config = configparser.ConfigParser()
-    config.read()
+    config.read(config_path)
     return config
 
 
