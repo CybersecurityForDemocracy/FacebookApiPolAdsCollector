@@ -3,6 +3,7 @@ import concurrent.futures
 import configparser
 import datetime
 import enum
+import functools
 import hashlib
 import logging
 import io
@@ -631,6 +632,19 @@ def retrieve_and_store_ad_creatives(database_connection_params, access_token, ar
             db_connection, bucket_client, access_token, batch_size, slack_url)
         image_retriever.retrieve_and_store_ad_creatives(archive_ids)
 
+def halt_if_too_many_requests_error(slack_url, invoking_thread_future):
+    thread_exception = invoking_thread_future.exception()
+    if thread_exception:
+        logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
+                     type(thread_exception), thread_exception)
+
+    if isinstance(thread_exception, TooManyRequestsException):
+        slack_notifier.notify_slack(slack_url,
+                ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
+                'thread terminated with TooManyRequestsException. Aborting! :rotating_light: '
+                ':rotating_light: :rotating_light:')
+        logging.error('Thread completed with TooManyRequestsException. Aborting!')
+        sys.exit(1)
 
 def main(argv):
     config = configparser.ConfigParser()
@@ -658,10 +672,12 @@ def main(argv):
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         exectutor_futures = []
+        done_callback = functools.partial(halt_if_too_many_requests_error, slack_url)
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
             new_future = executor.submit(
                 retrieve_and_store_ad_creatives, database_connection_params, access_token,
                 archive_id_batch, batch_size, slack_url)
+            new_future.add_done_callback(done_callback)
             exectutor_futures.append(new_future)
 
 
