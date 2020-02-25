@@ -10,7 +10,7 @@ import psycopg2
 import simhash
 
 import db_functions
-import standard_logger_config
+import config_utils
 from ad_reporting_tool import text_clustering_utils
 
 def get_db_connection(config):
@@ -40,5 +40,5 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read(sys.argv[1])
 
-    standard_logger_config.configure_logger("text_clustering_utils.log")
+    config_utils.configure_logger("find_text_and_image_clusters.log")
     main(config)

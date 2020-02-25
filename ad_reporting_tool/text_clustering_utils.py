@@ -160,7 +160,6 @@ def update_ad_creative_clusters(db_connection):
             ad_creative_cluster_records.append(AdCreativeClusterRecord(ad_creative_id=creative_id,
                                                                        ad_cluster_id=cluster_id))
 
-
     logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_creative_cluster_records))
     db_interface.insert_or_update_ad_cluster_records(ad_creative_cluster_records)
     return components
