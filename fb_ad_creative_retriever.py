@@ -624,9 +624,8 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size, slack_url):
+def retrieve_and_store_ad_creatives(database_connection_params, access_token, archive_ids, batch_size, slack_url):
     with config_utils.get_database_connection(database_connection_params) as db_connection:
-
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
             db_connection, bucket_client, access_token, batch_size, slack_url)
@@ -650,8 +649,6 @@ def main(argv):
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(database_connection_params) as db_connection:
-
-    with get_database_connection(config) as db_connection:
         logging.info('DB connection established')
         db_interface = db_functions.DBInterface(db_connection)
         if max_archive_ids == -1:
@@ -663,8 +660,8 @@ def main(argv):
         exectutor_futures = []
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
             new_future = executor.submit(
-                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
-                slack_url)
+                retrieve_and_store_ad_creatives, database_connection_params, access_token,
+                archive_id_batch, batch_size, slack_url)
             exectutor_futures.append(new_future)
 
 
