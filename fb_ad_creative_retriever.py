@@ -644,7 +644,7 @@ def main(argv):
 
     max_threads = config.getint('LIMITS', 'MAX_THREADS', fallback=DEFAULT_NUM_THREADS)
     logging.info('Max threads: %d', max_threads)
-    
+
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
