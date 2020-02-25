@@ -14,15 +14,13 @@ import dhash
 from google.cloud import storage
 import requests
 from PIL import Image
-import psycopg2
-import psycopg2.extras
 from selenium import webdriver
 from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, WebDriverException
 
+import config_utils
 import db_functions
 import sim_hash_ad_creative_text
 import slack_notifier
-import standard_logger_config
 import snapshot_url_util
 
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
@@ -167,20 +165,6 @@ def get_headless_chrome_driver(webdriver_executable_path):
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
     return driver
-
-
-def get_database_connection(config):
-    host = config['POSTGRES']['HOST']
-    dbname = config['POSTGRES']['DBNAME']
-    user = config['POSTGRES']['USER']
-    password = config['POSTGRES']['PASSWORD']
-    port = config['POSTGRES']['PORT']
-
-    db_authorize = "host=%s dbname=%s user=%s password=%s port=%s" % (
-        host, dbname, user, password, port)
-    connection = psycopg2.connect(db_authorize)
-    logging.info('Established connecton to %s', connection.dsn)
-    return connection
 
 
 def make_gcs_bucket_client(bucket_name, credentials_file):
@@ -640,8 +624,8 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(config, access_token, archive_ids, batch_size, slack_url):
-    with get_database_connection(config) as db_connection:
+def retrieve_and_store_ad_creatives(database_connection_params, access_token, archive_ids, batch_size, slack_url):
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
             db_connection, bucket_client, access_token, batch_size, slack_url)
@@ -652,7 +636,7 @@ def main(argv):
     config = configparser.ConfigParser()
     config.read(argv[0])
 
-    access_token = config['FACEBOOK']['TOKEN']
+    access_token = config_utils.get_facebook_access_token(config)
     batch_size = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
     max_archive_ids = config.getint('LIMITS', 'MAX_ARCHIVE_IDS', fallback=DEFAULT_MAX_ARCHIVE_IDS)
     logging.info('Batch size: %d', batch_size)
@@ -663,7 +647,8 @@ def main(argv):
 
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
-    with get_database_connection(config) as db_connection:
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
         logging.info('DB connection established')
         db_interface = db_functions.DBInterface(db_connection)
         if max_archive_ids == -1:
@@ -675,13 +660,13 @@ def main(argv):
         exectutor_futures = []
         for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
             new_future = executor.submit(
-                retrieve_and_store_ad_creatives, config, access_token, archive_id_batch, batch_size,
-                slack_url)
+                retrieve_and_store_ad_creatives, database_connection_params, access_token,
+                archive_id_batch, batch_size, slack_url)
             exectutor_futures.append(new_future)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Usage: %s <config file>' % sys.argv[0])
-    standard_logger_config.configure_logger("fb_ad_creative_retriever.log")
+    config_utils.configure_logger("fb_ad_creative_retriever.log")
     main(sys.argv[1:])
