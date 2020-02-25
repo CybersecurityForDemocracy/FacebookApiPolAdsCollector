@@ -13,15 +13,6 @@ import db_functions
 import config_utils
 from ad_reporting_tool import text_clustering_utils
 
-def get_db_connection(config):
-    host = config['POSTGRES']['HOST']
-    dbname = config['POSTGRES']['DBNAME']
-    user = config['POSTGRES']['USER']
-    password = config['POSTGRES']['PASSWORD']
-    port = config['POSTGRES']['PORT']
-    dbauthorize = "host=%s dbname=%s user=%s password=%s port=%s" % (
-        host, dbname, user, password, port)
-    return psycopg2.connect(dbauthorize)
 
 def main(config):
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
