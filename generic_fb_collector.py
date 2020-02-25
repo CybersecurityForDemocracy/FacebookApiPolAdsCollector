@@ -1,4 +1,3 @@
-import configparser
 import csv
 import datetime
 import json

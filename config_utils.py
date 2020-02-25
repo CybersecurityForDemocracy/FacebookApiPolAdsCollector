@@ -1,5 +1,6 @@
 """Module to hold common config logic."""
 import collections
+import configparser
 import logging
 
 import psycopg2
