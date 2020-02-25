@@ -490,9 +490,9 @@ def main(config):
     search_runner_params = SearchRunnerParams(
         country_code=config['SEARCH']['COUNTRY_CODE'],
         facebook_access_token=config_utils.get_facebook_access_token(config),
-        sleep_time=int(config['SEARCH']['SLEEP_TIME']),
-        request_limit=int(config['SEARCH']['LIMIT']),
-        max_requests=int(config['SEARCH']['MAX_REQUESTS']),
+        sleep_timeconfig.getint('SEARCH', 'SLEEP_TIME'),
+        request_limit=config.getint('SEARCH', 'LIMIT'),
+        max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
         soft_max_runtime_in_seconds=config.getint('SEARCH', 'SOFT_MAX_RUNIME_IN_SECONDS',
                                                   fallback=None))
 
