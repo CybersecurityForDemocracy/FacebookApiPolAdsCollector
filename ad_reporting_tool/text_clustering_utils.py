@@ -48,8 +48,8 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
         simhash_to_id[text_hash] = db_interface.ad_creative_ids_with_text_simhash(text_hash)
     return simhash_to_id
 
-def ad_creative_body_text_similarity_clusters(db_connection):
-    """Returns list of clusters of archive IDs with similar ad creative body text."""
+def _ad_creative_body_text_similarity_clusters(db_connection, existing_clusters_union_find):
+    """Returns unionfind.UnionFind of clusters of creative IDs with similar ad creative body text."""
     db_interface = db_functions.DBInterface(db_connection)
 
     # Get all ad creative body simhashes from database.
@@ -68,7 +68,6 @@ def ad_creative_body_text_similarity_clusters(db_connection):
                                               k=BIT_DIFFERENCE_THRESHOLD)
 
     # Process all archive IDs to get clusters of creative_ids with similar text
-    uf = unionfind.UnionFind()
     for curr_simhash_as_int in simhash_to_creative_ids:
         found = text_simhash_index.get_near_dups(simhash.Simhash(curr_simhash_as_int))
         # Convert found creative IDs back to ints since SimhashIndex converts returns them as
@@ -76,23 +75,17 @@ def ad_creative_body_text_similarity_clusters(db_connection):
         found = [int(x) for x in found]
         # Connect all combinantions (regardless of order) of found simhashes
         for creative_id_pair in itertools.combinations(found, 2):
-            uf.union(creative_id_pair[0], creative_id_pair[1])
+            existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 
-    components = uf.components()
-    logging.info('Processed %d text simhashes. got %d clusters', len(simhash_to_creative_ids),
-                 len(components))
-    # TODO(macpd): Create map of cluster -> creative IDs
 
-    return components
-
-def ad_creative_image_similarity_clusters(db_connection):
-    """Returns list of clusters of image simhashs of similar ad creative images.
+def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_union_find):
+    """Returns unionfind.UnionFind of clusters of creative IDs with similar image simhashes.
 
     Args:
         db_connection: psycopg2.connection connection to database from which to retrieve ad creative
         data.
     Returns:
-        List of sets of image simhashes (as int) that are similar.
+        List of sets of ad creative (as int) that are similar.
     """
     db_interface = db_functions.DBInterface(db_connection)
 
@@ -111,7 +104,6 @@ def ad_creative_image_similarity_clusters(db_connection):
         simhash_to_creative_ids[image_simhash_as_int].add(int(creative_id))
         image_simhash_tree.add(image_simhash_as_int)
 
-    uf = unionfind.UnionFind() #simhash_to_creative_ids.keys())
     # Process all image sim hashes to get clusters of similar image simhashes
     for curr_simhash in simhash_to_creative_ids:
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
@@ -119,11 +111,19 @@ def ad_creative_image_similarity_clusters(db_connection):
         for _, found_hash in found:
             # Connect all combinantions (regardless of order) of found simhashes
             for creative_id_pair in itertools.combinations(simhash_to_creative_ids[found_hash], 2):
-                uf.union(creative_id_pair[0], creative_id_pair[1])
+                existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 
-    components = uf.components()
-    logging.info('Processed %d creative IDs. got %d clusters', len(simhash_to_creative_ids),
-                 len(components))
-    # TODO(macpd): Create map of cluster -> creative IDs
 
-    return components
+
+def ad_creative_clusters(db_connection):
+    all_clusters_union_find = unionfind.UnionFind()
+    logging.info('Starting text clustering')
+    text_union_find = _ad_creative_body_text_similarity_clusters(db_connection,
+                                                                 all_clusters_union_find)
+    components = all_clusters_union_find.components()
+    logging.info('Got %d text clusters', len(components))
+    logging.info('Starting image cluster. Passing in text clusters.')
+    image_union_find = _ad_creative_image_similarity_clusters(db_connection, all_clusters_union_find)
+    logging.info('Got %d text image clusters', len(components))
+    return all_clusters_union_find
+
