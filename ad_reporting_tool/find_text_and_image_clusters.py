@@ -24,7 +24,7 @@ def get_db_connection(config):
     return psycopg2.connect(dbauthorize)
 
 def main(config):
-    with get_db_connectiont(config) as db_connection:
+    with get_db_connection(config) as db_connection:
         logging.info('DB connection %s', db_connection.dsn)
 
         all_clusters = text_clustering_utils.update_ad_creative_clusters(db_connection)
