@@ -12,6 +12,9 @@ from lib.unionfind import unionfind
 
 BIT_DIFFERENCE_THRESHOLD = 3
 
+AdCreativeClusterRecord = collections.namedtuple('AdCreativeClusterRecord', ['ad_creative_id',
+                                                                             'ad_cluster_id'])
+
 def duplicated_ad_creative_body_simhash_snapshot_urls(access_token, db_connection):
     """Get map simhash -> snapshot urls of ads with that creative body simhash.
 
@@ -85,7 +88,8 @@ def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_unio
         db_connection: psycopg2.connection connection to database from which to retrieve ad creative
         data.
     Returns:
-        List of sets of ad creative (as int) that are similar.
+        unionfind.UnionFind passed in as arg with ad creatives with similar images added and
+        connected.
     """
     db_interface = db_functions.DBInterface(db_connection)
 
@@ -118,16 +122,45 @@ def _ad_creative_image_similarity_clusters(db_connection, existing_clusters_unio
                 existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 
 
+def _get_lowest_creative_id_cluster_id(existing_ad_creative_id_to_ad_cluster_id, creative_id_set):
+    creative_id_set = creative_id_set.copy()
+    while creative_id_set:
+        min_creative_id = min(creative_id_set)
+        if min_creative_id in existing_ad_creative_id_to_ad_cluster_id:
+            return existing_ad_creative_id_to_ad_cluster_id[min_creative_id]
+        creative_id_set.remove(min_creative_id)
 
-def ad_creative_clusters(db_connection):
+    return None
+
+
+def update_ad_creative_clusters(db_connection):
     all_clusters_union_find = unionfind.UnionFind()
     logging.info('Starting text clustering')
-    text_union_find = _ad_creative_body_text_similarity_clusters(db_connection,
+    _ad_creative_body_text_similarity_clusters(db_connection,
                                                                  all_clusters_union_find)
     components = all_clusters_union_find.components()
     logging.info('Got %d text clusters', len(components))
     logging.info('Starting image cluster. Passing in text clusters.')
-    image_union_find = _ad_creative_image_similarity_clusters(db_connection, all_clusters_union_find)
+    _ad_creative_image_similarity_clusters(db_connection, all_clusters_union_find)
+    components = all_clusters_union_find.components()
     logging.info('Got %d text image clusters', len(components))
-    return all_clusters_union_find
+    creative_id_to_cluster = all_clusters_union_find.component_mapping()
+    db_interface = db_functions.DBInterface(db_connection)
+    existing_ad_creative_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
+    next_new_cluster_id = max(existing_ad_creative_id_to_ad_cluster_id.values())
 
+    ad_creative_cluster_records = []
+    for component in components:
+        cluster_id = _get_lowest_creative_id_cluster_id(
+                existing_ad_creative_id_to_ad_cluster_id, component)
+        if cluster_id is None:
+            cluster_id = next_new_cluster_id
+            next_new_cluster_id += 1
+        for creative_id in component_mapping:
+            ad_creative_records.append(AdCreativeClusterRecord(ad_creative_id=creative_id,
+                                                               ad_cluster_id=cluster_id))
+
+
+    logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_creative_records))
+    db_interface.insert_or_update_ad_cluster_records(ad_creative_records)
+    return components

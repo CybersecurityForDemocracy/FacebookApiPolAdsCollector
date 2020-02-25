@@ -38,6 +38,15 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
+    def existing_ad_clusters(self):
+        cursor = self.get_cluster()
+        existing_ad_clusters_query = 'SELECT ad_creative_id, ad_cluster_id FROM ad_clusters VALUES'
+        cursor.execute(existing_ad_clusters_query)
+        existing_ad_clusters = dict()
+        for row in cursor:
+            existing_ad_clusters[row['ad_creative_id']] = row['ad_cluster_id']
+        return existing ad_creative_clusters
+
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
 
@@ -365,5 +374,19 @@ class DBInterface():
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        ad_creative_record_list,
+                                       template=insert_template,
+                                       page_size=250)
+
+
+    def insert_or_update_ad_cluster_records(self, ad_creative_cluster_records):
+        cursor = self.get_cluster()
+        insert_query = (
+                'INSERT INTO ad_clusters (ad_creative_id, ad_cluster_id) VALUES %s ON CONFLICT '
+                '(ad_creative_id) UPDATE')
+        insert_template = '%(ad_creative_id)s, %(ad_cluster_id)s'
+        ad_creative_cluster_record_list = [x._asdict() for x in ad_creative_cluster_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       ad_creative_cluster_record_list,
                                        template=insert_template,
                                        page_size=250)
