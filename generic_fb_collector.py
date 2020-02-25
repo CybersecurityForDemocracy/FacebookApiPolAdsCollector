@@ -196,15 +196,20 @@ class SearchRunner():
             logging.info("no demo impression information for: %s", curr_ad.archive_id)
 
         for demo_result in demographic_distribution:
-            self.new_ad_demo_impressions.append(SnapshotDemoRecord(
-                curr_ad.archive_id,
-                demo_result['age'],
-                demo_result['gender'],
-                demo_result['percentage'],
-                float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
-                float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            try:
+                self.new_ad_demo_impressions.append(SnapshotDemoRecord(
+                    curr_ad.archive_id,
+                    demo_result['age'],
+                    demo_result['gender'],
+                    demo_result['percentage'],
+                    float(demo_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                    float(demo_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                    float(demo_result['percentage']) * int(curr_ad.spend__lower_bound),
+                    float(demo_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            except KeyError as key_error:
+                logging.warning(
+                        '%s error while processing ad archive ID %s demographic_distribution: %s',
+                        key_error, curr_ad.archive_id, demo_result)
 
     def process_region_impressions(self, region_distribution, curr_ad):
         if not region_distribution:
@@ -215,18 +220,23 @@ class SearchRunner():
             # If we get the same region more than once for an ad, the second occurance
             # This is a data losing proposition but can't be helped till FB fixes the results
             # They provide on the API
-            if region_result['region'] in regions:
-                continue
-            else:
-                regions.add(region_result['region'])
-            self.new_ad_region_impressions.append(SnapshotRegionRecord(
-            curr_ad.archive_id,
-            region_result['region'],
-            region_result['percentage'],
-            float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
-            float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            try:
+                if region_result['region'] in regions:
+                    continue
+                else:
+                    regions.add(region_result['region'])
+                    self.new_ad_region_impressions.append(SnapshotRegionRecord(
+                    curr_ad.archive_id,
+                    region_result['region'],
+                    region_result['percentage'],
+                    float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                    float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                    float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
+                    float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+            except KeyError as key_error:
+                logging.warning(
+                        '%s error while processing ad archive ID %s region_distribution: %s',
+                        key_error, curr_ad.archive_id, region_result)
 
 
     def run_search(self, page_id=None, page_name=None):
@@ -241,7 +251,7 @@ class SearchRunner():
         graph = facebook.GraphAPI(access_token=self.fb_access_token)
         has_next = True
         next_cursor = ""
-        backoff = 1
+        backoff_multiplier = 1
         logging.info(datetime.datetime.now())
         logging.info("page_id = %s", page_id)
         logging.info("page_name = %s", page_name)
@@ -288,9 +298,8 @@ class SearchRunner():
                         search_page_ids=page_id,
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
-                backoff = 1
+                backoff_multiplier = 1
             except facebook.GraphAPIError as e:
-                backoff += backoff
                 logging.error("Graph Error")
                 logging.error(e.code)
                 logging.error(e)
@@ -298,32 +307,41 @@ class SearchRunner():
                     logging.error(results)
                 else:
                     logging.error("No results")
-                if e.code == 4: # this means we've gotten to the FB max results per query
-                    sleep(240)
-                    has_next = False
-                    continue
+
+                # Error 4 is application level throttling
+                # Error 613 is "Custom-level throttling" "Calls to this api have exceeded the rate limit."
+                # https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
+                if e.code == 4 or e.code == 613:
+                    backoff_multiplier *= 4
+                    logging.info('Rate liimit exceeded, back off multiplier is now %d.',
+                                 backoff_multiplier)
                 else:
-                    logging.info("resetting graph")
-                    graph = facebook.GraphAPI(access_token=self.fb_access_token)
-                    continue
+                    backoff_multiplier += 1
+
+                logging.info("resetting graph")
+                graph = facebook.GraphAPI(access_token=self.fb_access_token)
+                continue
+
             except OSError as e:
-                backoff += backoff
                 logging.error("OS error: {0}".format(e))
                 logging.error(datetime.datetime.now())
-                sleep(60)
+                # Reset backoff multiplier since this is a local OS issue and not an API issue.
+                backoff_multiplier = 1
                 logging.info("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
             except SSL.SysCallError as e:
                 logging.error(e)
-                backoff += backoff
+                backoff_multiplier += backoff_multiplier
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
+
             finally:
-                logging.info(f"waiting for {self.sleep_time} seconds before next query.")
-                sleep(self.sleep_time)
+                sleep_time = self.sleep_time * backoff_multiplier
+                logging.info(f"waiting for {sleep_time} seconds before next query.")
+                sleep(sleep_time)
 
             for result in results['data']:
                 total_ad_count += 1
@@ -436,7 +454,7 @@ def send_completion_slack_notification(
     if (num_ads_added < min_expected_new_ads or
             num_impressions_added < min_expected_new_impressions):
         error_log_msg = (
-            f"Minimun expected records not met! Ads expected: "
+            f"Minimum expected records not met! Ads expected: "
             f"{min_expected_new_ads} added: {num_ads_added}, "
             f"impressions expected: {min_expected_new_impressions} added: "
             f"{num_impressions_added} ")
@@ -527,10 +545,14 @@ def main(config):
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions)
 
+def get_config(config_path):
+    config = configparser.ConfigParser()
+    config.read()
+    return config
+    
 
 if __name__ == '__main__':
-    config = configparser.ConfigParser()
-    config.read(sys.argv[1])
+    config = get_config(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
 
     config_utils.configure_logger(f"{country_code}_fb_api_collection.log")
