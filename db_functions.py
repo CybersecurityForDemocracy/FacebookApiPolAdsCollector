@@ -145,38 +145,6 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
-    def all_archive_ids_without_image_hash(self):
-        """Get ALL ad archive IDs that do not exist in ad_images table.
-
-        Args:
-        cursor: pyscopg2.Cursor DB cursor for query execution.
-        Returns:
-        list of archive IDs (str).
-        """
-        cursor = self.get_cursor()
-        archive_ids_sample_query = cursor.mogrify(
-            'SELECT archive_id from ads WHERE archive_id NOT IN (select archive_id FROM ad_images) '
-            'ORDER BY ad_creation_time DESC')
-        cursor.execute(archive_ids_sample_query)
-        results = cursor.fetchall()
-        return [row['archive_id'] for row in results]
-
-    def n_archive_ids_without_image_hash(self, max_archive_ids=200):
-        """Get ad archive IDs that do not exist in ad_images table.
-
-        Args:
-        cursor: pyscopg2.Cursor DB cursor for query execution.
-        max_archive_ids: int, limit on how many IDs to query DB for.
-        Returns:
-        list of archive IDs (str).
-        """
-        cursor = self.get_cursor()
-        archive_ids_sample_query = cursor.mogrify(
-            'SELECT archive_id from ads WHERE archive_id NOT IN (select archive_id FROM ad_images) '
-            'ORDER BY ad_creation_time DESC LIMIT %s')
-        cursor.execute(archive_ids_sample_query, (max_archive_ids,))
-        return [row['archive_id'] for row in cursor.fetchall()]
-
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
