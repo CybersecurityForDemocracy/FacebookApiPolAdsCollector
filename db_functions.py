@@ -378,7 +378,7 @@ class DBInterface():
                                        page_size=250)
 
     def insert_or_update_ad_cluster_records(self, ad_creative_cluster_records):
-        cursor = self.get_cluster()
+        cursor = self.get_cursor()
         insert_query = (
                 'INSERT INTO ad_clusters (ad_creative_id, ad_cluster_id) VALUES %s ON CONFLICT '
                 '(ad_creative_id) UPDATE')

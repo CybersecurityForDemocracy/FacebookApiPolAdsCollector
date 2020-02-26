@@ -15,6 +15,7 @@ BIT_DIFFERENCE_THRESHOLD = 3
 
 AdCreativeClusterRecord = collections.namedtuple('AdCreativeClusterRecord', ['ad_creative_id',
                                                                              'ad_cluster_id'])
+CreativeIDAndSimHash = collections.namedtuple('CreativeIDAndSimHash', ['creative_id', 'sim_hash'])
 
 def duplicated_ad_creative_body_simhash_snapshot_urls(access_token, db_connection):
     """Get map simhash -> snapshot urls of ads with that creative body simhash.
@@ -89,6 +90,10 @@ def _ad_creative_body_text_similarity_clusters(database_connection_params, exist
         for creative_id_pair in itertools.combinations(found, 2):
             existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 
+def get_num_bits_different(creative_id_and_simhash1, creative_id_and_simhash2):
+    return dhash.get_num_bits_different(creative_id_and_simhash1.sim_hash,
+                                        creative_id_and_simhash2.sim_hash)
+
 
 def _ad_creative_image_similarity_clusters(database_connection_params, existing_clusters_union_find):
     """Adds clusters of creative IDs with similar image simhashes to existing_clusters_union_find
@@ -105,41 +110,32 @@ def _ad_creative_image_similarity_clusters(database_connection_params, existing_
 
     # Create BKTree with dhash bit difference function as distance_function, used to find similar
     # hashes
-    image_simhash_tree = pybktree.BKTree(dhash.get_num_bits_different)
+    image_simhash_tree = pybktree.BKTree(get_num_bits_different)
 
     # Create inverse map of simhash -> set of creative ID(s), and normalize creative_id_to_simhash
     # values to ints.
-    simhash_to_creative_ids = collections.defaultdict(set)
+    simhashes_for_clustering = set()
     for creative_id in creative_id_to_simhash:
         image_simhash_as_int = int(creative_id_to_simhash[creative_id], 16)
-        simhash_to_creative_ids[image_simhash_as_int].add(int(creative_id))
-        image_simhash_tree.add(image_simhash_as_int)
+        simhashes_for_clustering.add(image_simhash_as_int)
+        creative_id_and_simhash = CreativeIDAndSimHash(int(creative_id), image_simhash_as_int)
+        image_simhash_tree.add(creative_id_and_simhash)
 
     # Process all image sim hashes to get clusters of similar image simhashes
     num_simhash_processed = 0
     connections = set()
-    logging.info('Have %d image simhashes to process.', len(simhash_to_creative_ids))
-    for curr_simhash in simhash_to_creative_ids:
-        if num_simhash_processed % 10000 == 0:
-            logging.info('Processed %d image simhashses.', num_simhash_processed)
+    logging.info('Have %d image simhashes to process.', len(simhashes_for_clustering))
+    for curr_simhash in simhashes_for_clustering:
         num_simhash_processed += 1
-        found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
-        # BKTree.find returns tuples of form (bit difference, value)
-        for _, found_hash in found:
-            # Add all connections to a set as pairs
-            for creative_id_pair in itertools.combinations(sorted(simhash_to_creative_ids[found_hash]), 2):
-                connections.add((creative_id_pair[0], creative_id_pair[1]))
-
-    num_connections_processed = 0
-    # Now add all connections to unionfind
-    for creative_id_pair in connections:
-        existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
-        num_connections_processed += 1
-        if num_connections_processed % 10000 == 0:
-            logging.info('Processed %d connections. Got %d clusters.',
-                         num_connections_processed,
-                         existing_clusters_union_find.n_comps)
-
+        # We create a fake CreativeIDAndSimHash with ID -1, but the current
+        found = image_simhash_tree.find(CreativeIDAndSimHash(-1, curr_simhash), BIT_DIFFERENCE_THRESHOLD)
+        if num_simhash_processed % 1000 == 0:
+            logging.info('Processed %d image simhashses.', num_simhash_processed)
+        # BKTree.find returns tuples of form (bit difference, value). This extracts a set of all
+        # creative IDs found.
+        found_creative_ids = set([x[1].creative_id for x in found])
+        for creative_id_pair in itertools.combinations(found_creative_ids, 2):
+            existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 
 def _get_lowest_creative_id_cluster_id(existing_ad_creative_id_to_ad_cluster_id, creative_id_set):
     creative_id_set = creative_id_set.copy()
