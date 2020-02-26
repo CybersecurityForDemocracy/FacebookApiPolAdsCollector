@@ -184,7 +184,7 @@ def update_ad_creative_clusters(database_connection_params):
                 cluster_id = next_new_cluster_id
                 next_new_cluster_id += 1
             for creative_id in component:
-                ad_creative_cluster_records.append(AdCreativeClusterRecord(ad_creative_id=creative_id,
+                ad_creative_cluster_records.append(AdCreativeClusterRecord(ad_creative_id=int(creative_id),
                                                                            ad_cluster_id=cluster_id))
 
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_creative_cluster_records))
