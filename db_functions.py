@@ -381,7 +381,7 @@ class DBInterface():
         cursor = self.get_cursor()
         insert_query = (
                 'INSERT INTO ad_clusters (ad_creative_id, ad_cluster_id) VALUES %s ON CONFLICT '
-                '(ad_creative_id) UPDATE')
+                '(ad_creative_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
         insert_template = '(%(ad_creative_id)s, %(ad_cluster_id)s)'
         ad_creative_cluster_record_list = [x._asdict() for x in ad_creative_cluster_records]
         psycopg2.extras.execute_values(cursor,
