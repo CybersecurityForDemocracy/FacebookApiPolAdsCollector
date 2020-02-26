@@ -52,19 +52,18 @@ def all_ad_creative_ids_with_duplicated_simhash(db_connection):
         simhash_to_id[text_hash] = db_interface.ad_creative_ids_with_text_simhash(text_hash)
     return simhash_to_id
 
-def _ad_creative_body_text_similarity_clusters(database_connection_params, existing_clusters_union_find):
+def _ad_creative_body_text_similarity_clusters(database_connection, existing_clusters_union_find):
     """Adds clusters of archive IDs with similar ad creative body text simhashes to
     existing_clusters_union_find
 
     Args:
-        database_connection_params: config_utils.DatabaseConnectionParams params to connect to
+        database_connection: config_utils.DatabaseConnectionParams params to connect to
             database from which to retrieve ad creatives.
     """
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        db_interface = db_functions.DBInterface(db_connection)
+    db_interface = db_functions.DBInterface(database_connection)
 
-        # Get all ad creative body simhashes from database.
-        raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
+    # Get all ad creative body simhashes from database.
+    raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
 
     # Convert map to str id -> Simhash obj
     archive_id_to_simhash = {}
@@ -94,18 +93,17 @@ def get_num_bits_different(archive_id_and_simhash1, archive_id_and_simhash2):
                                         archive_id_and_simhash2.sim_hash)
 
 
-def _ad_creative_image_similarity_clusters(database_connection_params, existing_clusters_union_find):
+def _ad_creative_image_similarity_clusters(database_connection, existing_clusters_union_find):
     """Adds clusters of creative IDs with similar image simhashes to existing_clusters_union_find
 
     Args:
-        database_connection_params: config_utils.DatabaseConnectionParams params to connect to
+        database_connection: config_utils.DatabaseConnectionParams params to connect to
             database from which to retrieve ad creatives.
     """
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        db_interface = db_functions.DBInterface(db_connection)
+    db_interface = db_functions.DBInterface(database_connection)
 
-        # Get all ad creative images simhashes from database.
-        archive_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
+    # Get all ad creative images simhashes from database.
+    archive_id_to_simhash = db_interface.all_ad_creative_image_simhashes()
 
     # Create BKTree with dhash bit difference function as distance_function, used to find similar
     # hashes
@@ -156,27 +154,27 @@ def _get_lowest_archive_id_cluster_id(existing_ad_archive_id_to_ad_cluster_id, a
     return None
 
 
-def update_ad_clusters(database_connection_params):
+def update_ad_clusters(database_connection):
     """Find all clusters of ads which have similar text or image simhashes, update cluster data in
     databases.
 
     Args:
-        database_connection_params: config_utils.DatabaseConnectionParams params for connecting to
+        database_connection: config_utils.DatabaseConnectionParams params for connecting to
         database.
     Returns:
         Clusters of archive IDs with similar text and images.
     """
-    all_clusters_union_find = unionfind.UnionFind()
-    logging.info('Starting text clustering')
-    _ad_creative_body_text_similarity_clusters(database_connection_params, all_clusters_union_find)
-    components = all_clusters_union_find.components()
-    logging.info('Got %d text clusters', len(components))
-    logging.info('Starting image cluster. Passing in text clusters.')
-    _ad_creative_image_similarity_clusters(database_connection_params, all_clusters_union_find)
-    components = all_clusters_union_find.components()
-    logging.info('Got %d text image clusters', len(components))
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        db_interface = db_functions.DBInterface(db_connection)
+    with database_connection:
+        all_clusters_union_find = unionfind.UnionFind()
+        logging.info('Starting text clustering')
+        _ad_creative_body_text_similarity_clusters(database_connection, all_clusters_union_find)
+        components = all_clusters_union_find.components()
+        logging.info('Got %d text clusters', len(components))
+        logging.info('Starting image cluster. Passing in text clusters.')
+        _ad_creative_image_similarity_clusters(database_connection, all_clusters_union_find)
+        components = all_clusters_union_find.components()
+        logging.info('Got %d text image clusters', len(components))
+        db_interface = db_functions.DBInterface(database_connection)
         existing_ad_archive_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
         if existing_ad_archive_id_to_ad_cluster_id:
             next_new_cluster_id = max(existing_ad_archive_id_to_ad_cluster_id.values())
@@ -197,4 +195,5 @@ def update_ad_clusters(database_connection_params):
 
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
+        database_connection.commit()
         return components
