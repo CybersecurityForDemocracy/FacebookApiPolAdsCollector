@@ -155,3 +155,9 @@ CREATE TABLE region_impression_results (
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_region_results UNIQUE(archive_id, region)
 );
+CREATE TABLE ad_clusters (
+  archive_id bigint PRIMARY KEY,
+  ad_cluster_id bigint NOT NULL,
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_creative_per_cluster UNIQUE(archive_id, ad_cluster_id)
+);

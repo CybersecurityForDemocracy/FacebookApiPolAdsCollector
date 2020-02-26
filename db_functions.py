@@ -38,6 +38,15 @@ class DBInterface():
             existing_funders[row['funder_name']] = row['funder_id']
         return existing_funders
 
+    def existing_ad_clusters(self):
+        cursor = self.get_cursor()
+        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters VALUES'
+        cursor.execute(existing_ad_clusters_query)
+        existing_ad_clusters = dict()
+        for row in cursor:
+            existing_ad_clusters[row['archive_id']] = row['ad_cluster_id']
+        return existing_ad_clusters
+
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
 
@@ -70,12 +79,35 @@ class DBInterface():
         results = cursor.fetchall()
         return [row['archive_id'] for row in results]
 
+    def all_ad_creative_image_simhashes(self):
+        """Returns list of ad creative image simhashes.
+        """
+        cursor = self.get_cursor()
+        duplicate_simhash_query = (
+            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+        )
+        cursor.execute(duplicate_simhash_query)
+        results = cursor.fetchall()
+        return dict([(row['archive_id'], row['image_sim_hash']) for row in results])
+
+    def all_ad_creative_text_simhashes(self):
+        """Returns list of ad creative text simhashes.
+        """
+        cursor = self.get_cursor()
+        duplicate_simhash_query = (
+            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+        )
+        cursor.execute(duplicate_simhash_query)
+        results = cursor.fetchall()
+        return dict([(row['archive_id'], row['text_sim_hash']) for row in results])
+
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'select text_sim_hash from ad_creatives group by text_sim_hash having count(*) > 1'
+            'SELECT text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL GROUP BY '
+            'text_sim_hash HAVING COUNT(*) > 1'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
@@ -112,21 +144,6 @@ class DBInterface():
             'SELECT ad_creative_id FROM ad_creatives WHERE text_sim_hash = %s')
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
-
-    def all_ad_creative_ids_with_duplicated_simhash(self):
-        """Returns map of ad creative body simhash -> ad_creative_id for
-        simhashes that appear 2 or more times in database.
-
-        Returns: dict of simhash (str) -> ad_creative_id (str) where all
-        ad_creative_body simhash match the simhash key. Dict only hash simhashes
-        that appear 2 or more times in database.
-        """
-        duplicate_simhashes = self.duplicate_ad_creative_text_simhashes()
-        simhash_to_id = {}
-        for simhash in duplicate_simhashes:
-            simhash_to_id[simhash] = self.ad_creative_ids_with_text_simhash(
-                simhash)
-        return simhash_to_id
 
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
@@ -325,6 +342,19 @@ class DBInterface():
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        ad_creative_record_list,
+                                       template=insert_template,
+                                       page_size=250)
+
+    def insert_or_update_ad_cluster_records(self, ad_cluster_records):
+        cursor = self.get_cursor()
+        insert_query = (
+                'INSERT INTO ad_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
+                '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
+        insert_template = '(%(archive_id)s, %(ad_cluster_id)s)'
+        ad_cluster_record_list = [x._asdict() for x in ad_cluster_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       ad_cluster_record_list,
                                        template=insert_template,
                                        page_size=250)
 
