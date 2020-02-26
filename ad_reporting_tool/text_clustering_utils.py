@@ -182,6 +182,7 @@ def update_ad_clusters(database_connection):
             next_new_cluster_id = 0
 
 
+        # TODO(macpd): report orphaned cluster IDs.
         ad_cluster_records = []
         for component in components:
             cluster_id = _get_lowest_archive_id_cluster_id(
