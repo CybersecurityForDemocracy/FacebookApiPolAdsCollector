@@ -40,11 +40,11 @@ class DBInterface():
 
     def existing_ad_clusters(self):
         cursor = self.get_cursor()
-        existing_ad_clusters_query = 'SELECT ad_creative_id, ad_cluster_id FROM ad_clusters VALUES'
+        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters VALUES'
         cursor.execute(existing_ad_clusters_query)
         existing_ad_clusters = dict()
         for row in cursor:
-            existing_ad_clusters[row['ad_creative_id']] = row['ad_cluster_id']
+            existing_ad_clusters[row['archive_id']] = row['ad_cluster_id']
         return existing_ad_clusters
 
     def all_archive_ids_that_need_scrape(self):
