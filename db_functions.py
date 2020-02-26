@@ -125,7 +125,7 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         ids_with_simhash_query_template = (
-            'SELECT DISTINCT(archive_id) FROM ad_creatives WHERE text_sim_hash = %s')
+            'SELECT archive_id FROM ad_creatives WHERE text_sim_hash = %s')
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['archive_id'] for row in cursor.fetchall()]
 
