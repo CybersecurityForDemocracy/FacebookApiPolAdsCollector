@@ -84,22 +84,22 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT ad_creative_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['ad_creative_id'], row['image_sim_hash']) for row in results])
+        return dict([(row['archive_id'], row['image_sim_hash']) for row in results])
 
     def all_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT ad_creative_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['ad_creative_id'], row['text_sim_hash']) for row in results])
+        return dict([(row['archive_id'], row['text_sim_hash']) for row in results])
 
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
@@ -377,16 +377,16 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=250)
 
-    def insert_or_update_ad_cluster_records(self, ad_creative_cluster_records):
+    def insert_or_update_ad_cluster_records(self, ad_cluster_records):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO ad_clusters (ad_creative_id, ad_cluster_id) VALUES %s ON CONFLICT '
-                '(ad_creative_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
-        insert_template = '(%(ad_creative_id)s, %(ad_cluster_id)s)'
-        ad_creative_cluster_record_list = [x._asdict() for x in ad_creative_cluster_records]
+                'INSERT INTO ad_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
+                '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
+        insert_template = '(%(archive_id)s, %(ad_cluster_id)s)'
+        ad_cluster_record_list = [x._asdict() for x in ad_cluster_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
-                                       ad_creative_cluster_record_list,
+                                       ad_cluster_record_list,
                                        template=insert_template,
                                        page_size=250)
 
