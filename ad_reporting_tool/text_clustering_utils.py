@@ -121,7 +121,7 @@ def _ad_creative_image_similarity_clusters(database_connection_params, existing_
     for curr_simhash in simhash_to_creative_ids:
         if num_simhash_processed % 100 == 0:
             logging.info('Processed %d image simhashses. Got %d clusters.', num_simhash_processed,
-                         len(existing_clusters_union_find))
+                         existing_clusters_union_find.n_comps)
         num_simhash_processed += 1
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
