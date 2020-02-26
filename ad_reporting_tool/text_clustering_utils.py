@@ -117,18 +117,28 @@ def _ad_creative_image_similarity_clusters(database_connection_params, existing_
 
     # Process all image sim hashes to get clusters of similar image simhashes
     num_simhash_processed = 0
+    connections = set()
     logging.info('Have %d image simhashes to process.', len(simhash_to_creative_ids))
     for curr_simhash in simhash_to_creative_ids:
-        if num_simhash_processed % 100 == 0:
-            logging.info('Processed %d image simhashses. Got %d clusters.', num_simhash_processed,
-                         existing_clusters_union_find.n_comps)
+        if num_simhash_processed % 10000 == 0:
+            logging.info('Processed %d image simhashses.', num_simhash_processed)
         num_simhash_processed += 1
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
         for _, found_hash in found:
-            # Connect all combinantions (regardless of order) of creative IDs with a found simhash
-            for creative_id_pair in itertools.combinations(simhash_to_creative_ids[found_hash], 2):
-                existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
+            # Add all connections to a set as pairs
+            for creative_id_pair in itertools.combinations(sorted(simhash_to_creative_ids[found_hash]), 2):
+                connections.add((creative_id_pair[0], creative_id_pair[1]))
+
+    num_connections_processed = 0
+    # Now add all connections to unionfind
+    for creative_id_pair in connections:
+        existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
+        num_connections_processed += 1
+        if num_connections_processed % 10000 == 0:
+            logging.info('Processed %d connections. Got %d clusters.',
+                         num_connections_processed,
+                         existing_clusters_union_find.n_comps)
 
 
 def _get_lowest_creative_id_cluster_id(existing_ad_creative_id_to_ad_cluster_id, creative_id_set):
