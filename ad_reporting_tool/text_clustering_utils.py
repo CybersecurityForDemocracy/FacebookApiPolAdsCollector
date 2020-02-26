@@ -79,6 +79,7 @@ def _ad_creative_body_text_similarity_clusters(database_connection_params, exist
                                               k=BIT_DIFFERENCE_THRESHOLD)
 
     # Process all archive IDs to get clusters of creative_ids with similar text
+    logging.info('Have %d text simhashes to process.', len(simhash_to_creative_ids))
     for curr_simhash_as_int in simhash_to_creative_ids:
         found = text_simhash_index.get_near_dups(simhash.Simhash(curr_simhash_as_int))
         # Convert found creative IDs back to ints since SimhashIndex converts returns them as
@@ -116,14 +117,16 @@ def _ad_creative_image_similarity_clusters(database_connection_params, existing_
 
     # Process all image sim hashes to get clusters of similar image simhashes
     num_simhash_processed = 0
+    logging.info('Have %d image simhashes to process.', len(simhash_to_creative_ids))
     for curr_simhash in simhash_to_creative_ids:
-        if num_simhash_processed % 1000 == 0:
-            logging.info('Processed %d image simhashses.', num_simhash_processed)
+        if num_simhash_processed % 100 == 0:
+            logging.info('Processed %d image simhashses. Got %d clusters.', num_simhash_processed,
+                         len(existing_clusters_union_find))
         num_simhash_processed += 1
         found = image_simhash_tree.find(curr_simhash, BIT_DIFFERENCE_THRESHOLD)
         # BKTree.find returns tuples of form (bit difference, value)
         for _, found_hash in found:
-            # Connect all combinantions (regardless of order) of found simhashes
+            # Connect all combinantions (regardless of order) of creative IDs with a found simhash
             for creative_id_pair in itertools.combinations(simhash_to_creative_ids[found_hash], 2):
                 existing_clusters_union_find.union(creative_id_pair[0], creative_id_pair[1])
 

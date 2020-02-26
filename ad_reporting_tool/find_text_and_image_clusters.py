@@ -17,12 +17,10 @@ from ad_reporting_tool import text_clustering_utils
 def main(config):
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     all_clusters = text_clustering_utils.update_ad_creative_clusters(database_connection_params)
-    all_simhash_clusters_as_lists = [list(cluster) for cluster in all_simhash_clusters]
-    # TODO(macpd): persist clusters somehow.
-    all_clusters_filename = 'all_clusters.json'
+    all_clusters_filename = 'all_clusters.txt'
     with open(all_clusters_filename, 'w') as f:
-        json.dump(all_simhash_clusters_as_lists, f)
-    print(f'Wrote all simhash clusters as JSON to {all_clusters_filename}')
+        f.write(str(all_clusters))
+    print(f'Wrote all simhash clusters to {all_clusters_filename}')
 
 
 if __name__ == '__main__':
