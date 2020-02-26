@@ -1,6 +1,8 @@
+"""Module to perform text and image clustering based on hash simialirty."""
 import collections
 import itertools
 import logging
+import sys
 
 import dhash
 import pybktree
@@ -8,7 +10,6 @@ import simhash
 
 import config_utils
 import db_functions
-import snapshot_url_util
 from lib.unionfind import unionfind
 
 BIT_DIFFERENCE_THRESHOLD = 3
@@ -16,49 +17,13 @@ BIT_DIFFERENCE_THRESHOLD = 3
 AdClusterRecord = collections.namedtuple('AdClusterRecord', ['archive_id', 'ad_cluster_id'])
 ArchiveIDAndSimHash = collections.namedtuple('ArchiveIDAndSimHash', ['archive_id', 'sim_hash'])
 
-def duplicated_ad_creative_body_simhash_snapshot_urls(access_token, db_connection):
-    """Get map simhash -> snapshot urls of ads with that creative body simhash.
-
-    Only returns simhashes that appear 2 or more times in ad creatives data.
-
-    Args:
-        access_token: str, API token to use in snapshot URLs
-        db_connection: psycopg2 database connection.
-    Returns:
-        Dict simhash (str) -> list of snapshot URLs where one of the ad creative(s) body text has
-        the simhash in the key.
-    """
-    db_interface = db_functions.DBInterface(db_connection)
-    simhash_to_snapshot_url = {}
-    duplicated_simhashes = db_interface.duplicate_ad_creative_text_simhashes()
-    for text_hash in duplicated_simhashes:
-        archive_ids = db_interface.archive_ids_with_ad_creative_text_simhash(text_hash)
-        simhash_to_snapshot_url[text_hash] = snapshot_url_util.construct_snapshot_urls(access_token,
-                                                                                       archive_ids)
-    return simhash_to_snapshot_url
-
-def all_ad_creative_ids_with_duplicated_simhash(db_connection):
-    """Returns map of ad creative body simhash -> ad_creative_id for
-    simhashes that appear 2 or more times in database.
-
-    Returns: dict of simhash (str) -> ad_creative_id (str) where all
-    ad_creative_body simhash match the simhash key. Dict only hash simhashes
-    that appear 2 or more times in database.
-    """
-    db_interface = db_functions.DBInterface(db_connection)
-    duplicate_simhashes = db_interface.duplicate_ad_creative_text_simhashes()
-    simhash_to_id = {}
-    for text_hash in duplicate_simhashes:
-        simhash_to_id[text_hash] = db_interface.ad_creative_ids_with_text_simhash(text_hash)
-    return simhash_to_id
-
 def _ad_creative_body_text_similarity_clusters(database_connection, existing_clusters_union_find):
     """Adds clusters of archive IDs with similar ad creative body text simhashes to
     existing_clusters_union_find
 
     Args:
-        database_connection: config_utils.DatabaseConnectionParams params to connect to
-            database from which to retrieve ad creatives.
+        database_connection: psycopg2.connection to connect to database from which to retrieve ad
+        creative data.
     """
     db_interface = db_functions.DBInterface(database_connection)
 
@@ -97,8 +62,8 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
     """Adds clusters of creative IDs with similar image simhashes to existing_clusters_union_find
 
     Args:
-        database_connection: config_utils.DatabaseConnectionParams params to connect to
-            database from which to retrieve ad creatives.
+        database_connection: psycopg2.connection to connect to database from which to retrieve ad
+        creative data.
     """
     db_interface = db_functions.DBInterface(database_connection)
 
@@ -120,7 +85,6 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
 
     # Process all image sim hashes to get clusters of similar image simhashes
     num_simhash_processed = 0
-    connections = set()
     logging.info('Have %d image simhashes to process.', len(simhashes_for_clustering))
     for curr_simhash in simhashes_for_clustering:
         num_simhash_processed += 1
@@ -130,7 +94,7 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
             logging.info('Processed %d image simhashses.', num_simhash_processed)
         # BKTree.find returns tuples of form (bit difference, value). This extracts a set of all
         # creative IDs found.
-        found_archive_ids = set([x[1].archive_id for x in found])
+        found_archive_ids = {x[1].archive_id for x in found}
         for archive_id_pair in itertools.combinations(found_archive_ids, 2):
             existing_clusters_union_find.union(archive_id_pair[0], archive_id_pair[1])
 
@@ -159,8 +123,7 @@ def update_ad_clusters(database_connection):
     databases.
 
     Args:
-        database_connection: config_utils.DatabaseConnectionParams params for connecting to
-        database.
+        database_connection: psycopg2.connection for connecting to database.
     Returns:
         Clusters of archive IDs with similar text and images.
     """
@@ -198,3 +161,13 @@ def update_ad_clusters(database_connection):
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
         database_connection.commit()
         return components
+
+def main(config_path):
+    config = config_utils.get_config(config_path)
+    database_connection = config_utils.get_database_connection_from_config(config)
+    update_ad_clusters(database_connection)
+
+
+if __name__ == '__main__':
+    config_utils.configure_logger("find_text_and_image_clusters.log")
+    main(sys.argv[1])
