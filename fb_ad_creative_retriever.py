@@ -9,7 +9,6 @@ import io
 import os.path
 import sys
 import time
-import urllib.parse
 
 import dhash
 from google.cloud import storage
