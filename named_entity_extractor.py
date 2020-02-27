@@ -25,8 +25,10 @@ class NamedEntityAnalysis(object):
     No GCP Language API specific datastructures/code should escape this class.
     """
 
-    def __init__(self, credentials_file=GCS_CREDENTIALS_FILE):
-        self.client = language_v1.LanguageServiceClient.from_service_account_json(credentials_file)
+    def __init__(self, database_connection, credentials_file=GCS_CREDENTIALS_FILE):
+        self.database_connection = database_connection
+        self.database_interface = db_functions.DBInterface(database_connection)
+        self.language_service_client = language_v1.LanguageServiceClient.from_service_account_json(credentials_file)
 
     def _store_all_results(self, cluster_id, ner_analysis_result):
         """ Store complete result for deeper analysis as needed later. """
@@ -77,17 +79,18 @@ class NamedEntityAnalysis(object):
         # Available values: NONE, UTF8, UTF16, UTF32
         encoding_type = enums.EncodingType.UTF8
 
-        response = self.client.analyze_entities(
+        response = self.language_service_client.analyze_entities(
             document, encoding_type=encoding_type)
         return MessageToDict(response)
 
     def get_cluster_text(self, cluster_id):
         """ Get a Canonical Text result for a given cluster_id """
+        return self.database_interface.longest_ad_creative_body_text_from_cluster(cluster_id)
         # TODO: Implement this
-        placeholder_text = 'Kermit vs John McCain for President. #StrangerThanFiction'
-        logging.error(
-            "get_cluster_text is not implemented! Returning placeholder text: '%s'", placeholder_text)
-        return placeholder_text
+        #  placeholder_text = 'Kermit vs John McCain for President. #StrangerThanFiction'
+        #  logging.error(
+            #  "get_cluster_text is not implemented! Returning placeholder text: '%s'", placeholder_text)
+        #  return placeholder_text
 
     def get_entity_list_for_clusters(self, cluster_ids):
         """ For ad clusters, get an entity: [cluster_id] map for further analysis"""
@@ -111,18 +114,19 @@ class NamedEntityAnalysis(object):
 
 def generate_entity_cluster_report():
     # TODO: This if False is gated by productionization
-    if False:
-        config = config_utils.get_config(sys.argv[1])
-        country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-        connection = config_utils.get_database_connection_from_config(config)
-        db_interface = db_functions.DBInterface(connection)
-        cluster_ids = db_interface.cluster_ids(country_code, '01312020', '02292020')
-    else:
-        cluster_ids = [1234, 123]
+    config = config_utils.get_config(sys.argv[1])
+    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+    with config_utils.get_database_connection_from_config(config) as database_connection:
+        if False:
+            db_interface = db_functions.DBInterface(database_connection)
+            cluster_ids = db_interface.cluster_ids(country_code, '20200131', '20200229')
+        else:
+            cluster_ids = [1, 9325]
 
-    analysis = NamedEntityAnalysis()
-    entity_map = analysis.get_entity_list_for_clusters(cluster_ids)
-    logging.debug('Analysis result: %s', entity_map)
+        analysis = NamedEntityAnalysis(database_connection=database_connection,
+                                       credentials_file='gcs_credentials.json')
+        entity_map = analysis.get_entity_list_for_clusters(cluster_ids)
+        logging.debug('Analysis result: %s', entity_map)
 
     # TODO: This should write to GCS somewhere daily?
     with open(ENTITY_MAP_FILE, 'w') as outfile:
@@ -132,4 +136,5 @@ def generate_entity_cluster_report():
 
 
 if __name__ == '__main__':
+    config_utils.configure_logger('named_entity_extractor.log')
     generate_entity_cluster_report()
