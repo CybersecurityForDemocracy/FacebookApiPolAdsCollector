@@ -232,7 +232,7 @@ class FacebookAdCreativeRetriever:
             self.num_image_uploade_to_gcs_bucket, seconds_elapsed_procesing /
             (self.num_image_uploade_to_gcs_bucket or 1))
 
-    def retreive_and_store_images(self, archive_ids):
+    def retreive_and_store_ad_creatives(self, archive_ids):
         self.start_time = time.monotonic()
         logging.info('Processing %d archive snapshots in batches of %d',
                      len(archive_ids), self.batch_size)
@@ -440,7 +440,7 @@ class FacebookAdCreativeRetriever:
                                                                            snapshot_url):
         """Attempts to get ad creative(s) data. Restarts webdriver and retries if error raised."""
         try:
-           return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
+            return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
         except WebDriverException as chromedriver_exception:
             logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
                          chromedriver_exception)
@@ -649,8 +649,8 @@ def main(argv):
         bucket_client = make_gcs_bucket_client(GCS_BUCKET,
                                                GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, batch_size)
-        image_retriever.retreive_and_store_images(archive_ids)
+            db_connection, bucket_client, access_token, batch_size, slack_url)
+        image_retriever.retreive_and_store_ad_creatives(archive_ids)
 
 
 if __name__ == '__main__':
