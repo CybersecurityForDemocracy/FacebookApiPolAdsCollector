@@ -2,7 +2,6 @@ import collections
 import configparser
 import datetime
 import enum
-import functools
 import hashlib
 import logging
 import io
