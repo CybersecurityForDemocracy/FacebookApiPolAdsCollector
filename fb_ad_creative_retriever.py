@@ -1,9 +1,7 @@
 import collections
-import concurrent.futures
 import configparser
 import datetime
 import enum
-import functools
 import hashlib
 import logging
 import io
@@ -29,8 +27,7 @@ GCS_BUCKET = 'facebook_ad_images'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
-DEFAULT_NUM_THREADS = 1
-DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD = 1000
+DEFAULT_BACKOFF_IN_SECONDS = 60
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -233,7 +230,7 @@ class FacebookAdCreativeRetriever:
             self.num_image_uploade_to_gcs_bucket, seconds_elapsed_procesing /
             (self.num_image_uploade_to_gcs_bucket or 1))
 
-    def retrieve_and_store_ad_creatives(self, archive_ids):
+    def retreive_and_store_ad_creatives(self, archive_ids):
         self.start_time = time.monotonic()
         logging.info('Processing %d archive snapshots in batches of %d',
                      len(archive_ids), self.batch_size)
@@ -625,27 +622,6 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
 
-def retrieve_and_store_ad_creatives(database_connection_params, access_token, archive_ids, batch_size, slack_url):
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        bucket_client = make_gcs_bucket_client(GCS_BUCKET, GCS_CREDENTIALS_FILE)
-        image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, batch_size, slack_url)
-        image_retriever.retrieve_and_store_ad_creatives(archive_ids)
-
-def halt_if_too_many_requests_error(slack_url, invoking_thread_future):
-    thread_exception = invoking_thread_future.exception()
-    if thread_exception:
-        logging.info('Future %s finished with exception: %s %s', invoking_thread_future,
-                     type(thread_exception), thread_exception)
-
-    if isinstance(thread_exception, TooManyRequestsException):
-        slack_notifier.notify_slack(slack_url,
-                ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
-                'thread terminated with TooManyRequestsException. Aborting! :rotating_light: '
-                ':rotating_light: :rotating_light:')
-        logging.error('Thread completed with TooManyRequestsException. Aborting!')
-        sys.exit(1)
-
 def main(argv):
     config = configparser.ConfigParser()
     config.read(argv[0])
@@ -655,9 +631,6 @@ def main(argv):
     max_archive_ids = config.getint('LIMITS', 'MAX_ARCHIVE_IDS', fallback=DEFAULT_MAX_ARCHIVE_IDS)
     logging.info('Batch size: %d', batch_size)
     logging.info('Max archive IDs to process: %d', max_archive_ids)
-
-    max_threads = config.getint('LIMITS', 'MAX_THREADS', fallback=DEFAULT_NUM_THREADS)
-    logging.info('Max threads: %d', max_threads)
 
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
@@ -670,15 +643,12 @@ def main(argv):
         else:
             archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
-        exectutor_futures = []
-        done_callback = functools.partial(halt_if_too_many_requests_error, slack_url)
-        for archive_id_batch in chunks(archive_ids, DEFAULT_NUM_ARCHIVE_IDS_FOR_THREAD):
-            new_future = executor.submit(
-                retrieve_and_store_ad_creatives, database_connection_params, access_token,
-                archive_id_batch, batch_size, slack_url)
-            new_future.add_done_callback(done_callback)
-            exectutor_futures.append(new_future)
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
+        bucket_client = make_gcs_bucket_client(GCS_BUCKET,
+                                               GCS_CREDENTIALS_FILE)
+        image_retriever = FacebookAdCreativeRetriever(
+            db_connection, bucket_client, access_token, batch_size, slack_url)
+        image_retriever.retreive_and_store_ad_creatives(archive_ids)
 
 
 if __name__ == '__main__':
