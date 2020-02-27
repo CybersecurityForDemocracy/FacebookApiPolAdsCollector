@@ -35,7 +35,7 @@ class NamedEntityAnalysis(object):
             '_store_all_results is not implemented! printing to terminal instead:\n%s', ner_analysis_result)
 
     def _load_all_results(self, cluster_id):
-        """ Store complete result for deeper analysis as needed later. """
+        """Load complete results for specified cluster ID."""
         # TODO: Implement this
         dummy_response = {'entities': [
             {'name': 'Kermit', 'type': 'PERSON', 'metadata': {'wikipedia_url': 'https://en.wikipedia.org/wiki/Kermit_the_Frog', 'mid': '/m/04bsc'}, 'salience': 0.5452021360397339, 'mentions': [{'text': {'content': 'Kermit'}, 'type': 'PROPER'}]},
