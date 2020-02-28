@@ -145,6 +145,14 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
+    def cluster_recognized_entities(self, cluster_id):
+        cursor = self.get_cursor()
+        query = ('SELECT named_entity_recognition_json FROM ad_cluster_recognized_entities WHERE '
+                 'ad_cluster_id = %s')
+        cursor.execute(query, (cluster_id,))
+        #  return [row['named_entity_recognition_json'] for row in cursor.fetchall()]
+        return cursor.fetchone()[0]
+
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
@@ -358,20 +366,33 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=250)
 
+    def insert_cluster_named_entity_recognition_results(self, ad_cluster_id,
+                                                        named_entity_recognition_json):
+        cursor = self.get_cursor()
+        insert_query = (
+                'INSERT INTO ad_cluster_recognized_entities (ad_cluster_id, '
+                'named_entity_recognition_json) VALUES (%(ad_cluster_id)s, %(named_entity_recognition_json)s) ON CONFLICT (ad_cluster_id) '
+                'DO UPDATE SET named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
+        cursor.execute(insert_query, ({'ad_cluster_id': ad_cluster_id,
+                                       'named_entity_recognition_json':
+                                       psycopg2.extras.Json(named_entity_recognition_json)}))
+
     def cluster_ids(self, country, start_time, end_time):
         """ Return cluster_ids for all clusters which were active/started in a certain timeframe. """
         # TODO: Implement this to fetch clusters for the given country in the last 
         # TODO(macpd): handle end_time being none, or NULL in DB
         # TODO(macpd): use something more efficient than ILIKE
-        query = ('SELECT ad_clusters.ad_cluster_id FROM ad_clusters '
+        query = ('SELECT DISTINCT(ad_cluster_id) FROM ad_clusters '
                  '    JOIN ads ON ad_clusters.archive_id = ads.archive_id '
                  '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                 'WHERE ads_countries.country_code ILIKE \'%(country)s\' AND '
+                 'WHERE (ad_countries.country_code = %(country_upper)s OR '
+                 'ad_countries.country_code = %(country_lower)s) AND '
                  'ads.ad_delivery_start_time >=  %(start_time)s AND '
                  'ads.ad_delivery_stop_time <= %(end_time)s')
         cursor = self.get_cursor()
-        cursor.execute(query, {'country': country, 'start_time': start_time, 'end_time': end_time})
-        return [row['ad_clusters.ad_cluster_id'] for row in cursor.fetchall()]
+        cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
+                               'start_time': start_time, 'end_time': end_time})
+        return [row['ad_cluster_id'] for row in cursor.fetchall()]
 
     def cluster_archive_ids(self, cluster_id):
         query = 'SELECT archive_id from ad_clusters where ad_cluster_id = %s'

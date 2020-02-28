@@ -6,7 +6,7 @@ You can generate a new credentials file here: https://console.cloud.google.com/a
 import logging
 import sys
 import json
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 
 from google.cloud import language_v1
 from google.cloud.language_v1 import enums
@@ -32,9 +32,8 @@ class NamedEntityAnalysis(object):
 
     def _store_all_results(self, cluster_id, ner_analysis_result):
         """ Store complete result for deeper analysis as needed later. """
-        # TODO: Implement this
-        logging.error(
-            '_store_all_results is not implemented! printing to terminal instead:\n%s', ner_analysis_result)
+        self.database_interface.insert_cluster_named_entity_recognition_results(cluster_id,
+                                                                                ner_analysis_result)
 
     def _load_all_results(self, cluster_id):
         """Load complete results for specified cluster ID."""
@@ -45,14 +44,16 @@ class NamedEntityAnalysis(object):
             {'name': 'Tim Curry', 'type': 'PERSON', 'metadata': {'wikipedia_url': 'https://en.wikipedia.org/wiki/Tim_Curry', 'mid': '/m/07rzf'}, 'salience': 0.1645415723323822, 'mentions': [{'text': {'content': 'Tim Curry', 'beginOffset': 10}, 'type': 'PROPER'}]},
             {'name': '#Election2020', 'type': 'OTHER', 'salience': 0.04056445136666298, 'mentions': [{'text': {'content': '#Election2020', 'beginOffset': 35}, 'type': 'PROPER'}]}], 'language': 'en'}
         
-        logging.error(
-            '_load_all_results is not implemented! returning dummy if cluster_id == 1234')
         if cluster_id==1234:
+            logging.error(
+                '_load_all_results is not implemented! returning dummy if cluster_id == 1234')
             return dummy_response
-        return None
+        #  cluster_recognized_entities = self.database_interface.cluster_recognized_entities(cluster_id)
+        #  return [x for x in cluster_recognized_entities if x]
+        return self.database_interface.cluster_recognized_entities(cluster_id)
 
-    def _generate_entity_list(self, ner_analysis_result):
-        return [entity['name'] for entity in ner_analysis_result['entities']]
+    def _generate_entity_set(self, ner_analysis_result):
+        return {entity['name'] for entity in ner_analysis_result['entities']}
 
     def _analyze_entities(self, text_content):
         """
@@ -86,11 +87,6 @@ class NamedEntityAnalysis(object):
     def get_cluster_text(self, cluster_id):
         """ Get a Canonical Text result for a given cluster_id """
         return self.database_interface.longest_ad_creative_body_text_from_cluster(cluster_id)
-        # TODO: Implement this
-        #  placeholder_text = 'Kermit vs John McCain for President. #StrangerThanFiction'
-        #  logging.error(
-            #  "get_cluster_text is not implemented! Returning placeholder text: '%s'", placeholder_text)
-        #  return placeholder_text
 
     def get_entity_list_for_clusters(self, cluster_ids):
         """ For ad clusters, get an entity: [cluster_id] map for further analysis"""
@@ -99,15 +95,18 @@ class NamedEntityAnalysis(object):
             cluster_text = self.get_cluster_text(cluster_id)
 
             # Always try to fetch a result from storage if possible.
-            ner_analysis_result = self._load_all_results( cluster_id)
+            ner_analysis_result = self._load_all_results(cluster_id)
+            logging.debug('Got NER analysis for cluster ID %d in DB: %s', cluster_id,
+                         ner_analysis_result)
             if not ner_analysis_result:
                 ner_analysis_result = self._analyze_entities(cluster_text)
+                logging.debug('Got named entity recoginition analysis from google:\n%s', ner_analysis_result)
 
             self._store_all_results(cluster_id, ner_analysis_result)
 
-            entity_list = self._generate_entity_list(ner_analysis_result)
+            entity_set = self._generate_entity_set(ner_analysis_result)
 
-            for entity in entity_list:
+            for entity in entity_set:
                 entity_cluster_map[entity].append(cluster_id)
 
         return entity_cluster_map
@@ -119,7 +118,7 @@ def generate_entity_cluster_report():
     with config_utils.get_database_connection_from_config(config) as database_connection:
         if False:
             db_interface = db_functions.DBInterface(database_connection)
-            cluster_ids = db_interface.cluster_ids(country_code, '20200131', '20200229')
+            cluster_ids = db_interface.cluster_ids(country_code, '2020-01-31', '2020-02-29')
         else:
             cluster_ids = [1, 9325]
 
@@ -128,12 +127,11 @@ def generate_entity_cluster_report():
         entity_map = analysis.get_entity_list_for_clusters(cluster_ids)
         logging.debug('Analysis result: %s', entity_map)
 
+    print(json.dumps(entity_map))
     # TODO: This should write to GCS somewhere daily?
     with open(ENTITY_MAP_FILE, 'w') as outfile:
         json.dump(entity_map, outfile)
     logging.info('Wrote entity map to %s', ENTITY_MAP_FILE)
-    
-
 
 
 if __name__ == '__main__':

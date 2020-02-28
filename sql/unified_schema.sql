@@ -161,3 +161,8 @@ CREATE TABLE ad_clusters (
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_creative_per_cluster UNIQUE(archive_id, ad_cluster_id)
 );
+CREATE TABLE ad_cluster_recognized_entities (
+  ad_cluster_id bigint PRIMARY KEY,
+  named_entity_recognition_json jsonb NOT NULL
+--  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_clusters (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
