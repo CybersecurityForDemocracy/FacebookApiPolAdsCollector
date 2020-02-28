@@ -378,3 +378,15 @@ class DBInterface():
         cursor = self.get_cursor()
         cursor.execute(query, (cluster_id, ))
         return [row['archive_id'] for row in cursor.fetchall()]
+
+    def longest_ad_creative_body_text_from_cluster(self, cluster_id):
+        query = ('select distinct(ad_creative_body) from ad_creatives where archive_id in (select '
+                 'archive_id from ad_clusters where ad_cluster_id = %(cluster_id)s) and '
+                 'length(ad_creative_body) = (select max(length(ad_creative_body)) from '
+                 'ad_creatives where archive_id in (select archive_id from ad_clusters where '
+                 'ad_cluster_id = %(cluster_id)s))')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'cluster_id': cluster_id})
+        result = cursor.fetchone()
+        return result['ad_creative_body']
+
