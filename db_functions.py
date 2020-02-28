@@ -145,10 +145,10 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
-    def text_sha256_hash_recognized_entities(self, text_sha256_hash):
+    def get_stored_recognized_entities_for_text_sha256_hash(self, text_sha256_hash):
         cursor = self.get_cursor()
-        query = ('SELECT named_entity_recognition_json FROM ad_creative_body_recognized_entities_json WHERE '
-                 'text_sha256_hash = %s')
+        query = ('SELECT named_entity_recognition_json FROM '
+                 'ad_creative_body_recognized_entities_json WHERE text_sha256_hash = %s')
         cursor.execute(query, (text_sha256_hash,))
         result = cursor.fetchone()
         if result:

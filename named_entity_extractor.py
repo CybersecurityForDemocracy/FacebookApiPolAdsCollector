@@ -37,7 +37,8 @@ class NamedEntityAnalysis(object):
 
     def _load_all_results(self, text_sha256_hash):
         """Load complete results for specified ad creative body text sha256 hash."""
-        return self.database_interface.text_sha256_hash_recognized_entities(text_sha256_hash)
+        return self.database_interface.get_stored_recognized_entities_for_text_sha256_hash(
+                text_sha256_hash)
 
     def _generate_entity_set(self, ner_analysis_result):
         return {entity['name'] for entity in ner_analysis_result['entities']}
