@@ -145,13 +145,15 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
-    def cluster_recognized_entities(self, cluster_id):
+    def text_sha256_hash_recognized_entities(self, text_sha256_hash):
         cursor = self.get_cursor()
-        query = ('SELECT named_entity_recognition_json FROM ad_cluster_recognized_entities WHERE '
-                 'ad_cluster_id = %s')
-        cursor.execute(query, (cluster_id,))
-        #  return [row['named_entity_recognition_json'] for row in cursor.fetchall()]
-        return cursor.fetchone()[0]
+        query = ('SELECT named_entity_recognition_json FROM ad_creative_body_recognized_entities_json WHERE '
+                 'text_sha256_hash = %s')
+        cursor.execute(query, (text_sha256_hash,))
+        result = cursor.fetchone()
+        if result:
+            return result['named_entity_recognition_json']
+        return None
 
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
@@ -366,24 +368,24 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=250)
 
-    def insert_cluster_named_entity_recognition_results(self, ad_cluster_id,
-                                                        named_entity_recognition_json):
+    def insert_named_entity_recognition_results(
+            self, text_sha256_hash, named_entity_recognition_json):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO ad_cluster_recognized_entities (ad_cluster_id, '
-                'named_entity_recognition_json) VALUES (%(ad_cluster_id)s, %(named_entity_recognition_json)s) ON CONFLICT (ad_cluster_id) '
-                'DO UPDATE SET named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
-        cursor.execute(insert_query, ({'ad_cluster_id': ad_cluster_id,
+                'INSERT INTO ad_creative_body_recognized_entities_json (text_sha256_hash, '
+                'named_entity_recognition_json) VALUES (%(text_sha256_hash)s, '
+                '%(named_entity_recognition_json)s) ON CONFLICT (text_sha256_hash) DO UPDATE SET '
+                'named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
+        cursor.execute(insert_query, ({'text_sha256_hash': text_sha256_hash,
                                        'named_entity_recognition_json':
                                        psycopg2.extras.Json(named_entity_recognition_json)}))
 
-    def cluster_ids(self, country, start_time, end_time):
-        """ Return cluster_ids for all clusters which were active/started in a certain timeframe. """
-        # TODO: Implement this to fetch clusters for the given country in the last 
+    def unique_ad_body_texts(self, country, start_time, end_time):
+        """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
         # TODO(macpd): handle end_time being none, or NULL in DB
         # TODO(macpd): use something more efficient than ILIKE
-        query = ('SELECT DISTINCT(ad_cluster_id) FROM ad_clusters '
-                 '    JOIN ads ON ad_clusters.archive_id = ads.archive_id '
+        query = ('SELECT DISTINCT text_sha256_hash, ad_creatives.ad_creative_body FROM ad_creatives '
+                 '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
                  '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
                  'WHERE (ad_countries.country_code = %(country_upper)s OR '
                  'ad_countries.country_code = %(country_lower)s) AND '
@@ -392,22 +394,12 @@ class DBInterface():
         cursor = self.get_cursor()
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
-        return [row['ad_cluster_id'] for row in cursor.fetchall()]
+        print(cursor.query)
+        return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
 
     def cluster_archive_ids(self, cluster_id):
         query = 'SELECT archive_id from ad_clusters where ad_cluster_id = %s'
         cursor = self.get_cursor()
         cursor.execute(query, (cluster_id, ))
         return [row['archive_id'] for row in cursor.fetchall()]
-
-    def longest_ad_creative_body_text_from_cluster(self, cluster_id):
-        query = ('select distinct(ad_creative_body) from ad_creatives where archive_id in (select '
-                 'archive_id from ad_clusters where ad_cluster_id = %(cluster_id)s) and '
-                 'length(ad_creative_body) = (select max(length(ad_creative_body)) from '
-                 'ad_creatives where archive_id in (select archive_id from ad_clusters where '
-                 'ad_cluster_id = %(cluster_id)s))')
-        cursor = self.get_cursor()
-        cursor.execute(query, {'cluster_id': cluster_id})
-        result = cursor.fetchone()
-        return result['ad_creative_body']
 
