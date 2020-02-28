@@ -131,6 +131,7 @@ def generate_entity_cluster_report():
     # TODO: This should write to GCS somewhere daily?
     with open(ENTITY_MAP_FILE, 'w') as outfile:
         json.dump(entity_map, outfile)
+    logging.info('Wrote entity map to %s', ENTITY_MAP_FILE)
     
 
 
