@@ -390,11 +390,11 @@ class DBInterface():
                  'WHERE (ad_countries.country_code = %(country_upper)s OR '
                  'ad_countries.country_code = %(country_lower)s) AND '
                  'ads.ad_delivery_start_time >=  %(start_time)s AND '
-                 'ads.ad_delivery_stop_time <= %(end_time)s')
+                 'ads.ad_delivery_stop_time <= %(end_time)s AND text_sha256_hash IS NOT NULL AND '
+                 'ad_creatives.ad_creative_body IS NOT NULL')
         cursor = self.get_cursor()
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
-        print(cursor.query)
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
 
     def cluster_archive_ids(self, cluster_id):
