@@ -74,7 +74,7 @@ def get_config(config_path):
     return config
 
 
-def configure_logger(log_filename, debug=False):
+def configure_logger(log_filename):
     """Configure root logger to write to log_filename and STDOUT.
 
     Args:
@@ -83,12 +83,8 @@ def configure_logger(log_filename, debug=False):
     record_format = (
         '[%(levelname)s\t%(asctime)s] %(process)d %(thread)d {%(filename)s:%(lineno)d} '
         '%(message)s')
-    log_level = logging.INFO
-    if debug:
-        log_level = logging.DEBUG
-
     logging.basicConfig(
         handlers=[logging.FileHandler(log_filename),
                   logging.StreamHandler()],
         format=record_format,
-        level=log_level)
+        level=logging.INFO)
