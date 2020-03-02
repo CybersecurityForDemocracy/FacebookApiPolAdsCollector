@@ -139,5 +139,5 @@ def generate_entity_report():
 
 
 if __name__ == '__main__':
-    config_utils.configure_logger('named_entity_extractor.log', debug=True)
+    config_utils.configure_logger('named_entity_extractor.log')
     generate_entity_report()

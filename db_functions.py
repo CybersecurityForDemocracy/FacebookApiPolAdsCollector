@@ -383,7 +383,6 @@ class DBInterface():
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
         # TODO(macpd): handle end_time being none, or NULL in DB
-        # TODO(macpd): use something more efficient than ILIKE
         query = ('SELECT DISTINCT text_sha256_hash, ad_creatives.ad_creative_body FROM ad_creatives '
                  '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
                  '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
