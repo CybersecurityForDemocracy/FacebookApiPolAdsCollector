@@ -28,6 +28,7 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
+RESET_CHROME_DRIVER_EVERY_N_BATCHES = 100
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -212,6 +213,11 @@ class FacebookAdCreativeRetriever:
 
         return (time.monotonic() - self.start_time)
 
+    def reset_chromedriver(self):
+        logging.info('Resetting chromedriver.')
+        self.chromedriver.quit()
+        self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
+
     def log_stats(self):
         seconds_elapsed_procesing = self.get_seconds_elapsed_procesing()
         logging.info(
@@ -235,6 +241,7 @@ class FacebookAdCreativeRetriever:
         logging.info('Processing %d archive snapshots in batches of %d',
                      len(archive_ids), self.batch_size)
         try:
+            num_batches_processed = 0
             for archive_id_batch in chunks(archive_ids, self.batch_size):
                 self.process_archive_creatives_via_chrome_driver(
                     archive_id_batch)
@@ -242,6 +249,10 @@ class FacebookAdCreativeRetriever:
                 logging.info('Processed %d of %d archive snapshots.',
                              self.num_snapshots_processed, len(archive_ids))
                 self.log_stats()
+                num_batches_processed += 1
+                if num_batches_processed % RESET_CHROME_DRIVER_EVERY_N_BATCHES == 0:
+                    self.reset_chromedriver()
+
 
         finally:
             self.log_stats()
@@ -442,8 +453,7 @@ class FacebookAdCreativeRetriever:
         except WebDriverException as chromedriver_exception:
             logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
                          chromedriver_exception)
-            self.chromedriver.quit()
-            self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
+            self.reset_chromedriver()
 
         return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
 
