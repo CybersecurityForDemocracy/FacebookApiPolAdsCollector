@@ -145,6 +145,16 @@ class DBInterface():
         cursor.execute(ids_with_simhash_query_template, (simhash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
+    def get_stored_recognized_entities_for_text_sha256_hash(self, text_sha256_hash):
+        cursor = self.get_cursor()
+        query = ('SELECT named_entity_recognition_json FROM '
+                 'ad_creative_body_recognized_entities_json WHERE text_sha256_hash = %s')
+        cursor.execute(query, (text_sha256_hash,))
+        result = cursor.fetchone()
+        if result:
+            return result['named_entity_recognition_json']
+        return None
+
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
@@ -358,7 +368,31 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=250)
 
-    def cluster_ids(self, country, start_time, end_time):
-        """ Return cluster_ids for all clusters which were active/started in a certain timeframe. """
-        # TODO: Implement this to fetch clusters for the given country in the last 
-        return []
+    def insert_named_entity_recognition_results(
+            self, text_sha256_hash, named_entity_recognition_json):
+        cursor = self.get_cursor()
+        insert_query = (
+                'INSERT INTO ad_creative_body_recognized_entities_json (text_sha256_hash, '
+                'named_entity_recognition_json) VALUES (%(text_sha256_hash)s, '
+                '%(named_entity_recognition_json)s) ON CONFLICT (text_sha256_hash) DO UPDATE SET '
+                'named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
+        cursor.execute(insert_query, ({'text_sha256_hash': text_sha256_hash,
+                                       'named_entity_recognition_json':
+                                       psycopg2.extras.Json(named_entity_recognition_json)}))
+
+    def unique_ad_body_texts(self, country, start_time, end_time):
+        """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
+        # TODO(macpd): handle end_time being none, or NULL in DB
+        query = ('SELECT DISTINCT text_sha256_hash, ad_creatives.ad_creative_body FROM ad_creatives '
+                 '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
+                 '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+                 'WHERE (ad_countries.country_code = %(country_upper)s OR '
+                 'ad_countries.country_code = %(country_lower)s) AND '
+                 'ads.ad_delivery_start_time >=  %(start_time)s AND '
+                 'ads.ad_delivery_stop_time <= %(end_time)s AND text_sha256_hash IS NOT NULL AND '
+                 'ad_creatives.ad_creative_body IS NOT NULL')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
+                               'start_time': start_time, 'end_time': end_time})
+        return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
+

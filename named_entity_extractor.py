@@ -17,6 +17,7 @@ import config_utils
 
 GCS_CREDENTIALS_FILE = 'credentials.json'
 ENTITY_MAP_FILE = 'map_for_date.json'
+MAX_TEXT_LENGTH_FOR_NER_ANALYSIS = 1000
 
 
 class NamedEntityAnalysis(object):
@@ -25,32 +26,26 @@ class NamedEntityAnalysis(object):
     No GCP Language API specific datastructures/code should escape this class.
     """
 
-    def __init__(self, credentials_file=GCS_CREDENTIALS_FILE):
-        self.client = language_v1.LanguageServiceClient.from_service_account_json(credentials_file)
+    def __init__(self, database_connection, credentials_file=GCS_CREDENTIALS_FILE):
+        self.database_connection = database_connection
+        self.database_interface = db_functions.DBInterface(database_connection)
+        self.language_service_client = language_v1.LanguageServiceClient.from_service_account_json(credentials_file)
 
-    def _store_all_results(self, cluster_id, ner_analysis_result):
+    def _store_all_results(self, text_sha256_hash, ner_analysis_result):
         """ Store complete result for deeper analysis as needed later. """
-        # TODO: Implement this
-        logging.error(
-            '_store_all_results is not implemented! printing to terminal instead:\n%s', ner_analysis_result)
+        self.database_interface.insert_named_entity_recognition_results(text_sha256_hash,
+                                                                        ner_analysis_result)
 
-    def _load_all_results(self, cluster_id):
-        """ Store complete result for deeper analysis as needed later. """
-        # TODO: Implement this
-        dummy_response = {'entities': [
-            {'name': 'Kermit', 'type': 'PERSON', 'metadata': {'wikipedia_url': 'https://en.wikipedia.org/wiki/Kermit_the_Frog', 'mid': '/m/04bsc'}, 'salience': 0.5452021360397339, 'mentions': [{'text': {'content': 'Kermit'}, 'type': 'PROPER'}]},
-            {'name': 'President', 'type': 'PERSON', 'salience': 0.24969187378883362, 'mentions': [{'text': {'content': 'President', 'beginOffset': 24}, 'type': 'COMMON'}]},
-            {'name': 'Tim Curry', 'type': 'PERSON', 'metadata': {'wikipedia_url': 'https://en.wikipedia.org/wiki/Tim_Curry', 'mid': '/m/07rzf'}, 'salience': 0.1645415723323822, 'mentions': [{'text': {'content': 'Tim Curry', 'beginOffset': 10}, 'type': 'PROPER'}]},
-            {'name': '#Election2020', 'type': 'OTHER', 'salience': 0.04056445136666298, 'mentions': [{'text': {'content': '#Election2020', 'beginOffset': 35}, 'type': 'PROPER'}]}], 'language': 'en'}
-        
-        logging.error(
-            '_load_all_results is not implemented! returning dummy if cluster_id == 1234')
-        if cluster_id==1234:
-            return dummy_response
-        return None
+    def _load_all_results(self, text_sha256_hash):
+        """Load complete results for specified ad creative body text sha256 hash."""
+        return self.database_interface.get_stored_recognized_entities_for_text_sha256_hash(
+                text_sha256_hash)
 
-    def _generate_entity_list(self, ner_analysis_result):
-        return [entity['name'] for entity in ner_analysis_result['entities']]
+    def _generate_entity_set(self, ner_analysis_result):
+        if 'entities' in ner_analysis_result and 'name' in ner_analysis_result['entities']:
+            return {entity['name'] for entity in ner_analysis_result['entities']}
+
+        return set()
 
     def _analyze_entities(self, text_content):
         """
@@ -60,7 +55,7 @@ class NamedEntityAnalysis(object):
         https://cloud.google.com/natural-language/docs/basics
 
         Args:
-        text_content The text content to analyze
+            text_content: str The text content to analyze
         """
         logging.debug('making API call')
 
@@ -77,59 +72,73 @@ class NamedEntityAnalysis(object):
         # Available values: NONE, UTF8, UTF16, UTF32
         encoding_type = enums.EncodingType.UTF8
 
-        response = self.client.analyze_entities(
+        response = self.language_service_client.analyze_entities(
             document, encoding_type=encoding_type)
         return MessageToDict(response)
 
-    def get_cluster_text(self, cluster_id):
-        """ Get a Canonical Text result for a given cluster_id """
-        # TODO: Implement this
-        placeholder_text = 'Kermit vs John McCain for President. #StrangerThanFiction'
-        logging.error(
-            "get_cluster_text is not implemented! Returning placeholder text: '%s'", placeholder_text)
-        return placeholder_text
+    def get_entity_list_for_texts(self, unique_ad_body_texts):
+        """
+        For ad creative body texts, get an entity -> [text_sha256_hash] map for further analysis.
 
-    def get_entity_list_for_clusters(self, cluster_ids):
-        """ For ad clusters, get an entity: [cluster_id] map for further analysis"""
-        entity_cluster_map = defaultdict(list)
-        for cluster_id in cluster_ids:
-            cluster_text = self.get_cluster_text(cluster_id)
+        NER analysis for a given text is first looked for in storage. If not present the text is
+        sent for analysis via google language service API. Then the analysis is stored for later
+        use.
+
+        Args:
+            unique_ad_body_texts: dict of sha256 hash -> ad creative body text to analyze for named
+            entities.
+        Returns:
+            dict str entity name -> sha256 hash of ad creative body in which is was found.
+        """
+        entity_to_text_hash_map = defaultdict(list)
+        for text_sha256_hash in unique_ad_body_texts:
 
             # Always try to fetch a result from storage if possible.
-            ner_analysis_result = self._load_all_results( cluster_id)
+            ner_analysis_result = self._load_all_results(text_sha256_hash)
+            logging.debug('Got NER analysis for ad creative body text sha256 hash %s in DB: %s',
+                          text_sha256_hash, ner_analysis_result)
             if not ner_analysis_result:
-                ner_analysis_result = self._analyze_entities(cluster_text)
+                text = unique_ad_body_texts[text_sha256_hash]
+                if len(text) > MAX_TEXT_LENGTH_FOR_NER_ANALYSIS:
+                    text = text[:MAX_TEXT_LENGTH_FOR_NER_ANALYSIS]
+                ner_analysis_result = self._analyze_entities(unique_ad_body_texts[text_sha256_hash])
+                logging.debug(
+                        'Got NER analysis for text sha256 hash %s from google:\n%s',
+                        text_sha256_hash, ner_analysis_result)
 
-            self._store_all_results(cluster_id, ner_analysis_result)
+            self._store_all_results(text_sha256_hash, ner_analysis_result)
+            self.database_connection.commit()
 
-            entity_list = self._generate_entity_list(ner_analysis_result)
+            entity_set = self._generate_entity_set(ner_analysis_result)
 
-            for entity in entity_list:
-                entity_cluster_map[entity].append(cluster_id)
+            for entity in entity_set:
+                entity_to_text_hash_map[entity].append(text_sha256_hash)
 
-        return entity_cluster_map
+        return entity_to_text_hash_map
 
-def generate_entity_cluster_report():
+def generate_entity_report():
     # TODO: This if False is gated by productionization
-    if False:
-        config = config_utils.get_config(sys.argv[1])
-        country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-        connection = config_utils.get_database_connection_from_config(config)
-        db_interface = db_functions.DBInterface(connection)
-        cluster_ids = db_interface.cluster_ids(country_code, '01312020', '02292020')
-    else:
-        cluster_ids = [1234, 123]
+    config = config_utils.get_config(sys.argv[1])
+    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+    with config_utils.get_database_connection_from_config(config) as database_connection:
+        db_interface = db_functions.DBInterface(database_connection)
+        # TODO(macpd): pull these dates from somewhere. config, database, interval to-from current
+        # date, etc
+        unique_ad_body_texts = db_interface.unique_ad_body_texts(
+                country_code, '2020-02-01', '2020-02-29')
 
-    analysis = NamedEntityAnalysis()
-    entity_map = analysis.get_entity_list_for_clusters(cluster_ids)
-    logging.debug('Analysis result: %s', entity_map)
+        logging.info('Got %d unique ad body_texts.', len(unique_ad_body_texts))
+
+        analysis = NamedEntityAnalysis(database_connection=database_connection,
+                                       credentials_file='gcs_credentials.json')
+        entity_map = analysis.get_entity_list_for_texts(unique_ad_body_texts)
 
     # TODO: This should write to GCS somewhere daily?
     with open(ENTITY_MAP_FILE, 'w') as outfile:
         json.dump(entity_map, outfile)
-    
-
+    logging.info('Wrote entity map to %s', ENTITY_MAP_FILE)
 
 
 if __name__ == '__main__':
-    generate_entity_cluster_report()
+    config_utils.configure_logger('named_entity_extractor.log')
+    generate_entity_report()
