@@ -6,7 +6,7 @@ You can generate a new credentials file here: https://console.cloud.google.com/a
 import logging
 import sys
 import json
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 
 from google.cloud import language_v1
 from google.cloud.language_v1 import enums
@@ -122,6 +122,8 @@ def generate_entity_report():
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
     with config_utils.get_database_connection_from_config(config) as database_connection:
         db_interface = db_functions.DBInterface(database_connection)
+        # TODO(macpd): pull these dates from somewhere. config, database, interval to-from current
+        # date, etc
         unique_ad_body_texts = db_interface.unique_ad_body_texts(
                 country_code, '2020-02-01', '2020-02-29')
 
@@ -131,7 +133,6 @@ def generate_entity_report():
                                        credentials_file='gcs_credentials.json')
         entity_map = analysis.get_entity_list_for_texts(unique_ad_body_texts)
 
-    print(json.dumps(entity_map))
     # TODO: This should write to GCS somewhere daily?
     with open(ENTITY_MAP_FILE, 'w') as outfile:
         json.dump(entity_map, outfile)
