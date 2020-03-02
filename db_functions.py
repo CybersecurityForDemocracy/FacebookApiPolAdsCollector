@@ -396,9 +396,3 @@ class DBInterface():
                                'start_time': start_time, 'end_time': end_time})
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
 
-    def cluster_archive_ids(self, cluster_id):
-        query = 'SELECT archive_id from ad_clusters where ad_cluster_id = %s'
-        cursor = self.get_cursor()
-        cursor.execute(query, (cluster_id, ))
-        return [row['archive_id'] for row in cursor.fetchall()]
-
