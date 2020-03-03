@@ -1,6 +1,8 @@
+from collections import namedtuple
 import psycopg2
 import psycopg2.extras
 
+EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 
 class DBInterface():
 
@@ -46,6 +48,14 @@ class DBInterface():
         for row in cursor:
             existing_ad_clusters[row['archive_id']] = row['ad_cluster_id']
         return existing_ad_clusters
+
+    def existing_recognized_entities(self):
+        cursor = self.get_cursor()
+        existing_recognized_entities_query = (
+                'SELECT entity_id, entity_name, entity_type FROM recognized_entities')
+        cursor.execute(existing_recognized_entities_query)
+        return dict([
+                (EntityRecord(name=row['entity_name'], type=row['entity_type']), row['entity_id']) for row in cursor.fetchall()])
 
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
@@ -154,6 +164,12 @@ class DBInterface():
         if result:
             return result['named_entity_recognition_json']
         return None
+
+    def ad_creative_ids_with_text_sha256_hash(self, text_sha256_hash):
+        cursor = self.get_cursor()
+        query = ('SELECT ad_creative_id from ad_creatives WHERE text_sha256_hash = %s')
+        cursor.execute(query, (text_sha256_hash,))
+        return [row['ad_creative_id'] for row in cursor.fetchall()]
 
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
@@ -379,6 +395,33 @@ class DBInterface():
         cursor.execute(insert_query, ({'text_sha256_hash': text_sha256_hash,
                                        'named_entity_recognition_json':
                                        psycopg2.extras.Json(named_entity_recognition_json)}))
+
+    def insert_recognized_entities(self, entity_records):
+        cursor = self.get_cursor()
+        insert_query = (
+                'INSERT INTO recognized_entities(entity_name, entity_type) VALUES %s '
+                'ON CONFLICT DO NOTHING')
+        insert_template = '(%(name)s, %(type)s)'
+        entity_record_list = [x._asdict() for x in entity_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       entity_record_list,
+                                       template=insert_template,
+                                       page_size=250)
+
+    def insert_ad_recognized_entity_records(self, ad_creative_to_recognized_entities_records):
+        cursor = self.get_cursor()
+        insert_query = (
+                'INSERT INTO ad_creative_to_recognized_entities(ad_creative_id, entity_id) VALUES %s '
+                'ON CONFLICT DO NOTHING')
+        insert_template = '(%(ad_creative_id)s, %(entity_id)s)'
+        entity_record_list = [x._asdict() for x in ad_creative_to_recognized_entities_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       entity_record_list,
+                                       template=insert_template,
+                                       page_size=250)
+
 
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
