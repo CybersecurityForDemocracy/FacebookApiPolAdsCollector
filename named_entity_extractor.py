@@ -124,9 +124,10 @@ class NamedEntityAnalysis(object):
         return entity_to_ad_creative_ids
 
     def _update_recognized_entities_in_database(self, entity_to_ad_creative_ids):
-        existing_entities = db_interface.existing_recognized_entities()
+        existing_entities = self.database_interface.existing_recognized_entities()
         new_entities = set(entity_to_ad_creative_ids.keys()) - set(existing_entities.keys())
         if new_entities:
+            logging.info('Got %d new entities.', len(new_entities))
             self.database_interface.insert_recognized_entities(new_entities)
             existing_entities = self.database_interface.existing_recognized_entities()
 
@@ -147,7 +148,7 @@ def generate_entity_report():
         # TODO(macpd): pull these dates from somewhere. config, database, interval to-from current
         # date, etc
         unique_ad_body_texts = db_interface.unique_ad_body_texts(
-                country_code, '2020-01-01', '2020-01-31')
+                country_code, '2020-01-01', '2020-03-31')
 
         logging.info('Got %d unique ad body_texts.', len(unique_ad_body_texts))
 
