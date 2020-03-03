@@ -88,7 +88,7 @@ CREATE TABLE page_metadata (
 CREATE TABLE ad_snapshot_metadata (
   archive_id bigint NOT NULL,
   needs_scrape boolean DEFAULT TRUE,
-  snapshot_fetch_time timestamp,
+  snapshot_fetch_time timestamp with timezone,
   snapshot_fetch_status int,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
