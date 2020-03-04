@@ -392,6 +392,7 @@ class DBInterface():
         logging.info('About to make batches (size %d) of unfetched archive IDs.', batch_size)
         read_cursor = self.get_cursor()
         read_cursor.arraysize = batch_size
+        # Get all archive IDs that are unfetched and not part of an existing batch.
         unbatched_archive_ids_query = (
             'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
             'JOIN ads ON ads.archive_id = ad_snapshot_metadata.archive_id WHERE '
