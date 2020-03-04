@@ -88,7 +88,7 @@ CREATE TABLE page_metadata (
 CREATE TABLE ad_snapshot_metadata (
   archive_id bigint NOT NULL,
   needs_scrape boolean DEFAULT TRUE,
-  snapshot_fetch_time timestamp,
+  snapshot_fetch_time timestamp with timezone,
   snapshot_fetch_status int,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -178,4 +178,9 @@ CREATE TABLE ad_creative_to_recognized_entities (
   CONSTRAINT ad_creative_id_fk FOREIGN KEY (ad_creative_id) REFERENCES ad_creatives (ad_creative_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-
+CREATE TABLE snapshot_fetch_batches (
+  batch_id bigserial PRIMARY KEY,
+  archive_ids bigint[] NOT NULL,
+  time_started timestamp with time zone,
+  time_completed timestamp with time zone
+);

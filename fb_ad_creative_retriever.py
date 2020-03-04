@@ -190,7 +190,7 @@ def get_image_dhash(image_bytes):
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, bucket_client, access_token, batch_size, slack_url):
+    def __init__(self, db_connection, bucket_client, access_token, commit_to_db_every_n_processed, slack_url):
         self.bucket_client = bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
@@ -199,10 +199,11 @@ class FacebookAdCreativeRetriever:
         self.num_image_download_success = 0
         self.num_image_download_failure = 0
         self.num_image_uploade_to_gcs_bucket = 0
+        self.current_batch_id = None
         self.db_connection = db_connection
         self.db_interface = db_functions.DBInterface(db_connection)
         self.access_token = access_token
-        self.batch_size = batch_size
+        self.commit_to_db_every_n_processed = commit_to_db_every_n_processed
         self.start_time = None
         self.slack_url = slack_url
         self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
@@ -228,35 +229,49 @@ class FacebookAdCreativeRetriever:
             'Images downloads successful: %d\n'
             'Images downloads failed: %d\n'
             'Images uploaded to GCS bucket: %d\n'
-            'Average time spent per ad creative: %f seconds',
+            'Average time spent per ad creative: %f seconds\n'
+            'Current batch ID: %s',
             self.num_snapshots_processed, seconds_elapsed_procesing,
             self.num_snapshots_fetch_failed, self.num_ad_creatives_found,
             self.num_snapshots_without_creative_found,
             self.num_image_download_success, self.num_image_download_failure,
             self.num_image_uploade_to_gcs_bucket, seconds_elapsed_procesing /
-            (self.num_image_uploade_to_gcs_bucket or 1))
+            (self.num_image_uploade_to_gcs_bucket or 1),
+            self.current_batch_id)
 
-    def retreive_and_store_ad_creatives(self, archive_ids):
+
+    def retreive_and_store_ad_creatives(self):
         self.start_time = time.monotonic()
-        logging.info('Processing %d archive snapshots in batches of %d',
-                     len(archive_ids), self.batch_size)
         try:
             num_batches_processed = 0
-            for archive_id_batch in chunks(archive_ids, self.batch_size):
-                self.process_archive_creatives_via_chrome_driver(
-                    archive_id_batch)
-                self.db_connection.commit()
-                logging.info('Processed %d of %d archive snapshots.',
-                             self.num_snapshots_processed, len(archive_ids))
-                self.log_stats()
+            batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
+            while batch_and_archive_ids:
+                self.current_batch_id = batch_and_archive_ids['batch_id']
+                archive_ids = batch_and_archive_ids['archive_ids']
+                logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
+                             self.current_batch_id, len(archive_ids),
+                             self.commit_to_db_every_n_processed)
+                self.process_archive_id_batch(archive_ids)
                 num_batches_processed += 1
                 if num_batches_processed % RESET_CHROME_DRIVER_EVERY_N_BATCHES == 0:
                     self.reset_chromedriver()
-
-
+                self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
+                self.db_connection.commit()
+                batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
         finally:
             self.log_stats()
             self.chromedriver.quit()
+
+    def process_archive_id_batch(self, archive_id_batch):
+        num_snapshots_processed_in_current_batch = 0
+        for archive_id_chunk in chunks(archive_id_batch, self.commit_to_db_every_n_processed):
+            self.process_archive_creatives_via_chrome_driver(
+                archive_id_chunk)
+            self.db_connection.commit()
+            num_snapshots_processed_in_current_batch += len(archive_id_chunk)
+            logging.info('Processed %d of %d archive snapshots.',
+                         num_snapshots_processed_in_current_batch, len(archive_id_batch))
+            self.log_stats()
 
     def store_image_in_google_bucket(self, image_dhash, image_bytes):
         image_bucket_path = make_image_hash_file_path(image_dhash)
@@ -459,7 +474,8 @@ class FacebookAdCreativeRetriever:
 
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
-        logging.info('Getting creatives data from archive ID: %s\nURL: %s',
+        logging.info('Getting creatives data from archive ID: %s', archive_id)
+        logging.debug('Getting creatives data from archive ID: %s\nURL: %s',
                      archive_id, snapshot_url)
         self.chromedriver.get(snapshot_url)
 
@@ -637,28 +653,18 @@ def main(argv):
     config.read(argv[0])
 
     access_token = config_utils.get_facebook_access_token(config)
-    batch_size = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
-    max_archive_ids = config.getint('LIMITS', 'MAX_ARCHIVE_IDS', fallback=DEFAULT_MAX_ARCHIVE_IDS)
-    logging.info('Batch size: %d', batch_size)
-    logging.info('Max archive IDs to process: %d', max_archive_ids)
-
+    commit_to_db_every_n_processed = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
+    logging.info('Will commit to DB every %d snapshots processed.', commit_to_db_every_n_processed)
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        logging.info('DB connection established')
-        db_interface = db_functions.DBInterface(db_connection)
-        if max_archive_ids == -1:
-            archive_ids = db_interface.all_archive_ids_that_need_scrape()
-        else:
-            archive_ids = db_interface.n_archive_ids_that_need_scrape(max_archive_ids)
 
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         bucket_client = make_gcs_bucket_client(GCS_BUCKET,
                                                GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, batch_size, slack_url)
-        image_retriever.retreive_and_store_ad_creatives(archive_ids)
+            db_connection, bucket_client, access_token, commit_to_db_every_n_processed, slack_url)
+        image_retriever.retreive_and_store_ad_creatives()
 
 
 if __name__ == '__main__':
