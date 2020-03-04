@@ -165,7 +165,6 @@ CREATE TABLE ad_clusters (
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_creative_per_cluster UNIQUE(archive_id, ad_cluster_id)
 );
- -- TODO(macpd): decide if we want to keep these tables for more efficient entity -> ad mappings
 CREATE TABLE recognized_entities (
   entity_id bigserial PRIMARY KEY,
   entity_name character varying NOT NULL,

@@ -157,12 +157,6 @@ def generate_entity_report():
         entity_to_ad_creative_ids = analysis.get_entity_list_for_texts(unique_ad_body_texts)
 
 
-    # TODO: This should write to GCS somewhere daily?
-    #  with open(ENTITY_MAP_FILE, 'w') as outfile:
-        #  json.dump(entity_map, outfile)
-    #  logging.info('Wrote entity map to %s', ENTITY_MAP_FILE)
-
-
 if __name__ == '__main__':
     config_utils.configure_logger('named_entity_extractor.log')
     generate_entity_report()
