@@ -389,6 +389,7 @@ class DBInterface():
         Args:
             batch_size: int size of batches to create.
         """
+        logging.info('About to make batches (size %d) of unfetched archive IDs.', batch_size)
         read_cursor = self.get_cursor()
         read_cursor.arraysize = batch_size
         unbatched_archive_ids_query = (
