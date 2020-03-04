@@ -412,6 +412,8 @@ class DBInterface():
             'ORDER BY batch_id DESC LIMIT 1')
         cursor.execute(archive_id_batch_query)
         row = cursor.fetchone()
+        if not row:
+            return None
         batch_id = row['batch_id']
         archive_ids_batch = row['archive_ids']
         claim_batch_for_fetch_query = (
