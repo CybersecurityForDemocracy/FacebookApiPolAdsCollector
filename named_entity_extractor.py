@@ -18,7 +18,6 @@ GCS_CREDENTIALS_FILE = 'credentials.json'
 ENTITY_MAP_FILE = 'map_for_date.json'
 MAX_TEXT_LENGTH_FOR_NER_ANALYSIS = 1000
 
-EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 AdCreativeToRecognizedEntityRecord = namedtuple('AdCreativeToRecognizedEntityRecord',
                                                 ['ad_creative_id', 'entity_id'])
 
@@ -49,7 +48,7 @@ class NamedEntityAnalysis:
         if 'entities' not in ner_analysis_result:
             return set()
 
-        return {EntityRecord(name=entity['name'], type=entity['type']) for entity in
+        return {db_functions.EntityRecord(name=entity['name'], type=entity['type']) for entity in
                 ner_analysis_result['entities']}
 
 
@@ -132,8 +131,8 @@ class NamedEntityAnalysis:
         """Store new entites in DB, and update/insert entity to ad creative relationships in DB.
 
         Args:
-            entity_to_ad_creative_ids: dict EntityRecord -> list of ad_creative_id in which those
-            entites were found.
+            entity_to_ad_creative_ids: dict db_functions.EntityRecord -> list of ad_creative_id in
+            which those entites were found.
         """
         existing_entities = self.database_interface.existing_recognized_entities()
         new_entities = set(entity_to_ad_creative_ids.keys()) - set(existing_entities.keys())
