@@ -380,6 +380,53 @@ class DBInterface():
                                        'named_entity_recognition_json':
                                        psycopg2.extras.Json(named_entity_recognition_json)}))
 
+    def make_snapshot_fetch_batches(self, batch_size=1000):
+        """
+        Add snapshots that need to be fetched into snapshot_fetch_batches in batches of batch_size.
+
+        Args:
+            batch_size: int size of batches to create.
+        """
+        read_cursor = self.get_cursor()
+        read_cursor.arraysize = batch_size
+        unbatched_archive_ids_query = (
+            'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
+            'JOIN ads ON ads.archive_id = ad_snapshot_metadata.archive_id WHERE '
+            'ad_snapshot_metadata.needs_scrape = true AND ad_snapshot_metadata.archive_id NOT IN '
+            '(SELECT unnest(snapshot_fetch_batches.archive_ids) FROM snapshot_fetch_batches) '
+            'ORDER BY ad_creation_time ASC')
+        batch_insert_query = (
+            'INSERT INTO snapshot_fetch_batches (archive_ids) VALUES (%s)')
+        write_cursor = self.get_cursor()
+        read_cursor.execute(unbatched_archive_ids_query)
+        fetched_rows = read_cursor.fetchmany()
+        while fetched_rows:
+            archive_id_batch = [row['archive_id'] for row in fetched_rows]
+            write_cursor.execute(batch_insert_query, (archive_id_batch, ))
+            fetched_rows = read_cursor.fetchmany()
+
+    def get_archive_id_batch_to_fetch(self):
+        cursor = self.get_cursor()
+        archive_id_batch_query = (
+            'SELECT archive_ids, batch_id FROM snapshot_fetch_batches WHERE time_started IS NULL '
+            'ORDER BY batch_id DESC LIMIT 1')
+        cursor.execute(archive_id_batch_query)
+        row = cursor.fetchone()
+        batch_id = row['batch_id']
+        archive_ids_batch = row['archive_ids']
+        claim_batch_for_fetch_query = (
+                'UPDATE snapshot_fetch_batches SET time_started = CURRENT_TIMESTAMP WHERE '
+                'batch_id = %s')
+        cursor.execute(claim_batch_for_fetch_query, (batch_id,))
+        # COMMIT transaction to ensure no one else tries to take the same batch
+        self.connection.commit()
+        return {'batch_id': batch_id, 'archive_ids': archive_ids_batch}
+
+    def mark_fetch_batch_completed(self, batch_id):
+        cursor = self.get_cursor()
+        cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
+                       'batch_id = %s', (batch_id,))
+
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
         # TODO(macpd): handle end_time being none, or NULL in DB
