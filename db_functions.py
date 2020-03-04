@@ -392,7 +392,9 @@ class DBInterface():
         logging.info('About to make batches (size %d) of unfetched archive IDs.', batch_size)
         read_cursor = self.get_cursor()
         read_cursor.arraysize = batch_size
-        # Get all archive IDs that are unfetched and not part of an existing batch.
+        # Get all archive IDs that are unfetched and not part of an existing batch. Archive IDs are
+        # ordered oldest to newest ad_creation time so that larger batch_id roughly corresponds to
+        # newer ads.
         unbatched_archive_ids_query = (
             'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
             'JOIN ads ON ads.archive_id = ad_snapshot_metadata.archive_id WHERE '
@@ -416,6 +418,7 @@ class DBInterface():
 
     def get_archive_id_batch_to_fetch(self):
         cursor = self.get_cursor()
+        # Get largest batch_id that has not yet been started.
         archive_id_batch_query = (
             'SELECT archive_ids, batch_id FROM snapshot_fetch_batches WHERE time_started IS NULL '
             'ORDER BY batch_id DESC LIMIT 1')
