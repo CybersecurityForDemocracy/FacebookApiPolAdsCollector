@@ -5,7 +5,6 @@ You can generate a new credentials file here: https://console.cloud.google.com/a
 """
 import logging
 import sys
-import json
 from collections import defaultdict, namedtuple
 
 from google.cloud import language_v1
@@ -20,10 +19,11 @@ ENTITY_MAP_FILE = 'map_for_date.json'
 MAX_TEXT_LENGTH_FOR_NER_ANALYSIS = 1000
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
-AdCreativeToRecognizedEntityRecord = namedtuple('AdCreativeToRecognizedEntityRecord', ['ad_creative_id', 'entity_id'])
+AdCreativeToRecognizedEntityRecord = namedtuple('AdCreativeToRecognizedEntityRecord',
+                                                ['ad_creative_id', 'entity_id'])
 
 
-class NamedEntityAnalysis(object):
+class NamedEntityAnalysis:
     """ This Class Handles All aspects of the Name Entity Recognition task.
 
     No GCP Language API specific datastructures/code should escape this class.
@@ -32,7 +32,8 @@ class NamedEntityAnalysis(object):
     def __init__(self, database_connection, credentials_file=GCS_CREDENTIALS_FILE):
         self.database_connection = database_connection
         self.database_interface = db_functions.DBInterface(database_connection)
-        self.language_service_client = language_v1.LanguageServiceClient.from_service_account_json(credentials_file)
+        self.language_service_client = language_v1.LanguageServiceClient.from_service_account_json(
+            credentials_file)
 
     def _store_all_results(self, text_sha256_hash, ner_analysis_result):
         """ Store complete result for deeper analysis as needed later. """
@@ -42,13 +43,14 @@ class NamedEntityAnalysis(object):
     def _load_all_results(self, text_sha256_hash):
         """Load complete results for specified ad creative body text sha256 hash."""
         return self.database_interface.get_stored_recognized_entities_for_text_sha256_hash(
-                text_sha256_hash)
+            text_sha256_hash)
 
     def _generate_entity_set(self, ner_analysis_result):
         if 'entities' not in ner_analysis_result:
             return set()
 
-        return {EntityRecord(name=entity['name'], type=entity['type']) for entity in ner_analysis_result['entities']}
+        return {EntityRecord(name=entity['name'], type=entity['type']) for entity in
+                ner_analysis_result['entities']}
 
 
     def _analyze_entities(self, text_content):
@@ -80,19 +82,21 @@ class NamedEntityAnalysis(object):
             document, encoding_type=encoding_type)
         return MessageToDict(response)
 
-    def get_entity_list_for_texts(self, unique_ad_body_texts):
+    def analyze_entities_in_texts(self, unique_ad_body_texts):
         """
-        For ad creative body texts, get an entity -> [text_sha256_hash] map for further analysis.
+        For ad creative body texts, analyze text for named entites, and store results for further
+        analysis.
 
         NER analysis for a given text is first looked for in storage. If not present the text is
         sent for analysis via google language service API. Then the analysis is stored for later
         use.
 
+        Entites and the relationship of which entities appear in which ad creative body texts is
+        also stored.
+
         Args:
             unique_ad_body_texts: dict of sha256 hash -> ad creative body text to analyze for named
             entities.
-        Returns:
-            dict str entity name -> ad_creative_id of ad ad creative body in which is was found.
         """
         entity_to_ad_creative_ids = defaultdict(list)
         for text_sha256_hash in unique_ad_body_texts:
@@ -107,14 +111,15 @@ class NamedEntityAnalysis(object):
                     text = text[:MAX_TEXT_LENGTH_FOR_NER_ANALYSIS]
                 ner_analysis_result = self._analyze_entities(unique_ad_body_texts[text_sha256_hash])
                 logging.info(
-                        'Got NER analysis for text sha256 hash %s from google:\n%s',
-                        text_sha256_hash, ner_analysis_result)
+                    'Got NER analysis for text sha256 hash %s from google:\n%s', text_sha256_hash,
+                    ner_analysis_result)
 
             self._store_all_results(text_sha256_hash, ner_analysis_result)
             self.database_connection.commit()
 
             entity_set = self._generate_entity_set(ner_analysis_result)
-            ad_creative_ids = self.database_interface.ad_creative_ids_with_text_sha256_hash(text_sha256_hash)
+            ad_creative_ids = self.database_interface.ad_creative_ids_with_text_sha256_hash(
+                text_sha256_hash)
 
             for entity in entity_set:
                 entity_to_ad_creative_ids[entity].extend(ad_creative_ids)
@@ -124,6 +129,12 @@ class NamedEntityAnalysis(object):
         return entity_to_ad_creative_ids
 
     def _update_recognized_entities_in_database(self, entity_to_ad_creative_ids):
+        """Store new entites in DB, and update/insert entity to ad creative relationships in DB.
+
+        Args:
+            entity_to_ad_creative_ids: dict EntityRecord -> list of ad_creative_id in which those
+            entites were found.
+        """
         existing_entities = self.database_interface.existing_recognized_entities()
         new_entities = set(entity_to_ad_creative_ids.keys()) - set(existing_entities.keys())
         if new_entities:
@@ -135,10 +146,10 @@ class NamedEntityAnalysis(object):
         for entity, ad_creative_ids in entity_to_ad_creative_ids.items():
             for ad_creative_id in ad_creative_ids:
                 ad_creative_to_recognized_entities_records.append(
-                        AdCreativeToRecognizedEntityRecord(ad_creative_id=ad_creative_id,
-                                                 entity_id=existing_entities[entity]))
+                    AdCreativeToRecognizedEntityRecord(ad_creative_id=ad_creative_id,
+                                                       entity_id=existing_entities[entity]))
         self.database_interface.insert_ad_recognized_entity_records(
-                ad_creative_to_recognized_entities_records)
+            ad_creative_to_recognized_entities_records)
 
 def generate_entity_report():
     config = config_utils.get_config(sys.argv[1])
@@ -148,13 +159,13 @@ def generate_entity_report():
         # TODO(macpd): pull these dates from somewhere. config, database, interval to-from current
         # date, etc
         unique_ad_body_texts = db_interface.unique_ad_body_texts(
-                country_code, '2020-01-01', '2020-03-31')
+            country_code, '2020-01-01', '2020-03-31')
 
         logging.info('Got %d unique ad body_texts.', len(unique_ad_body_texts))
 
         analysis = NamedEntityAnalysis(database_connection=database_connection,
                                        credentials_file='gcs_credentials.json')
-        entity_to_ad_creative_ids = analysis.get_entity_list_for_texts(unique_ad_body_texts)
+        analysis.analyze_entities_in_texts(unique_ad_body_texts)
 
 
 if __name__ == '__main__':
