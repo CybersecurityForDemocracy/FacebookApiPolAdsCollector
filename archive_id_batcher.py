@@ -1,11 +1,11 @@
+"""Module to make batches of unfetched archive IDs and store them in the DB."""
 import sys
 
 import db_functions
 import config_utils
 
 def main(config):
-    database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    with config_utils.get_database_connection(database_connection_params) as database_connection:
+    with config_utils.get_database_connection_from_config(config) as database_connection:
         database_interface = db_functions.DBInterface(database_connection)
         database_interface.make_snapshot_fetch_batches()
 
