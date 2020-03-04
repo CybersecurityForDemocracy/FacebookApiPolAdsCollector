@@ -1,3 +1,5 @@
+import logging
+
 import psycopg2
 import psycopg2.extras
 
@@ -398,10 +400,12 @@ class DBInterface():
         batch_insert_query = (
             'INSERT INTO snapshot_fetch_batches (archive_ids) VALUES (%s)')
         write_cursor = self.get_cursor()
+        logging.info('Getting unfetched archive IDs.')
         read_cursor.execute(unbatched_archive_ids_query)
         fetched_rows = read_cursor.fetchmany()
         while fetched_rows:
             archive_id_batch = [row['archive_id'] for row in fetched_rows]
+            logging.info('Adding batch of %d archive IDs to new batch', len(archive_id_batch))
             write_cursor.execute(batch_insert_query, (archive_id_batch, ))
             fetched_rows = read_cursor.fetchmany()
 
