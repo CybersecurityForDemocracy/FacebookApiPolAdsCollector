@@ -401,7 +401,7 @@ class DBInterface():
             'ad_snapshot_metadata.needs_scrape = true AND '
             'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL ORDER BY ad_creation_time ASC')
         # This query inserts an empty row and gets back the autoincremented new batch_id.
-        new_batch_id_query = (
+        get_new_batch_id_query = (
             'INSERT INTO snapshot_fetch_batches (time_started, time_completed) VALUES (NULL, NULL) '
             'RETURNING batch_id')
         assign_batch_id_query = (
@@ -415,11 +415,11 @@ class DBInterface():
         fetched_rows = read_cursor.fetchmany()
         num_new_batches = 0
         while fetched_rows:
-            write_cursor.execute(new_batch_id_query)
-            new_batch_id = write_cursor.fetchone()['batch_id']
-            assign_batch_id_args = [(int(new_batch_id), int(row['archive_id'])) for row in fetched_rows]
+            write_cursor.execute(get_new_batch_id_query)
+            batch_id = write_cursor.fetchone()['batch_id']
+            assign_batch_id_args = [(int(batch_id), int(row['archive_id'])) for row in fetched_rows]
             logging.info(
-                'Assigning batch ID %d to %d archive IDs.', new_batch_id, len(assign_batch_id_args))
+                'Assigning batch ID %d to %d archive IDs.', batch_id, len(assign_batch_id_args))
             psycopg2.extras.execute_values(write_cursor,
                                            assign_batch_id_query,
                                            assign_batch_id_args,
