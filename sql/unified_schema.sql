@@ -90,8 +90,10 @@ CREATE TABLE ad_snapshot_metadata (
   needs_scrape boolean DEFAULT TRUE,
   snapshot_fetch_time timestamp with timezone,
   snapshot_fetch_status int,
+  snapshot_fetch_batch_id bigint,
   PRIMARY KEY (archive_id),
-  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT batch_id_fk FOREIGN KEY (snapshot_fetch_batch_id) REFERENCES snapshot_fetch_batches (batch_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL
 );
 CREATE TABLE ad_creatives (
   ad_creative_id bigserial PRIMARY KEY,
@@ -167,7 +169,6 @@ CREATE TABLE ad_clusters (
 );
 CREATE TABLE snapshot_fetch_batches (
   batch_id bigserial PRIMARY KEY,
-  archive_ids bigint[] NOT NULL,
   time_started timestamp with time zone,
   time_completed timestamp with time zone
 );
