@@ -56,8 +56,8 @@ class DBInterface():
         existing_recognized_entities_query = (
                 'SELECT entity_id, entity_name, entity_type FROM recognized_entities')
         cursor.execute(existing_recognized_entities_query)
-        return dict([
-                (EntityRecord(name=row['entity_name'], type=row['entity_type']), row['entity_id']) for row in cursor.fetchall()])
+        return {EntityRecord(name=row['entity_name'], type=row['entity_type']): row['entity_id']
+                for row in cursor.fetchall()}
 
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
