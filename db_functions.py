@@ -439,11 +439,11 @@ class DBInterface():
             'RETURNING batch_id')
         cursor.execute(claim_batch_for_fetch_query)
         row = cursor.fetchone()
+        # COMMIT transaction to ensure no one else tries to take the same batch
+        self.connection.commit()
         if not row:
             return None
         batch_id = row['batch_id']
-        # COMMIT transaction to ensure no one else tries to take the same batch
-        self.connection.commit()
 
         archive_id_batch_query = (
                 'SELECT archive_id FROM ad_snapshot_metadata WHERE snapshot_fetch_batch_id = %s')
