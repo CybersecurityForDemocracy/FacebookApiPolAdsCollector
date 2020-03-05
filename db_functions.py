@@ -445,7 +445,8 @@ class DBInterface():
         # COMMIT transaction to ensure no one else tries to take the same batch
         self.connection.commit()
 
-        archive_id_batch_query = 'SELECT archive_id FROM ad_snapshot_metadata WHERE batch_id = %s'
+        archive_id_batch_query = (
+                'SELECT archive_id FROM ad_snapshot_metadata WHERE snapshot_fetch_batch_id = %s')
         cursor.execute(archive_id_batch_query, (batch_id,))
         archive_ids_batch = [row['archive_id'] for row in cursor.fetchall()]
         # TODO(macpd): return this as a namedtuple
