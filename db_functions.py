@@ -405,9 +405,10 @@ class DBInterface():
             'INSERT INTO snapshot_fetch_batches (time_started, time_completed) VALUES (NULL, NULL) '
             'RETURNING batch_id')
         assign_batch_id_query = (
-            'UPDATE ad_snapshot_metadata SET batch_id = data.batch_id FROM (VALUES %s) AS data '
-            '(batch_id, archive_id) WHERE ad_snapshot_metadata.archive_id = data.archive_id')
-        assign_batch_id_template = '(%(batch_id)s, %(archive_id)s)'
+            'UPDATE ad_snapshot_metadata SET snapshot_fetch_batch_id = data.batch_id FROM '
+            '(VALUES %s) AS data (batch_id, archive_id) WHERE '
+            'ad_snapshot_metadata.archive_id = data.archive_id')
+        assign_batch_id_template = '(%s, %s)'
         write_cursor = self.get_cursor()
         logging.info('Getting unfetched archive IDs.')
         read_cursor.execute(unbatched_archive_ids_query)
@@ -424,8 +425,8 @@ class DBInterface():
                                            assign_batch_id_args,
                                            template=assign_batch_id_template,
                                            page_size=batch_size)
-            print(write_cursor.query)
             num_new_batches += 1
+            fetched_rows = read_cursor.fetchmany()
 
         logging.info('Added %d new batches.', num_new_batches)
 
