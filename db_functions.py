@@ -405,8 +405,9 @@ class DBInterface():
             'INSERT INTO snapshot_fetch_batches (time_started, time_completed) VALUES (NULL, NULL) '
             'RETURNING batch_id')
         assign_batch_id_query = (
-            'UPDATE ad_snapshot_metadata SET batch_id = %(batch_id)s WHERE archive_id IN '
-            '(%(comma_delimited_archive_ids)s)')
+            'UPDATE ad_snapshot_metadata SET batch_id = data.batch_id FROM (VALUES %s) AS data '
+            '(batch_id, archive_id) WHERE ad_snapshot_metadata.archive_id = data.archive_id')
+        assign_batch_id_template = '(%(batch_id)s, %(archive_id)s)'
         write_cursor = self.get_cursor()
         logging.info('Getting unfetched archive IDs.')
         read_cursor.execute(unbatched_archive_ids_query)
@@ -415,14 +416,15 @@ class DBInterface():
         while fetched_rows:
             write_cursor.execute(new_batch_id_query)
             new_batch_id = write_cursor.fetchone()['batch_id']
-            archive_id_batch = [int(row['archive_id']) for row in fetched_rows]
+            assign_batch_id_args = [(int(new_batch_id), int(row['archive_id'])) for row in fetched_rows]
             logging.info(
-                'Assigning batch ID %d to %d archive IDs.', new_batch_id, len(archive_id_batch))
-            assign_batch_id_params = {
-                'batch_id': new_batch_id, 'comma_delimited_archive_ids': ','.join(archive_id_batch)}
-            write_cursor.execute(assign_batch_id_query, assign_batch_id_params)
+                'Assigning batch ID %d to %d archive IDs.', new_batch_id, len(assign_batch_id_args))
+            psycopg2.extras.execute_values(write_cursor,
+                                           assign_batch_id_query,
+                                           assign_batch_id_args,
+                                           template=assign_batch_id_template,
+                                           page_size=batch_size)
             print(write_cursor.query)
-            fetched_rows = read_cursor.fetchmany()
             num_new_batches += 1
 
         logging.info('Added %d new batches.', num_new_batches)
