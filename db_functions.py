@@ -398,42 +398,54 @@ class DBInterface():
         unbatched_archive_ids_query = (
             'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
             'JOIN ads ON ads.archive_id = ad_snapshot_metadata.archive_id WHERE '
-            'ad_snapshot_metadata.needs_scrape = true AND ad_snapshot_metadata.archive_id NOT IN '
-            '(SELECT unnest(snapshot_fetch_batches.archive_ids) FROM snapshot_fetch_batches) '
-            'ORDER BY ad_creation_time ASC')
-        batch_insert_query = (
-            'INSERT INTO snapshot_fetch_batches (archive_ids) VALUES (%s)')
+            'ad_snapshot_metadata.needs_scrape = true AND '
+            'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL ORDER BY ad_creation_time ASC')
+        # This query inserts an empty row and gets back the autoincremented new batch_id.
+        new_batch_id_query = (
+            'INSERT INTO snapshot_fetch_batches (time_started, time_completed) VALUES (NULL, NULL) '
+            'RETURNING batch_id')
+        assign_batch_id_query = (
+            'UPDATE ad_snapshot_metadata SET batch_id = %(batch_id)s WHERE archive_id IN '
+            '(%(comma_delimited_archive_ids)s)')
         write_cursor = self.get_cursor()
         logging.info('Getting unfetched archive IDs.')
         read_cursor.execute(unbatched_archive_ids_query)
         fetched_rows = read_cursor.fetchmany()
         num_new_batches = 0
         while fetched_rows:
-            archive_id_batch = [row['archive_id'] for row in fetched_rows]
-            logging.info('Adding batch of %d archive IDs to new batch', len(archive_id_batch))
-            write_cursor.execute(batch_insert_query, (archive_id_batch, ))
+            write_cursor.execute(new_batch_id_query)
+            new_batch_id = write_cursor.fetchone()['batch_id']
+            archive_id_batch = [int(row['archive_id']) for row in fetched_rows]
+            logging.info(
+                'Assigning batch ID %d to %d archive IDs.', new_batch_id, len(archive_id_batch))
+            assign_batch_id_params = {
+                'batch_id': new_batch_id, 'comma_delimited_archive_ids': ','.join(archive_id_batch)}
+            write_cursor.execute(assign_batch_id_query, assign_batch_id_params)
+            print(write_cursor.query)
             fetched_rows = read_cursor.fetchmany()
             num_new_batches += 1
+
         logging.info('Added %d new batches.', num_new_batches)
 
     def get_archive_id_batch_to_fetch(self):
         cursor = self.get_cursor()
         # Get largest batch_id that has not yet been started.
-        archive_id_batch_query = (
-            'SELECT archive_ids, batch_id FROM snapshot_fetch_batches WHERE time_started IS NULL '
-            'ORDER BY batch_id DESC LIMIT 1')
-        cursor.execute(archive_id_batch_query)
+        claim_batch_for_fetch_query = (
+            'UPDATE snapshot_fetch_batches SET time_started = CURRENT_TIMESTAMP WHERE batch_id = '
+            '(SELECT max(batch_id) FROM snapshot_fetch_batches WHERE time_started IS NULL) '
+            'RETURNING batch_id')
+        cursor.execute(claim_batch_for_fetch_query)
         row = cursor.fetchone()
         if not row:
             return None
         batch_id = row['batch_id']
-        archive_ids_batch = row['archive_ids']
-        claim_batch_for_fetch_query = (
-                'UPDATE snapshot_fetch_batches SET time_started = CURRENT_TIMESTAMP WHERE '
-                'batch_id = %s')
-        cursor.execute(claim_batch_for_fetch_query, (batch_id,))
         # COMMIT transaction to ensure no one else tries to take the same batch
         self.connection.commit()
+
+        archive_id_batch_query = 'SELECT archive_id FROM ad_snapshot_metadata WHERE batch_id = %s'
+        cursor.execute(archive_id_batch_query, (batch_id,))
+        archive_ids_batch = [row['archive_id'] for row in cursor.fetchall()]
+        # TODO(macpd): return this as a namedtuple
         return {'batch_id': batch_id, 'archive_ids': archive_ids_batch}
 
     def mark_fetch_batch_completed(self, batch_id):
@@ -456,4 +468,3 @@ class DBInterface():
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
-
