@@ -167,6 +167,18 @@ CREATE TABLE ad_clusters (
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_creative_per_cluster UNIQUE(archive_id, ad_cluster_id)
 );
+CREATE TABLE recognized_entities (
+  entity_id bigserial PRIMARY KEY,
+  entity_name character varying NOT NULL,
+  entity_type character varying NOT NULL,
+  CONSTRAINT unique_name_and_type UNIQUE(entity_name, entity_type)
+);
+CREATE TABLE ad_creative_to_recognized_entities (
+  ad_creative_id bigint NOT NULL,
+  entity_id bigint NOT NULL,
+  CONSTRAINT ad_creative_id_fk FOREIGN KEY (ad_creative_id) REFERENCES ad_creatives (ad_creative_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
 CREATE TABLE snapshot_fetch_batches (
   batch_id bigserial PRIMARY KEY,
   time_started timestamp with time zone,
