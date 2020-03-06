@@ -481,7 +481,7 @@ class DBInterface():
         claim_batch_for_fetch_query = (
             'UPDATE snapshot_fetch_batches SET time_started = CURRENT_TIMESTAMP WHERE batch_id = '
             '(SELECT max(batch_id) FROM snapshot_fetch_batches WHERE time_completed IS NULL AND '
-            '(time_started IS NULL OR time_started < CURRENT_TIMESTAMP - interval "3 days")) '
+            '(time_started IS NULL OR time_started < CURRENT_TIMESTAMP - interval \'3 days\')) '
             'RETURNING batch_id')
         cursor.execute(claim_batch_for_fetch_query)
         row = cursor.fetchone()
