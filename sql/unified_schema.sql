@@ -173,7 +173,6 @@ CREATE TABLE recognized_entities (
 );
 CREATE TABLE ad_creative_to_recognized_entities (
   ad_creative_id bigint NOT NULL,
-  --  text_sha256_hash character varying,
   entity_id bigint NOT NULL,
   CONSTRAINT ad_creative_id_fk FOREIGN KEY (ad_creative_id) REFERENCES ad_creatives (ad_creative_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
