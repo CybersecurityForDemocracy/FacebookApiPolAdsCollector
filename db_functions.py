@@ -492,7 +492,7 @@ class DBInterface():
         batch_id = row['batch_id']
 
         archive_id_batch_query = (
-            'SELECT archive_id FROM ad_snapshot_metadata WHERE snapshot_fetch_batch_id = %s AND'
+            'SELECT archive_id FROM ad_snapshot_metadata WHERE snapshot_fetch_batch_id = %s AND '
             'needs_scrape = TRUE')
         cursor.execute(archive_id_batch_query, (batch_id,))
         archive_ids_batch = [row['archive_id'] for row in cursor.fetchall()]
