@@ -52,9 +52,10 @@ class DBInterface():
         return existing_ad_clusters
 
     def existing_recognized_entities(self):
+        """Gets all regonized entities from DB as dict EntityRecord(name, type) -> entity_id."""
         cursor = self.get_cursor()
         existing_recognized_entities_query = (
-                'SELECT entity_id, entity_name, entity_type FROM recognized_entities')
+            'SELECT entity_id, entity_name, entity_type FROM recognized_entities')
         cursor.execute(existing_recognized_entities_query)
         return {EntityRecord(name=row['entity_name'], type=row['entity_type']): row['entity_id']
                 for row in cursor.fetchall()}

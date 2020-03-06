@@ -149,6 +149,7 @@ class NamedEntityAnalysis:
                                                        entity_id=existing_entities[entity]))
         self.database_interface.insert_ad_recognized_entity_records(
             ad_creative_to_recognized_entities_records)
+        self.database_connection.commit()
 
 def generate_entity_report():
     config = config_utils.get_config(sys.argv[1])
