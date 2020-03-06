@@ -98,6 +98,7 @@ class NamedEntityAnalysis:
             entities.
         """
         entity_to_ad_creative_ids = defaultdict(list)
+        num_google_language_service_calls = 0
         for text_sha256_hash in unique_ad_body_texts:
 
             # Always try to fetch a result from storage if possible.
@@ -112,6 +113,7 @@ class NamedEntityAnalysis:
                 logging.info(
                     'Got NER analysis for text sha256 hash %s from google:\n%s', text_sha256_hash,
                     ner_analysis_result)
+                num_google_language_service_calls += 1
 
             self._store_all_results(text_sha256_hash, ner_analysis_result)
             self.database_connection.commit()
@@ -123,6 +125,7 @@ class NamedEntityAnalysis:
             for entity in entity_set:
                 entity_to_ad_creative_ids[entity].extend(ad_creative_ids)
 
+        logging.info('Called google language service %d times.', num_google_language_service_calls)
         self._update_recognized_entities_in_database(entity_to_ad_creative_ids)
 
         return entity_to_ad_creative_ids
