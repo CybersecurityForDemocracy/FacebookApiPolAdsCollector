@@ -475,10 +475,13 @@ class DBInterface():
 
     def get_archive_id_batch_to_fetch(self):
         cursor = self.get_cursor()
-        # Get largest batch_id that has not yet been started.
+        # Get largest batch_id that has not yet been started (or was started more than 3 days ago
+        # (which we assume is due to the task that claimed the batch dying before marking it
+        # complete)).
         claim_batch_for_fetch_query = (
             'UPDATE snapshot_fetch_batches SET time_started = CURRENT_TIMESTAMP WHERE batch_id = '
-            '(SELECT max(batch_id) FROM snapshot_fetch_batches WHERE time_started IS NULL) '
+            '(SELECT max(batch_id) FROM snapshot_fetch_batches WHERE time_completed IS NULL AND '
+            '(time_started IS NULL OR time_started < CURRENT_TIMESTAMP - interval "3 days")) '
             'RETURNING batch_id')
         cursor.execute(claim_batch_for_fetch_query)
         row = cursor.fetchone()
