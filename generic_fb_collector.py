@@ -426,7 +426,7 @@ class SearchRunner():
             '%s: %d' % (error, count) for error, count in sorted(self.graph_error_counts.items(),
                                                                  key=operator.itemgetter(1),
                                                                  reverse=True)]
-        return delimiter.join(count_msgs)
+        return 'GraphAPI error counts: %s' % delimiter.join(count_msgs)
 
 
 
@@ -561,8 +561,7 @@ def main(config):
         end_time = datetime.datetime.now()
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
-        logging.info('GraphAPI error code counts:\n%s',
-                     search_runner.get_formatted_graph_error_counts())
+        logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
