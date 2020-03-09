@@ -2,6 +2,7 @@ import csv
 import datetime
 import json
 import logging
+import operator
 import sys
 import time
 from collections import defaultdict, namedtuple
@@ -410,8 +411,23 @@ class SearchRunner():
         self.existing_funding_entities = self.db.existing_funding_entities()
         self.connection.commit()
 
-    def get_graph_error_counts(self):
-        return self.graph_error_counts
+    def get_formatted_graph_error_counts(self, delimiter='\n'):
+        """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
+
+        Args:
+            delimiter: str, used to separate 'error: count' tokens.
+        Returns:
+            str 'error: count' joined by specified delimiter.
+        """
+        if not self.graph_error_counts:
+            return ''
+
+        error_count_msgs_sorted_by_num_occurences = []
+        for error, count in sorted(self.graph_error_counts.items(), key=operator.itemgetter(1),
+                                   reverse=True):
+            error_count_msgs_sorted_by_num_occurences.append('%s: %d' % (error, count))
+        return delimiter.join(error_count_msgs_sorted_by_num_occurences)
+
 
 
 #get page data
@@ -476,11 +492,6 @@ def send_completion_slack_notification(
         f"Completion status {completion_status}. GraphAPI error counts: {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
 
-def format_graph_error_counts(error_counts, delimiter='\n'):
-    return delimiter.join(
-        ['%s: %d' % (error, error_counts[error]) for error in sorted(error_counts,
-                                                                     key=error_counts.get,
-                                                                     reverse=True)])
 
 def main(config):
     logging.info("starting")
@@ -551,12 +562,12 @@ def main(config):
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
         logging.info('GraphAPI error code counts:\n%s',
-                     format_graph_error_count(search_runner.get_graph_error_counts()))
+                     search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions,
-            format_graph_error_count(search_runner.get_graph_error_counts(), delimiter=', '))
+            search_runner.get_formatted_graph_error_counts())
 
 if __name__ == '__main__':
     config = config_utils.get_config(sys.argv[1])
