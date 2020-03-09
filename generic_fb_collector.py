@@ -2,9 +2,10 @@ import csv
 import datetime
 import json
 import logging
+import operator
 import sys
 import time
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from time import sleep
 from urllib.parse import parse_qs, urlparse
 
@@ -127,6 +128,7 @@ class SearchRunner():
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
         self.total_impressions_added_to_db = 0
+        self.graph_error_counts = defaultdict(int)
         self.stop_time = None
         if search_runner_params.soft_max_runtime_in_seconds:
             start_time = time.monotonic()
@@ -302,6 +304,9 @@ class SearchRunner():
                 logging.error("Graph Error")
                 logging.error(e.code)
                 logging.error(e)
+                self.graph_error_counts[e.code] += 1
+                logging.error('Error code %d has occured %d times so far', e.code,
+                              self.graph_error_counts[e.code])
                 if results:
                     logging.error(results)
                 else:
@@ -406,6 +411,23 @@ class SearchRunner():
         self.existing_funding_entities = self.db.existing_funding_entities()
         self.connection.commit()
 
+    def get_formatted_graph_error_counts(self, delimiter='\n'):
+        """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
+
+        Args:
+            delimiter: str, used to separate 'error: count' tokens.
+        Returns:
+            str 'error: count' joined by specified delimiter.
+        """
+        if not self.graph_error_counts:
+            return ''
+
+        count_msgs = [
+            '%s: %d' % (error, count) for error, count in sorted(self.graph_error_counts.items(),
+                                                                 key=operator.itemgetter(1),
+                                                                 reverse=True)]
+        return 'GraphAPI error counts %s' % delimiter.join(count_msgs)
+
 
 
 #get page data
@@ -447,7 +469,7 @@ def get_pages_from_archive(archive_path):
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
         num_ads_added, num_impressions_added, min_expected_new_ads,
-        min_expected_new_impressions):
+        min_expected_new_impressions, graph_error_count_string):
     duration_minutes = (end_time - start_time).seconds / 60
     slack_msg_error_prefix = ''
     if (num_ads_added < min_expected_new_ads or
@@ -467,8 +489,9 @@ def send_completion_slack_notification(
         f"{slack_msg_error_prefix}Collection started at{start_time} for "
         f"{country_code} completed in {duration_minutes} minutes. Added "
         f"{num_ads_added} ads, and {num_impressions_added} impressions. "
-        f"Completion status {completion_status}.")
+        f"Completion status {completion_status}. {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
+
 
 def main(config):
     logging.info("starting")
@@ -538,10 +561,12 @@ def main(config):
         end_time = datetime.datetime.now()
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
+        logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
-            min_expected_new_ads, min_expected_new_impressions)
+            min_expected_new_ads, min_expected_new_impressions,
+            search_runner.get_formatted_graph_error_counts())
 
 if __name__ == '__main__':
     config = config_utils.get_config(sys.argv[1])
