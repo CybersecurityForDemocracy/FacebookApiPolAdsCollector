@@ -426,7 +426,7 @@ class SearchRunner():
             '%s: %d' % (error, count) for error, count in sorted(self.graph_error_counts.items(),
                                                                  key=operator.itemgetter(1),
                                                                  reverse=True)]
-        return 'GraphAPI error counts: %s' % delimiter.join(count_msgs)
+        return 'GraphAPI error counts %s' % delimiter.join(count_msgs)
 
 
 
@@ -489,7 +489,7 @@ def send_completion_slack_notification(
         f"{slack_msg_error_prefix}Collection started at{start_time} for "
         f"{country_code} completed in {duration_minutes} minutes. Added "
         f"{num_ads_added} ads, and {num_impressions_added} impressions. "
-        f"Completion status {completion_status}. GraphAPI error counts: {graph_error_count_string}")
+        f"Completion status {completion_status}. {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
 
 
