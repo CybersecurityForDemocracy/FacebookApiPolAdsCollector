@@ -410,7 +410,7 @@ class SearchRunner():
         self.existing_funding_entities = self.db.existing_funding_entities()
         self.connection.commit()
 
-    def graph_error_counts(self):
+    def get_graph_error_counts(self):
         return self.graph_error_counts
 
 
@@ -462,7 +462,7 @@ def send_completion_slack_notification(
             f"Minimum expected records not met! Ads expected: "
             f"{min_expected_new_ads} added: {num_ads_added}, "
             f"impressions expected: {min_expected_new_impressions} added: "
-            f"{num_impressions_added} GraphAPI error counts: {graph_error_count_string}")
+            f"{num_impressions_added} ")
         logging.error(error_log_msg)
         slack_msg_error_prefix = (
             ":rotating_light: :rotating_light: :rotating_light: "
@@ -473,14 +473,14 @@ def send_completion_slack_notification(
         f"{slack_msg_error_prefix}Collection started at{start_time} for "
         f"{country_code} completed in {duration_minutes} minutes. Added "
         f"{num_ads_added} ads, and {num_impressions_added} impressions. "
-        f"Completion status {completion_status}.")
+        f"Completion status {completion_status}. GraphAPI error counts: {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
 
 def format_graph_error_counts(error_counts, delimiter='\n'):
     return delimiter.join(
-            ['%s: %d' % (error, error_counts[error]) for error in sorted(error_counts,
-                                                                         key=error_counts.get,
-                                                                         reverse=True)])
+        ['%s: %d' % (error, error_counts[error]) for error in sorted(error_counts,
+                                                                     key=error_counts.get,
+                                                                     reverse=True)])
 
 def main(config):
     logging.info("starting")
@@ -551,12 +551,12 @@ def main(config):
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
         logging.info('GraphAPI error code counts:\n%s',
-                     format_graph_error_count(search_runner.graph_error_counts()))
+                     format_graph_error_count(search_runner.get_graph_error_counts()))
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions,
-            format_graph_error_count(search_runner.graph_error_counts(), delimiter=', '))
+            format_graph_error_count(search_runner.get_graph_error_counts(), delimiter=', '))
 
 if __name__ == '__main__':
     config = config_utils.get_config(sys.argv[1])
