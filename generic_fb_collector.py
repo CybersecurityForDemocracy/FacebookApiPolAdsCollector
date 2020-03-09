@@ -422,11 +422,11 @@ class SearchRunner():
         if not self.graph_error_counts:
             return ''
 
-        error_count_msgs_sorted_by_num_occurences = []
-        for error, count in sorted(self.graph_error_counts.items(), key=operator.itemgetter(1),
-                                   reverse=True):
-            error_count_msgs_sorted_by_num_occurences.append('%s: %d' % (error, count))
-        return delimiter.join(error_count_msgs_sorted_by_num_occurences)
+        count_msgs = [
+            '%s: %d' % (error, count) for error, count in sorted(self.graph_error_counts.items(),
+                                                                 key=operator.itemgetter(1),
+                                                                 reverse=True)]
+        return delimiter.join(count_msgs)
 
 
 
