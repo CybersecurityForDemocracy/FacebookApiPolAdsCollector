@@ -522,6 +522,7 @@ class FacebookAdCreativeRetriever:
             except NoSuchElementException:
                 break
 
+        self.chromedriver.close()
         return creatives
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
