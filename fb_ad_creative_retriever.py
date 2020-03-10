@@ -28,7 +28,7 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
-RESET_CHROME_DRIVER_EVERY_N_BATCHES = 100
+RESET_CHROME_DRIVER_EVERY_N_BATCHES = 10
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -522,7 +522,6 @@ class FacebookAdCreativeRetriever:
             except NoSuchElementException:
                 break
 
-        self.chromedriver.close()
         return creatives
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
