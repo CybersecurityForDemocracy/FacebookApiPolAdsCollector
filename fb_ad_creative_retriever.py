@@ -28,7 +28,7 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
-RESET_CHROME_DRIVER_EVERY_N_BATCHES = 100
+RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS = 10000
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -161,6 +161,16 @@ def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
+    prefs = {"profile.managed_default_content_settings.images":2,
+             "profile.default_content_setting_values.notifications":2,
+             "profile.managed_default_content_settings.stylesheets":2,
+             "profile.managed_default_content_settings.cookies":2,
+             "profile.managed_default_content_settings.javascript":1,
+             "profile.managed_default_content_settings.plugins":1,
+             "profile.managed_default_content_settings.popups":2,
+             "profile.managed_default_content_settings.geolocation":2,
+             "profile.managed_default_content_settings.media_stream":2}
+    chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
     return driver
@@ -243,7 +253,7 @@ class FacebookAdCreativeRetriever:
     def retreive_and_store_ad_creatives(self):
         self.start_time = time.monotonic()
         try:
-            num_batches_processed = 0
+            num_snapshots_processed_since_chromedriver_reset = 0
             batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
             while batch_and_archive_ids:
                 self.current_batch_id = batch_and_archive_ids['batch_id']
@@ -252,9 +262,15 @@ class FacebookAdCreativeRetriever:
                              self.current_batch_id, len(archive_ids),
                              self.commit_to_db_every_n_processed)
                 self.process_archive_id_batch(archive_ids)
-                num_batches_processed += 1
-                if num_batches_processed % RESET_CHROME_DRIVER_EVERY_N_BATCHES == 0:
+                num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
+                if (num_snapshots_processed_since_chromedriver_reset >=
+                        RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS):
+                    logging.info('Processed %d snapshots since last reset (limit: %d)',
+                                 num_snapshots_processed_since_chromedriver_reset,
+                                 RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS)
                     self.reset_chromedriver()
+                    num_snapshots_processed_since_chromedriver_reset = 0
+
                 self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
                 self.db_connection.commit()
                 batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
