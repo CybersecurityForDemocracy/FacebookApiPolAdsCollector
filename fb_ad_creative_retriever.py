@@ -28,7 +28,7 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
-RESET_CHROME_DRIVER_EVERY_N_BATCHES = 10
+RESET_CHROME_DRIVER_EVERY_N_BATCHES = 100
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -161,6 +161,16 @@ def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
+    prefs = {"profile.managed_default_content_settings.images":2,
+             "profile.default_content_setting_values.notifications":2,
+             "profile.managed_default_content_settings.stylesheets":2,
+             "profile.managed_default_content_settings.cookies":2,
+             "profile.managed_default_content_settings.javascript":1,
+             "profile.managed_default_content_settings.plugins":1,
+             "profile.managed_default_content_settings.popups":2,
+             "profile.managed_default_content_settings.geolocation":2,
+             "profile.managed_default_content_settings.media_stream":2}
+    chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
     return driver
