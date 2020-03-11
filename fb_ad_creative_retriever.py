@@ -24,6 +24,7 @@ import snapshot_url_util
 
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
+SCREENSHOT_GCS_DIR = 'screenshots'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
@@ -82,7 +83,12 @@ FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', [
     'creative_link_title',
     'creative_link_description',
     'creative_link_caption',
-    'image_url'
+    'image_url',
+])
+
+AdScreenshotAndCreatives = collections.namedtuple('AdScreenshotAndCreatives', [
+    'screenshot_binary_data',
+    'creatives'
 ])
 
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
@@ -173,6 +179,7 @@ def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options.add_experimental_option("prefs", prefs)
     driver = webdriver.Chrome(executable_path=webdriver_executable_path,
                               chrome_options=chrome_options)
+    driver.set_window_size(800, 1000)
     return driver
 
 
@@ -298,6 +305,12 @@ class FacebookAdCreativeRetriever:
                       image_dhash, image_bucket_path)
         return image_bucket_path
 
+    def store_snapshot_screenshot(self, archive_id, screenshot_binary_data):
+        bucket_path = os.path.join(SCREENSHOT_GCS_DIR, '%d.png' % archive_id)
+        blob = self.bucket_client.blob(bucket_path)
+        blob.upload_from_string(screenshot_binary_data)
+        logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, bucket_path)
+
     def get_video_element_from_creative_container(self):
         try:
             return self.chromedriver.find_element_by_tag_name('video')
@@ -362,11 +375,22 @@ class FacebookAdCreativeRetriever:
 
         return True
 
+    def get_ad_creative_container_element(self, archive_id):
+        try:
+            return self.chromedriver.find_element_by_xpath(CREATIVE_CONTAINER_XPATH)
+        except NoSuchElementException as e:
+            logging.info(
+                'Unable to find ad creative container for Archive ID: %s, Ad appers to have NO '
+                'creative(s). \nError: %s', archive_id, e)
+        return None
+
     def get_ad_creative_body(self, archive_id):
         creative_body = None
         try:
-            creative_container_element = self.chromedriver.find_element_by_xpath(
-                CREATIVE_CONTAINER_XPATH)
+            creative_container_element = self.get_ad_creative_container_element(archive_id)
+            if not creative_container_element:
+                return None
+
             creative_body = creative_container_element.find_element_by_xpath(
                 CREATIVE_BODY_XPATH).text
         except NoSuchElementException as e:
@@ -375,6 +399,15 @@ class FacebookAdCreativeRetriever:
                 'creative(s). \nError: %s', archive_id, e)
 
         return creative_body
+
+    def get_ad_snapshot_screenshot(self, archive_id):
+        creative_container_element = self.get_ad_creative_container_element(archive_id)
+        if creative_container_element:
+            return creative_container_element.screenshot_as_png
+
+        logging.info('Unable to get creative container for screenshot of archive ID %d.',
+                     archive_id)
+        return None
 
     def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
         try:
@@ -496,13 +529,15 @@ class FacebookAdCreativeRetriever:
         self.chromedriver.get(snapshot_url)
 
         self.raise_if_page_has_age_restriction_or_id_error()
+        screenshot = self.get_ad_snapshot_screenshot(archive_id)
 
         # If ad has carousel, it should not have multiple versions. Instead it will have multiple
         # images with different images and links.
         if self.ad_snapshot_has_carousel_navigation_element():
             fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
             if fetched_ad_creative_data_list:
-                return fetched_ad_creative_data_list
+                return AdScreenshotAndCreatives(screenshot_binary_data=screenshot,
+                                                creatives=fetched_ad_creative_data_list)
 
 
         # If ad does not have carousel navigation elements, or no ad creatives data was found when
@@ -538,7 +573,7 @@ class FacebookAdCreativeRetriever:
             except NoSuchElementException:
                 break
 
-        return creatives
+        return AdScreenshotAndCreatives(screenshot_binary_data=screenshot, creatives=creatives)
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch):
         archive_id_to_snapshot_url = snapshot_url_util.construct_archive_id_to_snapshot_url_map(
@@ -546,14 +581,19 @@ class FacebookAdCreativeRetriever:
         archive_ids_without_creative_found = []
         creatives = []
         snapshot_metadata_records = []
+        archive_id_to_screenshot = {}
         for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
                 fetch_time = datetime.datetime.now()
-                new_creatives = self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                        archive_id, snapshot_url)
-                if new_creatives:
-                    creatives.extend(new_creatives)
+                screenshot_and_creatives = (
+                    self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                        archive_id, snapshot_url))
+                if screenshot_and_creatives.screenshot_binary_data:
+                    archive_id_to_screenshot[archive_id] = (
+                        screenshot_and_creatives.screenshot_binary_data)
+                if screenshot_and_creatives.creatives:
+                    creatives.extend(screenshot_and_creatives.creatives)
                     snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
                 else:
                     archive_ids_without_creative_found.append(archive_id)
@@ -593,6 +633,9 @@ class FacebookAdCreativeRetriever:
         self.num_ad_creatives_found += len(creatives)
         self.num_snapshots_without_creative_found += len(
             archive_ids_without_creative_found)
+
+        for archive_id in archive_id_to_screenshot:
+            self.store_snapshot_screenshot(archive_id, archive_id_to_screenshot[archive_id])
 
         ad_creative_records = []
         for creative in creatives:
