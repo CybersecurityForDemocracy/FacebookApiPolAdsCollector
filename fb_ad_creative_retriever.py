@@ -409,7 +409,6 @@ class FacebookAdCreativeRetriever:
                      archive_id)
         return None
 
-
     def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
         try:
             xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
