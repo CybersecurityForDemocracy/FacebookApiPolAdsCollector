@@ -582,7 +582,6 @@ class FacebookAdCreativeRetriever:
         archive_ids_without_creative_found = []
         creatives = []
         snapshot_metadata_records = []
-        # archive_id -> screenshot as binary data
         archive_id_to_screenshot = {}
         for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
@@ -591,12 +590,12 @@ class FacebookAdCreativeRetriever:
                 screenshot_and_creatives = (
                     self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
                         archive_id, snapshot_url))
+                if screenshot_and_creatives.screenshot_binary_data:
+                    archive_id_to_screenshot[archive_id] = (
+                        screenshot_and_creatives.screenshot_binary_data)
                 if screenshot_and_creatives.creatives:
                     creatives.extend(screenshot_and_creatives.creatives)
                     snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
-                    if screenshot_and_creatives.screenshot_binary_data:
-                        archive_id_to_screenshot[archive_id] = (
-                            screenshot_and_creatives.screenshot_binary_data)
                 else:
                     archive_ids_without_creative_found.append(archive_id)
                     snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
