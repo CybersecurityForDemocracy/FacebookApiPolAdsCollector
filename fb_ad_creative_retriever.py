@@ -15,6 +15,7 @@ import requests
 from PIL import Image
 from selenium import webdriver
 from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, WebDriverException
+import tenacity
 
 import config_utils
 import db_functions
@@ -22,6 +23,7 @@ import sim_hash_ad_creative_text
 import slack_notifier
 import snapshot_url_util
 
+LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 GCS_BUCKET = 'facebook_ad_images'
 SCREENSHOT_GCS_DIR = 'screenshots'
@@ -296,6 +298,9 @@ class FacebookAdCreativeRetriever:
                          num_snapshots_processed_in_current_batch, len(archive_id_batch))
             self.log_stats()
 
+    @tenacity.retry(stop=tenacity.stop_after_attempt(4),
+                    wait=tenacity.wait_random_exponential(multiplier=1, max=30),
+                    before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
     def store_image_in_google_bucket(self, image_dhash, image_bytes):
         image_bucket_path = make_image_hash_file_path(image_dhash)
         blob = self.bucket_client.blob(image_bucket_path)
@@ -305,6 +310,9 @@ class FacebookAdCreativeRetriever:
                       image_dhash, image_bucket_path)
         return image_bucket_path
 
+    @tenacity.retry(stop=tenacity.stop_after_attempt(4),
+                    wait=tenacity.wait_random_exponential(multiplier=1, max=30),
+                    before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
     def store_snapshot_screenshot(self, archive_id, screenshot_binary_data):
         bucket_path = os.path.join(SCREENSHOT_GCS_DIR, '%d.png' % archive_id)
         blob = self.bucket_client.blob(bucket_path)
