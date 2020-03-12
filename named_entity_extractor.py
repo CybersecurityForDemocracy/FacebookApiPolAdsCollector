@@ -162,7 +162,7 @@ def run_entity_recognition():
         db_interface = db_functions.DBInterface(database_connection)
 
         end_date = datetime.date.today()
-        start_date = end_date - datetime.timedelta(days=31)
+        start_date = end_date - datetime.timedelta(days=14)
         logging.info('Requesting unique texts from ads with ad_delivery_start_time >= %s and '
                      'ad_delivery_stop_time <= %s', start_date, end_date)
         unique_ad_body_texts = db_interface.unique_ad_body_texts(
