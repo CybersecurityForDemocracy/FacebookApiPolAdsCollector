@@ -3,6 +3,7 @@
 You can read more about it here: https://cloud.google.com/natural-language/docs/basics
 You can generate a new credentials file here: https://console.cloud.google.com/apis/credentials/serviceaccountkey?project=nyupoladstransparency&folder=&organizationId=&angularJsUrl=%2Fapis%2Fcredentials%2Fserviceaccountkey%3Fsupportedpurview%3Dproject%26project%3Dnyupoladstransparency%26folder%3D%26organizationId%3D&supportedpurview=project
 """
+import datetime
 import logging
 import sys
 from collections import defaultdict, namedtuple
@@ -154,15 +155,18 @@ class NamedEntityAnalysis:
             ad_creative_to_recognized_entities_records)
         self.database_connection.commit()
 
-def generate_entity_report():
+def run_entity_recognition():
     config = config_utils.get_config(sys.argv[1])
     country_code = config['SEARCH']['COUNTRY_CODE'].lower()
     with config_utils.get_database_connection_from_config(config) as database_connection:
         db_interface = db_functions.DBInterface(database_connection)
-        # TODO(macpd): pull these dates from somewhere. config, database, interval to-from current
-        # date, etc
+
+        end_date = datetime.date.today()
+        start_date = end_date - datetime.timedelta(days=31)
+        logging.info('Requesting unique texts from ads with ad_delivery_start_time >= %s and '
+                     'ad_delivery_stop_time <= %s', start_date, end_date)
         unique_ad_body_texts = db_interface.unique_ad_body_texts(
-            country_code, '2020-01-01', '2020-03-31')
+            country_code, start_time=start_date, end_time=end_date)
 
         logging.info('Got %d unique ad body_texts.', len(unique_ad_body_texts))
 
@@ -173,4 +177,4 @@ def generate_entity_report():
 
 if __name__ == '__main__':
     config_utils.configure_logger('named_entity_extractor.log')
-    generate_entity_report()
+    run_entity_recognition()
