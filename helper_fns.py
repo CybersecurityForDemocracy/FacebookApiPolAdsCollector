@@ -17,9 +17,7 @@ def get_canonical_url(url):
         return ''
   
 def find_urls(string): 
-    # findall() has been used  
-    # with valid conditions for urls in string 
-    urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\), ]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', string) 
+    urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', string)
     return urls
 
 def get_database_connection():
