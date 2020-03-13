@@ -51,13 +51,15 @@ def classify_ads(ads, lookup_table, clfr):
 #%%
 def update_ad_types(ad_type_map):
     cursor = conn.cursor()
-    insert_funder_query = "INSERT INTO ad_metadata(archive_id, ad_type) VALUES %s;"
+    insert_funder_query = (
+	"INSERT INTO ad_metadata(archive_id, ad_type) VALUES %s ON CONFLICT (archive_id) DO UPDATE "
+        "SET ad_type = EXCLUDED.ad_type")
     insert_template = "(%s, %s)"
     psycopg2.extras.execute_values(cursor,
-                                    insert_funder_query,
-                                    ad_type_map,
-                                    template=insert_template,
-                                    page_size=250)
+                                   insert_funder_query,
+                                   ad_type_map,
+                                   template=insert_template,
+                                   page_size=250)
     conn.commit()
 #%%
 ad_type_map = defaultdict(list)
