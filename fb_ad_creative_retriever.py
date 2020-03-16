@@ -14,7 +14,8 @@ from google.cloud import storage
 import requests
 from PIL import Image
 from selenium import webdriver
-from selenium.common.exceptions import ElementNotInteractableException, NoSuchElementException, WebDriverException
+from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
+    WebDriverException, ElementClickInterceptedException)
 import tenacity
 
 import config_utils
@@ -570,6 +571,19 @@ class FacebookAdCreativeRetriever:
             xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                 i)
             try:
+                self.chromedriver.find_element_by_xpath(xpath).click()
+            except ElementClickInterceptedException:
+                # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
+                # that occludes the multiple creative selection elements.
+
+                # First we click on the first element in the multiple creative selector to move
+                # focus elsewhere and dismiss the diaglog
+                xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
+                    1)
+                self.chromedriver.find_element_by_xpath(xpath).click()
+                # Then click on the desired element.
+                xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
+                    i)
                 self.chromedriver.find_element_by_xpath(xpath).click()
             except ElementNotInteractableException as elem_error:
                 logging.warning(
