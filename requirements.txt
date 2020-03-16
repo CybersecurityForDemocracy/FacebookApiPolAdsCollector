@@ -15,6 +15,7 @@ google-resumable-media==0.4.0
 googleapis-common-protos==1.6.0
 grpcio==1.27.2
 idna==2.8
+nltk==3.4.5
 numpy==1.17.2
 pandas==0.25.1
 Pillow==6.2.0
@@ -31,6 +32,7 @@ python-dateutil==2.8.0
 pytz==2019.2
 requests==2.22.0
 rsa==4.0
+scikit-learn==0.22.2
 selenium==3.12.0
 simhash==1.9.0
 six==1.12.0

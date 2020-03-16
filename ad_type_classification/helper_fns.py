@@ -11,7 +11,8 @@ def get_canonical_url(url):
         if domain.startswith('www.'):
             domain=domain[4:]
         return domain+path
-    except Exception:
+    except Exception as e:
+        print(e)
         print('Could not process url:', url)
         return ''
   
@@ -30,11 +31,9 @@ def get_creative_url(row):
     return get_canonical_url(url)
 
 
-def get_lookup_table():
-    df = pandas.read_csv('ad_url_to_type.csv')
+def get_lookup_table(ad_url_to_type_csv_path):
+    df = pandas.read_csv(ad_url_to_type_csv_path)
     df['ad_type'] = df['ad_type'].astype('category')
-    print(df.info())
-    print(df)
     df_as_dicts = df.to_dict(orient='records')
     lookup_table = {}
     for row in df_as_dicts:

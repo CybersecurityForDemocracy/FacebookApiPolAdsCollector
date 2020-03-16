@@ -1,5 +1,8 @@
-import json
 from collections import defaultdict
+import json
+import logging
+import os.path
+import sys
 
 import pandas
 import psycopg2
@@ -7,32 +10,43 @@ import psycopg2.extras
 from sklearn.externals import joblib
 
 import config_utils
-from helper_fns import (find_urls, get_creative_url, get_lookup_table)
-from text_process_fns import process_creative_body
+import db_functions
+from ad_type_classification.helper_fns import (find_urls, get_creative_url, get_lookup_table)
+from ad_type_classification.text_process_fns import process_creative_body
+
+MODELS_DIR = os.path.join('ad_type_classification', 'data')
 
 def main(config_file_path):
     config = config_utils.get_config(config_file_path)
-    database_connection = config_utils.get_database_connection_from_config(config)
-    update_ad_types(list_id_and_types())
+    with config_utils.get_database_connection_from_config(config) as database_connection:
 
-    database_connection.close()
+        classifier = joblib.load(os.path.join(MODELS_DIR, 'ad_type_classifier.pk1'))
+        label_encoder = joblib.load(os.path.join(MODELS_DIR, 'ad_type_label_encoder.pk1'))
+        data_prep_pipeline = joblib.load(os.path.join(MODELS_DIR, 'data_prep_pipeline.pk1'))
+        db_interface = db_functions.DBInterface(database_connection)
 
-def get_all_ads():
-    cursor = database_connection.cursor("ad_cursor")
-    cursor.execute("select archive_id, ad_creative_body, ad_creative_link_caption from ads where ad_creative_link_caption <> '' or  ad_creative_body <> '';")
-    for row in cursor:
-        # print(row)
-        yield {'archive_id': row[0], 'ad_creative_body': row[1], 'ad_creative_link_caption': row[2]}
-    cursor.close()
+        ad_type_map = defaultdict(list)
+        lookup_table = get_lookup_table(os.path.join(MODELS_DIR, 'ad_url_to_type.csv'))
+        for r in classify_ads(
+                db_interface.all_ads_with_nonempty_link_caption_or_body(),
+                lookup_table, classifier, label_encoder, data_prep_pipeline):
+            ad_type_map[r['ad_type']].append(r['archive_id'])
+        for k, v in ad_type_map.items():
+            print(k, len(v))
+        with open('ad_to_type_mappings.json','w') as w:
+            json.dump(ad_type_map, w)
+
+        db_interface.update_ad_types(list_id_and_types())
+        database_connection.commit()
 
 
-clfr = joblib.load('ad_type_classifier.pk1')
-le = joblib.load('ad_type_label_encoder.pk1')
-data_prep = joblib.load('data_prep_pipeline.pk1')
-
-def classify_ads(ads, lookup_table, clfr):
+def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipeline):
     to_classify = []
-    for result in get_all_ads():
+    num_rows_processed = 0
+    for result in ads:
+        if num_rows_processed % 10000 == 0:
+            logging.info('classify_ads processed %d rows', num_rows_processed)
+        num_rows_processed += 1
         normalized_url = get_creative_url(result)
         if normalized_url in lookup_table:
             yield {'archive_id': result['archive_id'],
@@ -44,39 +58,21 @@ def classify_ads(ads, lookup_table, clfr):
                    'ad_type': 'UNKNOWN'}
         if len(to_classify) > 100000:
             classification_df = pandas.DataFrame(to_classify)
-            classification_df['processed_body'] = classification_df['ad_creative_body'].apply(process_creative_body)
-            prediction_data = data_prep.transform(classification_df['processed_body'].astype('str'))
-            # print(prediction_data)
-            classification_df['ad_type']=clfr.predict(prediction_data)
-            classification_df['ad_type']=le.inverse_transform(classification_df['ad_type'])
+            classification_df['processed_body'] = classification_df['ad_creative_body'].apply(
+                process_creative_body)
+            prediction_data = data_prep_pipeline.transform(
+                classification_df['processed_body'].astype('str'))
+            classification_df['ad_type'] = classifier.predict(prediction_data)
+            classification_df['ad_type'] = label_encoder.inverse_transform(
+                classification_df['ad_type'])
             for result in classification_df.to_dict(orient='records'):
                 yield result
             to_classify = []
-def update_ad_types(ad_type_map):
-    cursor = database_connection.cursor()
-    insert_funder_query = (
-	"INSERT INTO ad_metadata(archive_id, ad_type) VALUES %s ON CONFLICT (archive_id) DO UPDATE "
-        "SET ad_type = EXCLUDED.ad_type")
-    insert_template = "(%s, %s)"
-    psycopg2.extras.execute_values(cursor,
-                                   insert_funder_query,
-                                   ad_type_map,
-                                   template=insert_template,
-                                   page_size=250)
-    database_connection.commit()
 
-ad_type_map = defaultdict(list)
-lookup_table = get_lookup_table()
-for r in classify_ads(get_all_ads(), lookup_table, clfr):
-    ad_type_map[r['ad_type']].append(r['archive_id'])
-for k, v in ad_type_map.items():
-    print(k, len(v))
-with open('ad_to_type_mappings.json','w') as w:
-    json.dump(ad_type_map, w)
 
-def list_id_and_types():
-    for ad_type in ad_type_map:
-        for archive_id in ad_type_map[ad_type]:
+def list_id_and_types(ad_type_to_archive_ids):
+    for ad_type in ad_type_to_archive_ids:
+        for archive_id in ad_type_to_archive_ids[ad_type]:
             yield (archive_id, ad_type)
 
 

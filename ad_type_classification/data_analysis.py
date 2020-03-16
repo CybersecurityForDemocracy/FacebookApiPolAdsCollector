@@ -14,8 +14,8 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
 from urllib import parse
 import re 
-from helper_fns import get_canonical_url, find_urls, get_creative_url, get_lookup_table
-from text_process_fns import process_creative_body
+from ad_type_classification.helper_fns import get_canonical_url, find_urls, get_creative_url, get_lookup_table
+from ad_type_classification.text_process_fns import process_creative_body
 
 import config_utils
 
