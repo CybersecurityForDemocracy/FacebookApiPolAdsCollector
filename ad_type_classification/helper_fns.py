@@ -17,7 +17,9 @@ def get_canonical_url(url):
         return ''
   
 def find_urls(string): 
-    urls = re.findall('http[s]?://(?:[a-zA-Z]|[0-9]|[$\-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+', string)
+    urls = re.findall(
+            'http[s]?://(?:[a-zA-Z]|[0-9]|[$\-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
+            string)
     return urls
 
 def get_creative_url(row):

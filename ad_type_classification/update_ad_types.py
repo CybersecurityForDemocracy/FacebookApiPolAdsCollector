@@ -44,9 +44,6 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
     to_classify = []
     num_rows_processed = 0
     for result in ads:
-        if num_rows_processed % 10000 == 0:
-            logging.info('classify_ads processed %d rows', num_rows_processed)
-        num_rows_processed += 1
         normalized_url = get_creative_url(result)
         if normalized_url in lookup_table:
             yield {'archive_id': result['archive_id'],
@@ -56,7 +53,9 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
         else:
             yield {'archive_id': result['archive_id'],
                    'ad_type': 'UNKNOWN'}
+        num_rows_processed += 1
         if len(to_classify) > 100000:
+            logging.info('classify_ads processed %d rows', num_rows_processed)
             classification_df = pandas.DataFrame(to_classify)
             classification_df['processed_body'] = classification_df['ad_creative_body'].apply(
                 process_creative_body)
