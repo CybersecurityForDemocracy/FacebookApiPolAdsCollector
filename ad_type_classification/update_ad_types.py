@@ -7,7 +7,7 @@ import sys
 import pandas
 import psycopg2
 import psycopg2.extras
-from sklearn.externals import joblib
+import joblib
 
 import config_utils
 import db_functions

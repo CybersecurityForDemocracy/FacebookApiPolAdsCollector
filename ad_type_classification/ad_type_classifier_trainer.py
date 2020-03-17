@@ -15,7 +15,7 @@ from IPython import embed
 from matplotlib import colors
 from matplotlib import pyplot as plt
 from sklearn import metrics, preprocessing
-from sklearn.externals import joblib
+import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import SelectKBest, chi2
