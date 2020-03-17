@@ -25,18 +25,18 @@ def main(config_file_path):
         data_prep_pipeline = joblib.load(os.path.join(MODELS_DIR, 'data_prep_pipeline.pk1'))
         db_interface = db_functions.DBInterface(database_connection)
 
-        ad_type_map = defaultdict(list)
+        ad_type_to_archive_ids = defaultdict(list)
         lookup_table = get_lookup_table(os.path.join(MODELS_DIR, 'ad_url_to_type.csv'))
         for r in classify_ads(
                 db_interface.all_ads_with_nonempty_link_caption_or_body(),
                 lookup_table, classifier, label_encoder, data_prep_pipeline):
-            ad_type_map[r['ad_type']].append(r['archive_id'])
-        for k, v in ad_type_map.items():
+            ad_type_to_archive_ids[r['ad_type']].append(r['archive_id'])
+        for k, v in ad_type_to_archive_ids.items():
             print(k, len(v))
         with open('ad_to_type_mappings.json','w') as w:
-            json.dump(ad_type_map, w)
+            json.dump(ad_type_to_archive_ids, w)
 
-        db_interface.update_ad_types(list_id_and_types())
+        db_interface.update_ad_types(list_id_and_types(ad_type_to_archive_ids))
         database_connection.commit()
 
 
@@ -53,9 +53,9 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
         else:
             yield {'archive_id': result['archive_id'],
                    'ad_type': 'UNKNOWN'}
-        num_rows_processed += 1
         if len(to_classify) > 100000:
-            logging.info('classify_ads processed %d rows', num_rows_processed)
+            logging.info('Classifying batch of %d. classify_ads processed %d rows.',
+                         len(to_classify), num_rows_processed)
             classification_df = pandas.DataFrame(to_classify)
             classification_df['processed_body'] = classification_df['ad_creative_body'].apply(
                 process_creative_body)
@@ -67,6 +67,8 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
             for result in classification_df.to_dict(orient='records'):
                 yield result
             to_classify = []
+
+        num_rows_processed += 1
 
 
 def list_id_and_types(ad_type_to_archive_ids):
