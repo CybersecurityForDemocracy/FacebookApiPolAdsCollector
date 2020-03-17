@@ -1,3 +1,5 @@
+"""Module to classify ad types via precomputed models and update the types in the database.
+"""
 from collections import defaultdict
 import json
 import logging
@@ -40,6 +42,17 @@ def main(config_file_path):
 
 
 def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep_pipeline):
+    """Classifies ads in batches, and yields results.
+
+    Args:
+        ads: dict of ads with archive_id, ad_creative_body, ad_creative_link_caption
+        lookup_table: dict normalized_url -> ad_type.
+        classifier: model for classifying ad type from ad body.
+        label_encoder: model for translating internal representation of ad type to ad type string.
+        data_prep_pipeline: model for preparing ad body for classification.
+    Yields:
+        dict of classified add with keys 'archive_id' and 'ad_type'.
+    """
     to_classify = []
     num_rows_processed = 0
     for result in ads:
@@ -64,7 +77,8 @@ def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep
             classification_df['ad_type'] = label_encoder.inverse_transform(
                 classification_df['ad_type'])
             for classified_ad in classification_df.to_dict(orient='records'):
-                yield classified_ad
+                yield {'archive_id': classified_ad['archive_id'],
+                       'ad_type': classified_ad['ad_type']}
             to_classify = []
 
         num_rows_processed += 1

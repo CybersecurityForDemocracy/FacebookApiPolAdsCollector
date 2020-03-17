@@ -39,6 +39,6 @@ def get_lookup_table(ad_url_to_type_csv_path):
     df_as_dicts = df.to_dict(orient='records')
     lookup_table = {}
     for row in df_as_dicts:
-        lookup_table[row['normalized_url']]=row['ad_type']
-    lookup_table['']='INFORM'
+        lookup_table[row['normalized_url']] = row['ad_type']
+    lookup_table[''] = 'INFORM'
     return lookup_table
