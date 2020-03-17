@@ -5,8 +5,6 @@ import os.path
 import sys
 
 import pandas
-import psycopg2
-import psycopg2.extras
 import joblib
 
 import config_utils
@@ -27,20 +25,21 @@ def main(config_file_path):
 
         ad_type_to_archive_ids = defaultdict(list)
         lookup_table = get_lookup_table(os.path.join(MODELS_DIR, 'ad_url_to_type.csv'))
-        for r in classify_ads(
-                db_interface.all_ads_with_nonempty_link_caption_or_body(),
-                lookup_table, classifier, label_encoder, data_prep_pipeline):
-            ad_type_to_archive_ids[r['ad_type']].append(r['archive_id'])
-        for k, v in ad_type_to_archive_ids.items():
-            print(k, len(v))
-        with open('ad_to_type_mappings.json','w') as w:
-            json.dump(ad_type_to_archive_ids, w)
+        ad_iterator = classify_ad_iterator(
+            db_interface.all_ads_with_nonempty_link_caption_or_body(), lookup_table, classifier,
+            label_encoder, data_prep_pipeline)
+        for classified_ad in ad_iterator:
+            ad_type_to_archive_ids[classified_ad['ad_type']].append(classified_ad['archive_id'])
+        type_sums = ['%s: %d' % (k, len(v)) for k, v in ad_type_to_archive_ids.items()]
+        logging.info('Type sums:\n%s', '\n'.join(type_sums))
+        with open('ad_to_type_mappings.json', 'w') as ad_mapping_file:
+            json.dump(ad_type_to_archive_ids, ad_mapping_file)
 
-        db_interface.update_ad_types(list_id_and_types(ad_type_to_archive_ids))
+        db_interface.update_ad_types(archive_id_and_ad_type_iterator(ad_type_to_archive_ids))
         database_connection.commit()
 
 
-def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipeline):
+def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep_pipeline):
     to_classify = []
     num_rows_processed = 0
     for result in ads:
@@ -53,8 +52,8 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
         else:
             yield {'archive_id': result['archive_id'],
                    'ad_type': 'UNKNOWN'}
-        if len(to_classify) > 100000:
-            logging.info('Classifying batch of %d. classify_ads processed %d rows.',
+        if len(to_classify) >= 100000:
+            logging.info('Classifying batch of %d. classify_ad_iterator processed %d rows.',
                          len(to_classify), num_rows_processed)
             classification_df = pandas.DataFrame(to_classify)
             classification_df['processed_body'] = classification_df['ad_creative_body'].apply(
@@ -64,14 +63,19 @@ def classify_ads(ads, lookup_table, classifier, label_encoder, data_prep_pipelin
             classification_df['ad_type'] = classifier.predict(prediction_data)
             classification_df['ad_type'] = label_encoder.inverse_transform(
                 classification_df['ad_type'])
-            for result in classification_df.to_dict(orient='records'):
-                yield result
+            for classified_ad in classification_df.to_dict(orient='records'):
+                yield classified_ad
             to_classify = []
 
         num_rows_processed += 1
 
 
-def list_id_and_types(ad_type_to_archive_ids):
+def archive_id_and_ad_type_iterator(ad_type_to_archive_ids):
+    """Flattens ad type to archive id list map to tuples of (id, type).
+
+    Yields:
+        tuple of (archive_id, ad_type).
+    """
     for ad_type in ad_type_to_archive_ids:
         for archive_id in ad_type_to_archive_ids[ad_type]:
             yield (archive_id, ad_type)
@@ -80,5 +84,6 @@ def list_id_and_types(ad_type_to_archive_ids):
 if __name__ == '__main__':
     config_utils.configure_logger("update_ad_types.log")
     if len(sys.argv) < 2:
-        exit(f"Usage:python3 {sys.argv[0]} update_ad_types.cfg")
+        print(f"Usage: python3 {sys.argv[0]} update_ad_types.cfg")
+        sys.exit(1)
     main(sys.argv[1])
