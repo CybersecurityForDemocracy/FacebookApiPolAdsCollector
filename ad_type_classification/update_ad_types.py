@@ -78,7 +78,7 @@ def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep
                 classification_df['ad_type'])
             for classified_ad in classification_df.to_dict(orient='records'):
                 yield {'archive_id': classified_ad['archive_id'],
-                       'ad_type': classified_ad['ad_type']}
+                       'ad_type': classified_ad['ad_type'].upper()}
             to_classify = []
 
         num_rows_processed += 1
