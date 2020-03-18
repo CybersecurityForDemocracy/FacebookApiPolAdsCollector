@@ -12,7 +12,7 @@ class DBInterface():
         self.connection = connection
 
     def get_cursor(self):
-        return self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        return self.connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def existing_ads(self):
         cursor = self.get_cursor()
@@ -185,7 +185,9 @@ class DBInterface():
         cursor.execute("SELECT archive_id, ad_creative_body, ad_creative_link_caption FROM ads "
                        "WHERE ad_creative_link_caption <> '' OR  ad_creative_body <> '';")
         for row in cursor:
-            yield row
+            yield {'archive_id': row['archive_id'],
+                   'ad_creative_body': row['ad_creative_body'],
+                   'ad_creative_link_caption': row['ad_creative_link_caption']}
 
 
     def insert_funding_entities(self, new_funders):
