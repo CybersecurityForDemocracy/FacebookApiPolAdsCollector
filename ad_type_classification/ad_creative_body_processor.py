@@ -1,8 +1,9 @@
-import string
+import itertools
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
+import unicodedata
 
 
 class AdCreativeBodyProcessor:
@@ -12,7 +13,7 @@ class AdCreativeBodyProcessor:
         nltk.download('stopwords')
         nltk.download('punkt')
         self.english_stopwords = stopwords.words('english')
-        self.stemmer = PorterStemmer()
+        self._stemmer = PorterStemmer()
 
     def _filter_stop_words(self, word_list):
         for word in word_list:
@@ -20,13 +21,21 @@ class AdCreativeBodyProcessor:
                 continue
             yield word
 
-    def _stemmer(self, word_list):
-        return list(map(self.stemmer.stem, word_list))
+    def _get_stems(self, word_list):
+        return list(map(self._stemmer.stem, word_list))
 
-    def _filter_punct(self, word_list):
-        return ''.join([w for w in word_list if w not in string.punctuation])
+    def _filter_punct(self, creative_body):
+        return ''.join(itertools.filterfalse(lambda x: unicodedata.category(x).startswith('P'),
+                                             creative_body))
 
     def process_creative_body(self, creative_body):
-        for process in (self._filter_punct, word_tokenize, self._filter_stop_words, self._stemmer):
-            creative_body = process(creative_body)
-        return creative_body
+        """Removes punctuation, tokenizes into a list or words, removes stop words, and adds list of
+        word stems to input.
+
+        Args:
+            creative_body: str ad creative text to be processed.
+        Returns:
+            list tokenized words with punctuation and stop words removed and word stems added.
+        """
+        return self._get_stems(self._filter_stop_words(word_tokenize(self._filter_punct(
+                creative_body))))
