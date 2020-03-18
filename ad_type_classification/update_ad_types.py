@@ -11,12 +11,18 @@ import joblib
 
 import config_utils
 import db_functions
-from ad_type_classification.helper_fns import (get_creative_url, get_lookup_table)
+from ad_type_classification.helper_fns import (get_normalized_creative_url,
+                                               get_canonical_url_to_ad_type_table)
 from ad_type_classification.text_process_fns import process_creative_body
 
 DATA_DIR = os.path.join('ad_type_classification', 'data')
 
 def main(config_file_path):
+    """Perform ad classification.
+
+    Args:
+        config_file_path: str path to config file.
+    """
     config = config_utils.get_config(config_file_path)
     with config_utils.get_database_connection_from_config(config) as database_connection:
 
@@ -26,9 +32,11 @@ def main(config_file_path):
         db_interface = db_functions.DBInterface(database_connection)
 
         ad_type_to_archive_ids = defaultdict(list)
-        lookup_table = get_lookup_table(os.path.join(DATA_DIR, 'ad_url_to_type.csv'))
+        canonical_url_to_ad_type_table = get_canonical_url_to_ad_type_table(os.path.join(
+            DATA_DIR, 'ad_url_to_type.csv'))
         ad_iterator = classify_ad_iterator(
-            db_interface.all_ads_with_nonempty_link_caption_or_body(), lookup_table, classifier,
+            db_interface.all_ads_with_nonempty_link_caption_or_body(),
+            canonical_url_to_ad_type_table, classifier,
             label_encoder, data_prep_pipeline)
         for classified_ad in ad_iterator:
             ad_type_to_archive_ids[classified_ad['ad_type']].append(classified_ad['archive_id'])
@@ -41,12 +49,13 @@ def main(config_file_path):
         database_connection.commit()
 
 
-def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep_pipeline):
+def classify_ad_iterator(ads, canonical_url_to_ad_type_table, classifier, label_encoder,
+                         data_prep_pipeline):
     """Classifies ads in batches, and yields results.
 
     Args:
         ads: dict of ads with archive_id, ad_creative_body, ad_creative_link_caption
-        lookup_table: dict normalized_url -> ad_type.
+        canonical_url_to_ad_type_table: dict normalized_url -> ad_type.
         classifier: model for classifying ad type from ad body.
         label_encoder: model for translating internal representation of ad type to ad type string.
         data_prep_pipeline: model for preparing ad body for classification.
@@ -56,10 +65,10 @@ def classify_ad_iterator(ads, lookup_table, classifier, label_encoder, data_prep
     to_classify = []
     num_rows_processed = 0
     for result in ads:
-        normalized_url = get_creative_url(result)
-        if normalized_url in lookup_table:
+        normalized_url = get_normalized_creative_url(result)
+        if normalized_url in canonical_url_to_ad_type_table:
             yield {'archive_id': result['archive_id'],
-                   'ad_type': lookup_table.get(normalized_url)}
+                   'ad_type': canonical_url_to_ad_type_table.get(normalized_url)}
         elif result['ad_creative_body']:
             to_classify.append(result)
         else:

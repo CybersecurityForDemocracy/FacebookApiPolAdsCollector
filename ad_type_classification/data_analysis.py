@@ -1,3 +1,4 @@
+import copy
 import psycopg2
 import db_functions
 import logging
@@ -14,13 +15,14 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem.porter import PorterStemmer
 from urllib import parse
 import re 
-from ad_type_classification.helper_fns import get_canonical_url, find_urls, get_creative_url, get_lookup_table
+from ad_type_classification.helper_fns import (get_normalized_creative_url,
+                                               get_canonical_url_to_ad_type_table)
 from ad_type_classification.text_process_fns import process_creative_body
 
 import config_utils
 
 def distinct_ad_texts(db_connection):
-    cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor = db_connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     existing_ad_query = (
         "select  \
         distinct on (ads.ad_creative_body) ads.ad_creative_body, \
@@ -37,7 +39,7 @@ def distinct_ad_texts(db_connection):
     cursor.execute(existing_ad_query)
     ads = []
     for row in cursor:
-        ads.append(dict(row))
+        ads.append(copy.copy(row))
     return ads
 
 config = sys.argv[1]
@@ -58,11 +60,11 @@ ads_df.to_csv('normed_ads_of_interest.csv')
 # get ad classes for known URLS
 
 print(ads_df.columns)
-lookup_table = get_lookup_table()
-print(lookup_table)
-ads_df['normalized_url'] = ads_df.apply(get_creative_url, axis=1) 
+canonical_url_to_ad_type_table = get_canonical_url_to_ad_type_table()
+print(canonical_url_to_ad_type_table)
+ads_df['normalized_url'] = ads_df.apply(get_normalized_creative_url, axis=1)
 ads_df['ad_type'] = ads_df['normalized_url'].apply(
-    lambda x : lookup_table.get(x,'UNKNOWN'))
+    lambda x : canonical_url_to_ad_type_table.get(x,'UNKNOWN'))
 
 ads_df.to_csv('typed_ads_of_interest.csv')
 
