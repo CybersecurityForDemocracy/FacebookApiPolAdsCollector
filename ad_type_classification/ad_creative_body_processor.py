@@ -1,13 +1,14 @@
 import itertools
+import unicodedata
+
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
-import unicodedata
 
 def is_punctuation(glyph):
     unicode_category = unicodedata.category(glyph)
-    return unicode_category and ('P' == unicode_category[0])
+    return unicode_category and (unicode_category[0] == 'P')
 
 
 class AdCreativeBodyProcessor:
@@ -51,4 +52,4 @@ class AdCreativeBodyProcessor:
             list tokenized words with punctuation, stop words removed, and words reduced to stems.
         """
         return self._stemmer_transform(self._filter_stop_words(word_tokenize(self._filter_punct(
-                creative_body))))
+            creative_body))))
