@@ -11,22 +11,22 @@ import joblib
 
 import config_utils
 import db_functions
-from ad_type_classification.helper_fns import (find_urls, get_creative_url, get_lookup_table)
+from ad_type_classification.helper_fns import (get_creative_url, get_lookup_table)
 from ad_type_classification.text_process_fns import process_creative_body
 
-MODELS_DIR = os.path.join('ad_type_classification', 'data')
+DATA_DIR = os.path.join('ad_type_classification', 'data')
 
 def main(config_file_path):
     config = config_utils.get_config(config_file_path)
     with config_utils.get_database_connection_from_config(config) as database_connection:
 
-        classifier = joblib.load(os.path.join(MODELS_DIR, 'ad_type_classifier.pk1'))
-        label_encoder = joblib.load(os.path.join(MODELS_DIR, 'ad_type_label_encoder.pk1'))
-        data_prep_pipeline = joblib.load(os.path.join(MODELS_DIR, 'data_prep_pipeline.pk1'))
+        classifier = joblib.load(os.path.join(DATA_DIR, 'ad_type_classifier.pk1'))
+        label_encoder = joblib.load(os.path.join(DATA_DIR, 'ad_type_label_encoder.pk1'))
+        data_prep_pipeline = joblib.load(os.path.join(DATA_DIR, 'data_prep_pipeline.pk1'))
         db_interface = db_functions.DBInterface(database_connection)
 
         ad_type_to_archive_ids = defaultdict(list)
-        lookup_table = get_lookup_table(os.path.join(MODELS_DIR, 'ad_url_to_type.csv'))
+        lookup_table = get_lookup_table(os.path.join(DATA_DIR, 'ad_url_to_type.csv'))
         ad_iterator = classify_ad_iterator(
             db_interface.all_ads_with_nonempty_link_caption_or_body(), lookup_table, classifier,
             label_encoder, data_prep_pipeline)

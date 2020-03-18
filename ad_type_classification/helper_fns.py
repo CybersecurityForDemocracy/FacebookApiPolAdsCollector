@@ -3,34 +3,31 @@ from urllib import parse
 import logging
 import pandas
 
+URL_RE = re.compile(
+        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$\-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+')
+
 def get_canonical_url(url):
     try:
         parsed_url = parse.urlparse(str(url))
         domain = str(parsed_url.netloc).lower()
         path = str(parsed_url.path).lower()
         if domain.startswith('www.'):
-            domain=domain[4:]
-        return domain+path
-    except Exception as e:
-        print(e)
-        print('Could not process url:', url)
+            domain = domain[4:]
+        return domain + path
+    except ValueError as err:
+        logging.info('%s error while processing url: %s', err, url)
         return ''
-  
-def find_urls(string): 
-    urls = re.findall(
-            'http[s]?://(?:[a-zA-Z]|[0-9]|[$\-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+',
-            string)
-    return urls
+
 
 def get_creative_url(row):
     url = ''
     if row.get('ad_creative_link_caption'):
         url = row['ad_creative_link_caption']
     else:
-        urls = find_urls(row['ad_creative_body'])
-        if urls:
-            url = urls[0]
-    return get_canonical_url(url)
+        match = re.search(URL_RE, row['ad_creative_body'])
+        if match:
+            url = get_canonical_url(match.group(0))
+    return url
 
 
 def get_lookup_table(ad_url_to_type_csv_path):
