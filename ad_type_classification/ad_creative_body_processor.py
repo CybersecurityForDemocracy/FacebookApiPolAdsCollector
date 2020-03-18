@@ -25,7 +25,8 @@ class AdCreativeBodyProcessor:
                 continue
             yield word
 
-    def _get_stems(self, word_list):
+    def _stemmer_transform(self, word_list):
+        """Reduces words to stems according to Porter Stemmer."""
         return list(map(self._stemmer.stem, word_list))
 
 
@@ -41,13 +42,13 @@ class AdCreativeBodyProcessor:
         return ''.join(itertools.filterfalse(is_punctuation, input_text))
 
     def process_creative_body(self, creative_body):
-        """Removes punctuation, tokenizes into a list or words, removes stop words, and adds list of
-        word stems to input.
+        """Removes punctuation, tokenizes into a list or words, removes stop words, and reduces
+        words to stems.
 
         Args:
             creative_body: str ad creative text to be processed.
         Returns:
-            list tokenized words with punctuation and stop words removed and word stems added.
+            list tokenized words with punctuation, stop words removed, and words reduced to stems.
         """
-        return self._get_stems(self._filter_stop_words(word_tokenize(self._filter_punct(
+        return self._stemmer_transform(self._filter_stop_words(word_tokenize(self._filter_punct(
                 creative_body))))
