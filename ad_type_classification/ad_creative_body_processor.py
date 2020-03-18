@@ -5,6 +5,10 @@ from nltk.corpus import stopwords
 from nltk.stem.porter import PorterStemmer
 import unicodedata
 
+def is_punctuation(glyph):
+    unicode_category = unicodedata.category(glyph)
+    return unicode_category and ('P' == unicode_category[0])
+
 
 class AdCreativeBodyProcessor:
     """Class to encapsulate ad creative body processing logic."""
@@ -24,6 +28,7 @@ class AdCreativeBodyProcessor:
     def _get_stems(self, word_list):
         return list(map(self._stemmer.stem, word_list))
 
+
     def _filter_punct(self, input_text):
         """Removes punction from input. More information about Unicode categories
         https://www.unicode.org/reports/tr44/#General_Category_Values
@@ -33,8 +38,7 @@ class AdCreativeBodyProcessor:
         Returns:
             str of input_text with punctuation removed.
         """
-        return ''.join(itertools.filterfalse(lambda x: unicodedata.category(x).startswith('P'),
-                                             input_text))
+        return ''.join(itertools.filterfalse(is_punctuation, input_text))
 
     def process_creative_body(self, creative_body):
         """Removes punctuation, tokenizes into a list or words, removes stop words, and adds list of
