@@ -184,3 +184,14 @@ CREATE TABLE snapshot_fetch_batches (
   time_started timestamp with time zone,
   time_completed timestamp with time zone
 );
+CREATE TABLE topics (
+  topic_id bigserial PRIMARY_KEY,
+  topic_name character varying NOT NULL UNIQUE
+);
+CREATE TABLE ad_topics (
+  archive_id bigint NOT NULL,
+  topic_id bigint NOT NULL,
+  CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE,
+  PRIMARY KEY (archive_id, topic_id)
+);

@@ -519,3 +519,53 @@ class DBInterface():
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
+
+    def ad_body_texts(self, country, start_time, end_time):
+        query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
+                 '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+                 'WHERE (ad_countries.country_code = %(country_upper)s OR '
+                 'ad_countries.country_code = %(country_lower)s) AND '
+                 'ads.ad_delivery_start_time >=  %(start_time)s AND '
+                 'ads.ad_delivery_stop_time <= %(end_time)s AND ads.ad_creative_body IS NOT NULL')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
+                               'start_time': start_time, 'end_time': end_time})
+        return [(row['archive_id'], row['ad_creative_body']) for row in cursor.fetchall()]
+
+    def insert_topic_names(self, topic_names):
+        """Inserts provide topic names if they do not already exist
+        Args:
+            topic_names: iterable of str of topic_names.
+        """
+        cursor = self.get_cursor()
+        topic_name_insert_query = (
+            'INSERT INTO topics (topic_name) VALUES %s ON CONFLICT (topic_name) DO NOTHING')
+
+        psycopg2.extras.execute_values(
+             cursor,
+             topic_name_insert_query, 
+            # execute_values reqiures a sequence of sequnces, so we make a single element tuple out
+            # out of each name.
+            {(topic_name,) for topic_name in topic_names})
+
+    def all_topics(self):
+        """Get all topics as dict of topics name -> topic ID.
+
+        Return:
+            dict of topic name -> topic ID.
+        """
+        cursor = self.get_cursor()
+        cursor.execute('SELECT topic_name, topic_id from topics')
+        return {row['topic_name']: row['topic_id'] for row in cursor.fetchall()}
+
+    def insert_ad_topics(self, topic_to_archive_id):
+        cursor = self.get_cursor()
+        query = ('INSERT INTO ad_topics (topic_id, archive_id) VALUES %s ON CONFLICT '
+                 '(topic_id, archive_id) DO NOTHING')
+        insert_template = '(%(topic_id)s, %(archive_id)s)'
+        psycopg2.extras.execute_values(
+            cursor,
+            query,
+            topic_to_archive_id,
+            template=insert_template,
+            page_size=250)
