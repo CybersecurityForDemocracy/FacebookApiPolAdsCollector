@@ -23,7 +23,7 @@ def main(argv):
         logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
         keyword_df = pd.read_csv('topic_modeling/keyword_topic_map.csv')
         # Make sure keywords are lowercase so that matching is case-insensitive.
-        keyword_df = keyword_df['keyword'].str.lower()
+        keyword_df['keyword'] = keyword_df['keyword'].str.lower()
         logging.info('Got %d topics, and %d keywords.', len(set(keyword_df['topic'])),
                      len(keyword_df))
         # Insert topics from CSV in case they aren't in the DB yet.
