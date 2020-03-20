@@ -536,7 +536,7 @@ class DBInterface():
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
                      'WHERE (ad_countries.country_code = %(country_upper)s OR '
                      'ad_countries.country_code = %(country_lower)s) AND '
-                     'AND ads.ad_creative_body IS NOT NULL')
+                     'ads.ad_creative_body IS NOT NULL')
             query_params = {'country_upper': country.upper(), 'country_lower': country.lower()}
         cursor = self.get_cursor()
         cursor.execute(query, query_params)
