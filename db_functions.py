@@ -521,6 +521,18 @@ class DBInterface():
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
 
     def ad_body_texts(self, country, start_time, end_time):
+        """Get all ad creative body texts for given params. if start_time and end_time are false no
+        time limits are applied (all ads from country).
+
+        Args:
+            country: str country code to get ads for (eg 'us', 'ca', 'gb).
+            start_time: datetime.date, datetime.datetime, str of earliest ad_delivery_start_time to
+                inlude in results.
+            end_time: datetime.date, datetime.datetime, str of latest ad_delivery_end_time to
+                inlude in results.
+        Returns:
+            list of tuples of (archive_id, and ad_creative_body).
+        """
         if start_time and end_time:
             query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
