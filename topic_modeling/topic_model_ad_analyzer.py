@@ -68,5 +68,5 @@ def main(argv):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         sys.exit('Usage: %s <config file>' % sys.argv[0])
-    config_utils.configure_logger("ad_topic_updater.log")
+    config_utils.configure_logger("topic_model_ad_analyzer.log")
     main(sys.argv[1:])
