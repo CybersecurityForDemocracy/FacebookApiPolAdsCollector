@@ -1,3 +1,4 @@
+"""Module to assign topic(s) to ads based on keyword(s) that occur in ad creative body text."""
 from collections import namedtuple
 import datetime
 import logging
