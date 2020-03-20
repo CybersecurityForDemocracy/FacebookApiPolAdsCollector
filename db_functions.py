@@ -1,3 +1,4 @@
+"""Encapsulation of database read, write, and update logic."""
 from collections import namedtuple
 import logging
 
@@ -5,6 +6,8 @@ import psycopg2
 import psycopg2.extras
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
+
+_DEFAULT_PAGE_SIZE = 250
 
 class DBInterface():
 
@@ -101,7 +104,7 @@ class DBInterface():
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['archive_id'], row['image_sim_hash']) for row in results])
+        return {row['archive_id']: row['image_sim_hash'] for row in results}
 
     def all_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes.
@@ -112,7 +115,7 @@ class DBInterface():
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return dict([(row['archive_id'], row['text_sim_hash']) for row in results])
+        return {row['archive_id']: row['text_sim_hash'] for row in results}
 
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
@@ -182,7 +185,7 @@ class DBInterface():
                                        insert_funder_query,
                                        new_funders,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_pages(self, new_pages):
         cursor = self.get_cursor()
@@ -195,7 +198,7 @@ class DBInterface():
                                        insert_page_query,
                                        new_page_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_page_metadata(self, new_page_metadata):
         cursor = self.get_cursor()
@@ -205,7 +208,8 @@ class DBInterface():
         insert_template = "(%(id)s, %(url)s, %(federal_candidate)s)"
         new_page_metadata_list = [x._asdict() for x in new_page_metadata]
         psycopg2.extras.execute_values(
-            cursor, insert_page_metadata_query, new_page_metadata_list, template=insert_template, page_size=250)
+            cursor, insert_page_metadata_query, new_page_metadata_list, template=insert_template,
+            page_size=_DEFAULT_PAGE_SIZE)
 
 
     def insert_new_ads(self, new_ads):
@@ -227,7 +231,7 @@ class DBInterface():
                                        ad_insert_query,
                                        new_ad_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
         ad_insert_query = (
             "INSERT INTO ad_countries(archive_id, country_code) VALUES %s on conflict (archive_id, "
@@ -237,7 +241,7 @@ class DBInterface():
                                        ad_insert_query,
                                        new_ad_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
         # Mark newly found archive_id as needing scrape.
         snapshot_metadata_insert_query = (
@@ -248,7 +252,7 @@ class DBInterface():
                                        snapshot_metadata_insert_query,
                                        new_ad_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_new_impressions(self, new_impressions):
         cursor = self.get_cursor()
@@ -270,7 +274,7 @@ class DBInterface():
                                        impressions_insert_query,
                                        new_impressions_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_new_impression_demos(self, new_ad_demo_impressions):
         demo_impressions_list = ([
@@ -288,7 +292,7 @@ class DBInterface():
                                        impression_demo_insert_query,
                                        demo_impressions_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
         impression_demo_result_insert_query = (
             "INSERT INTO demo_impression_results(archive_id, age_group, gender, min_impressions, "
@@ -304,7 +308,7 @@ class DBInterface():
                                        impression_demo_result_insert_query,
                                        demo_impressions_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_new_impression_regions(self, new_ad_region_impressions):
         region_impressions_list = ([
@@ -320,7 +324,7 @@ class DBInterface():
                                        impression_region_insert_query,
                                        region_impressions_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
         impression_region_insert_query = (
             "INSERT INTO region_impression_results(archive_id, region, min_impressions, min_spend, "
             "max_impressions, max_spend) VALUES %s on conflict on constraint unique_region_results "
@@ -334,7 +338,7 @@ class DBInterface():
                                        impression_region_insert_query,
                                        region_impressions_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def update_ad_snapshot_metadata(self, ad_snapshot_metadata_records):
         cursor = self.get_cursor()
@@ -349,7 +353,7 @@ class DBInterface():
         psycopg2.extras.execute_batch(cursor,
                                       update_query,
                                       ad_snapshot_metadata_record_list,
-                                      page_size=250)
+                                      page_size=_DEFAULT_PAGE_SIZE)
 
 
     def insert_ad_creative_records(self, ad_creative_records):
@@ -372,29 +376,29 @@ class DBInterface():
                                        insert_query,
                                        ad_creative_record_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_or_update_ad_cluster_records(self, ad_cluster_records):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO ad_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
-                '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
+            'INSERT INTO ad_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
+            '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
         insert_template = '(%(archive_id)s, %(ad_cluster_id)s)'
         ad_cluster_record_list = [x._asdict() for x in ad_cluster_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        ad_cluster_record_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_named_entity_recognition_results(
             self, text_sha256_hash, named_entity_recognition_json):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO ad_creative_body_recognized_entities_json (text_sha256_hash, '
-                'named_entity_recognition_json) VALUES (%(text_sha256_hash)s, '
-                '%(named_entity_recognition_json)s) ON CONFLICT (text_sha256_hash) DO UPDATE SET '
-                'named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
+            'INSERT INTO ad_creative_body_recognized_entities_json (text_sha256_hash, '
+            'named_entity_recognition_json) VALUES (%(text_sha256_hash)s, '
+            '%(named_entity_recognition_json)s) ON CONFLICT (text_sha256_hash) DO UPDATE SET '
+            'named_entity_recognition_json = EXCLUDED.named_entity_recognition_json')
         cursor.execute(insert_query, ({'text_sha256_hash': text_sha256_hash,
                                        'named_entity_recognition_json':
                                        psycopg2.extras.Json(named_entity_recognition_json)}))
@@ -402,28 +406,28 @@ class DBInterface():
     def insert_recognized_entities(self, entity_records):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO recognized_entities(entity_name, entity_type) VALUES %s '
-                'ON CONFLICT DO NOTHING')
+            'INSERT INTO recognized_entities(entity_name, entity_type) VALUES %s '
+            'ON CONFLICT DO NOTHING')
         insert_template = '(%(name)s, %(type)s)'
         entity_record_list = [x._asdict() for x in entity_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        entity_record_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def insert_ad_recognized_entity_records(self, ad_creative_to_recognized_entities_records):
         cursor = self.get_cursor()
         insert_query = (
-                'INSERT INTO ad_creative_to_recognized_entities(ad_creative_id, entity_id) VALUES %s '
-                'ON CONFLICT DO NOTHING')
+            'INSERT INTO ad_creative_to_recognized_entities(ad_creative_id, entity_id) VALUES %s '
+            'ON CONFLICT DO NOTHING')
         insert_template = '(%(ad_creative_id)s, %(entity_id)s)'
         entity_record_list = [x._asdict() for x in ad_creative_to_recognized_entities_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        entity_record_list,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
     def make_snapshot_fetch_batches(self, batch_size=1000):
         """
@@ -505,17 +509,19 @@ class DBInterface():
                        'batch_id = %s', (batch_id,))
 
     def unique_ad_body_texts(self, country, start_time, end_time):
-        """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a certain timeframe. """
+        """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a
+        certain timeframe."""
         # TODO(macpd): handle end_time being none, or NULL in DB
-        query = ('SELECT DISTINCT text_sha256_hash, ad_creatives.ad_creative_body FROM ad_creatives '
-                 '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
-                 '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                 'WHERE (ad_countries.country_code = %(country_upper)s OR '
-                 'ad_countries.country_code = %(country_lower)s) AND '
-                 'ads.ad_delivery_start_time >=  %(start_time)s AND '
-                 'ads.ad_delivery_stop_time <= %(end_time)s AND text_sha256_hash IS NOT NULL AND '
-                 'ad_creatives.ad_creative_body IS NOT NULL')
+        query = (
+            'SELECT DISTINCT text_sha256_hash, ad_creatives.ad_creative_body FROM ad_creatives '
+            '    JOIN ads ON ad_creatives.archive_id = ads.archive_id '
+            '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+            'WHERE (ad_countries.country_code = %(country_upper)s OR '
+            'ad_countries.country_code = %(country_lower)s) AND '
+            'ads.ad_delivery_start_time >=  %(start_time)s AND '
+            'ads.ad_delivery_stop_time <= %(end_time)s AND text_sha256_hash IS NOT NULL AND '
+            'ad_creatives.ad_creative_body IS NOT NULL')
         cursor = self.get_cursor()
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
-        return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
+        return {row['text_sha256_hash']: row['ad_creative_body'] for row in cursor.fetchall()}
