@@ -1,3 +1,4 @@
+from collections import namedtuple
 import datetime
 import logging
 import sys
@@ -8,16 +9,16 @@ import config_utils
 import db_functions
 
 
+AdTopicRecord = namedtuple('AdTopicRecord', ['topic_id', 'archive_id'])
+
 def main(argv):
     config = config_utils.get_config(argv[0])
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
-        end_date = datetime.date.today()
-        start_date = datetime.date(year=2019, month=6, day=1)
-        archive_id_and_ad_body = db_interface.ad_body_texts('US', start_time=start_date,
-                                                            end_time=end_date)
+        archive_id_and_ad_body = db_interface.ad_body_texts(
+            'US', start_time=None, end_time=None)
         logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
         keyword_df = pd.read_csv('topic_modeling/keyword_topic_map.csv')
         logging.info('Got %d topics, and %d keywords.', len(set(keyword_df['topic'])),
@@ -51,17 +52,16 @@ def main(argv):
 
         # Get map of topic name -> topic ID
         topic_name_to_id = db_interface.all_topics()
-        topic_id_and_archive_id_pairs = []
+        ad_topic_records = []
         for topic_name, archive_ids in zip(topic_to_archive_ids['topic'],
                                            topic_to_archive_ids['archive_ids']):
             topic_id = topic_name_to_id[topic_name]
             if archive_ids:
-                topic_id_and_archive_id_pairs.extend(
-                    [{'topic_id': topic_id, 'archive_id': archive_id}
+                ad_topic_records.extend(
+                    [AdTopicRecord(topic_id=topic_id, archive_id=archive_id)
                      for archive_id in archive_ids])
-        logging.info('Inserting %d topic ID -> archive ID relationships.',
-                     len(topic_id_and_archive_id_pairs))
-        db_interface.insert_ad_topics(topic_id_and_archive_id_pairs)
+        logging.info('Inserting %d topic ID -> archive ID relationships.', len(ad_topic_records))
+        db_interface.insert_ad_topics(ad_topic_records)
 
 
 if __name__ == '__main__':
