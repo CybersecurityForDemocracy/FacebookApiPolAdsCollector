@@ -2,6 +2,7 @@
 from collections import namedtuple
 import datetime
 import logging
+import os.path
 import sys
 
 import pandas as pd
@@ -12,6 +13,8 @@ import db_functions
 
 AdTopicRecord = namedtuple('AdTopicRecord', ['topic_id', 'archive_id'])
 
+_KEYWORD_DATA_DIR = os.path.join('topic_modeling', 'data')
+
 def main(argv):
     config = config_utils.get_config(argv[0])
 
@@ -19,11 +22,12 @@ def main(argv):
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
 
-        keyword_df = pd.read_csv('topic_modeling/data/keyword_topic_map.csv')
+        keyword_data_file = os.path.join(_KEYWORD_DATA_DIR, 'keyword_topic_map.csv')
+        keyword_df = pd.read_csv(keyword_data_file)
         # Make sure keywords are lowercase so that matching is case-insensitive.
         keyword_df['keyword'] = keyword_df['keyword'].str.lower()
-        logging.info('Got %d topics, and %d keywords.', len(set(keyword_df['topic'])),
-                     len(keyword_df))
+        logging.info('Got %d topics, and %d keywords from %s.', len(set(keyword_df['topic'])),
+                     len(keyword_df), keyword_data_file)
         # Insert topics from CSV in case they aren't in the DB yet.
         db_interface.insert_topic_names(set(keyword_df['topic']))
 
