@@ -19,7 +19,7 @@ def main(argv):
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
 
-        keyword_df = pd.read_csv('topic_modeling/keyword_topic_map.csv')
+        keyword_df = pd.read_csv('topic_modeling/data/keyword_topic_map.csv')
         # Make sure keywords are lowercase so that matching is case-insensitive.
         keyword_df['keyword'] = keyword_df['keyword'].str.lower()
         logging.info('Got %d topics, and %d keywords.', len(set(keyword_df['topic'])),
