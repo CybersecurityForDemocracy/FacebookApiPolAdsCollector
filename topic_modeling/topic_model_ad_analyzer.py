@@ -18,9 +18,7 @@ def main(argv):
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
-        start_date = datetime.date.today() - datetime.timedelta(days=14)
-        archive_id_and_ad_body = db_interface.ad_body_texts('US', start_time=start_date)
-        logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
+
         keyword_df = pd.read_csv('topic_modeling/keyword_topic_map.csv')
         # Make sure keywords are lowercase so that matching is case-insensitive.
         keyword_df['keyword'] = keyword_df['keyword'].str.lower()
@@ -28,6 +26,11 @@ def main(argv):
                      len(keyword_df))
         # Insert topics from CSV in case they aren't in the DB yet.
         db_interface.insert_topic_names(set(keyword_df['topic']))
+
+        # Get ad creative bodies with ad_delivery_start_time within last 14 days to analyze.
+        start_date = datetime.date.today() - datetime.timedelta(days=14)
+        archive_id_and_ad_body = db_interface.ad_body_texts('US', start_time=start_date)
+        logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
 
         archive_ids = []
         texts = []
