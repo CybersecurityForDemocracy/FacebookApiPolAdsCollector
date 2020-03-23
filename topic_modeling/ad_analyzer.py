@@ -32,20 +32,22 @@ def main(argv):
         db_interface.insert_topic_names(set(keyword_df['topic']))
 
         # Get ad creative bodies with ad_delivery_start_time within last 14 days to analyze.
-        start_date = datetime.date.today() - datetime.timedelta(days=14)
-        archive_id_and_ad_body = db_interface.ad_body_texts('US', start_time=start_date)
+        start_date = datetime.date.today() - datetime.timedelta(days=30)
+        country_code = 'US'
+        logging.info('Getting all ad creative body texts for \'%s\' created on or after %s',
+                     country_code, start_date)
+        archive_id_and_ad_body = db_interface.ad_body_texts(country_code, start_time=start_date)
         logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
 
         archive_ids = []
         texts = []
         [(archive_ids.append(i), texts.append(j.lower())) for i, j in archive_id_and_ad_body]
 
-        ads_df = pd.DataFrame(data={'archive_id':
-                                        pd.Series(archive_ids),
-                                    'ad_creative_body':
-                                        pd.Series(texts)}).dropna(axis=1, how='all')
+        text_to_archive_id = pd.DataFrame(
+                data={'archive_id': pd.Series(archive_ids),
+                      'ad_creative_body': pd.Series(texts)}).dropna(axis=1, how='all')
 
-        text_to_archive_id = ads_df.groupby(['ad_creative_body'])['archive_id'].apply(
+        text_to_archive_id = text_to_archive_id.groupby(['ad_creative_body'])['archive_id'].apply(
             lambda group_series: group_series.tolist()).reset_index()
 
         topic_to_keyword = keyword_df.groupby(['topic'])['keyword'].apply(
