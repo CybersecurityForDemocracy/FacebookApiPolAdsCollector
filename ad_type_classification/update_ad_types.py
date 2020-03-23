@@ -1,6 +1,7 @@
 """Module to classify ad types via precomputed models and update the types in the database.
 """
 from collections import defaultdict
+import csv
 import json
 import logging
 import os.path
@@ -66,12 +67,11 @@ def get_canonical_url_to_ad_type_table(canonical_url_to_type_csv_path):
     Returns:
         dict normalized_url -> ad_type.
     """
-    canonical_url_to_type_df = pandas.read_csv(canonical_url_to_type_csv_path)
-    canonical_url_to_type_df['ad_type'] = canonical_url_to_type_df['ad_type'].astype('category')
-    df_as_dicts = canonical_url_to_type_df.to_dict(orient='records')
-    canonical_url_to_ad_type_table = {}
-    for row in df_as_dicts:
-        canonical_url_to_ad_type_table[row['normalized_url']] = row['ad_type']
+    with open(canonical_url_to_type_csv_path, 'r') as f:
+        csv_reader = csv.DictReader(f)
+        canonical_url_to_ad_type_table = {
+                row['normalized_url']: row['ad_type'] for row in csv_reader}
+    # Add default type of INFORM for no URL.
     canonical_url_to_ad_type_table[''] = 'INFORM'
     return canonical_url_to_ad_type_table
 
