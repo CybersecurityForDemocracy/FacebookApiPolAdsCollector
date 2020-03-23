@@ -32,11 +32,10 @@ def main(argv):
         db_interface.insert_topic_names(set(keyword_df['topic']))
 
         # Get ad creative bodies with ad_delivery_start_time within last 14 days to analyze.
-        start_date = datetime.date.today() - datetime.timedelta(days=30)
-        country_code = 'US'
-        logging.info('Getting all ad creative body texts for \'%s\' created on or after %s',
-                     country_code, start_date)
-        archive_id_and_ad_body = db_interface.ad_body_texts(country_code, start_time=start_date)
+        start_date = datetime.date.today() - datetime.timedelta(days=14)
+        logging.info('Getting all ad creative body texts for ads created on or after %s',
+                     start_date)
+        archive_id_and_ad_body = db_interface.ad_body_texts(start_time=start_date)
         logging.info('Got %d ad_creative_bodies to analyze.', len(archive_id_and_ad_body))
 
         archive_ids = []
