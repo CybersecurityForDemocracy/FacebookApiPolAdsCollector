@@ -617,6 +617,15 @@ class DBInterface():
             template=insert_template,
             page_size=_DEFAULT_PAGE_SIZE)
 
+    def topic_top_ads_by_spend(self, topic_id, limit=50):
+        cursor = self.get_cursor()
+        query = ('SELECT ad_topics.archive_id, min_spend, max_spend FROM impressions JOIN ad_topics ON '
+                 'impressions.archive_id = ad_topics.archive_id WHERE topic_id = %(topic_id)s '
+                 ' ORDER BY max_spend DESC LIMIT %(limit)s')
+        cursor.execute(query, {'topic_id': topic_id, 'limit': limit})
+        return cursor.fetchall()
+
+
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
         insert_funder_query = (
