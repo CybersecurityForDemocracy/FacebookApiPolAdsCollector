@@ -543,12 +543,11 @@ class DBInterface():
         return {row['text_sha256_hash']: row['ad_creative_body'] for row in cursor.fetchall()}
 
 
-    def ad_body_texts(self, country, start_time):
+    def ad_body_texts(self, start_time):
         """Get all ad creative body texts for given params. if start_time is false no time limit are
         applied (all ads from country).
 
         Args:
-            country: str country code to get ads for (eg 'us', 'ca', 'gb).
             start_time: datetime.date, datetime.datetime, str of earliest ad_delivery_start_time to
                 inlude in results.
         Returns:
@@ -557,19 +556,14 @@ class DBInterface():
         if start_time:
             query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
-                     'ad_countries.country_code = %(country_lower)s) AND '
-                     'ads.ad_delivery_start_time >=  %(start_time)s AND '
+                     'WHERE ads.ad_delivery_start_time >=  %(start_time)s AND '
                      'ads.ad_creative_body IS NOT NULL')
-            query_params = {'country_upper': country.upper(), 'country_lower': country.lower(),
-                            'start_time': start_time}
+            query_params = {'start_time': start_time}
         else:
             query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
-                     'ad_countries.country_code = %(country_lower)s) AND '
-                     'ads.ad_creative_body IS NOT NULL')
-            query_params = {'country_upper': country.upper(), 'country_lower': country.lower()}
+                     'WHERE ads.ad_creative_body IS NOT NULL')
+            query_params = {}
         cursor = self.get_cursor()
         cursor.execute(query, query_params)
         return [(row['archive_id'], row['ad_creative_body']) for row in cursor.fetchall()]
