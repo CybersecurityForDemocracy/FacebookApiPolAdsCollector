@@ -615,7 +615,7 @@ class DBInterface():
             query,
             ad_topic_record_list,
             template=insert_template,
-            page_size=250)
+            page_size=_DEFAULT_PAGE_SIZE)
 
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
@@ -627,4 +627,4 @@ class DBInterface():
                                        insert_funder_query,
                                        ad_type_map,
                                        template=insert_template,
-                                       page_size=250)
+                                       page_size=_DEFAULT_PAGE_SIZE)
