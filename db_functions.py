@@ -174,6 +174,22 @@ class DBInterface():
         cursor.execute(query, (text_sha256_hash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
+    def all_ads_with_nonempty_link_caption_or_body(self):
+        """Generator yielding all ads that have nonempty ad_creative_link_caption or
+        ad_creative_link_caption.
+
+        Yields:
+            rows of archive_id, ad_creative_body, ad_creative_link_caption
+        """
+        cursor = self.get_cursor()
+        cursor.execute("SELECT archive_id, ad_creative_body, ad_creative_link_caption FROM ads "
+                       "WHERE ad_creative_link_caption <> '' OR  ad_creative_body <> '';")
+        for row in cursor:
+            yield {'archive_id': row['archive_id'],
+                   'ad_creative_body': row['ad_creative_body'],
+                   'ad_creative_link_caption': row['ad_creative_link_caption']}
+
+
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
@@ -519,3 +535,15 @@ class DBInterface():
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
         return dict([(row['text_sha256_hash'], row['ad_creative_body']) for row in cursor.fetchall()])
+
+    def update_ad_types(self, ad_type_map):
+        cursor = self.get_cursor()
+        insert_funder_query = (
+            "INSERT INTO ad_metadata(archive_id, ad_type) VALUES %s ON CONFLICT (archive_id) "
+            "DO UPDATE SET ad_type = EXCLUDED.ad_type")
+        insert_template = "(%s, %s)"
+        psycopg2.extras.execute_values(cursor,
+                                       insert_funder_query,
+                                       ad_type_map,
+                                       template=insert_template,
+                                       page_size=250)
