@@ -177,6 +177,22 @@ class DBInterface():
         cursor.execute(query, (text_sha256_hash,))
         return [row['ad_creative_id'] for row in cursor.fetchall()]
 
+    def all_ads_with_nonempty_link_caption_or_body(self):
+        """Generator yielding all ads that have nonempty ad_creative_link_caption or
+        ad_creative_link_caption.
+
+        Yields:
+            rows of archive_id, ad_creative_body, ad_creative_link_caption
+        """
+        cursor = self.get_cursor()
+        cursor.execute("SELECT archive_id, ad_creative_body, ad_creative_link_caption FROM ads "
+                       "WHERE ad_creative_link_caption <> '' OR  ad_creative_body <> '';")
+        for row in cursor:
+            yield {'archive_id': row['archive_id'],
+                   'ad_creative_body': row['ad_creative_body'],
+                   'ad_creative_link_caption': row['ad_creative_link_caption']}
+
+
     def insert_funding_entities(self, new_funders):
         cursor = self.get_cursor()
         insert_funder_query = "INSERT INTO funder_metadata(funder_name) VALUES %s;"
@@ -525,3 +541,90 @@ class DBInterface():
         cursor.execute(query, {'country_upper': country.upper(), 'country_lower': country.lower(),
                                'start_time': start_time, 'end_time': end_time})
         return {row['text_sha256_hash']: row['ad_creative_body'] for row in cursor.fetchall()}
+
+
+    def ad_body_texts(self, country, start_time):
+        """Get all ad creative body texts for given params. if start_time is false no time limit are
+        applied (all ads from country).
+
+        Args:
+            country: str country code to get ads for (eg 'us', 'ca', 'gb).
+            start_time: datetime.date, datetime.datetime, str of earliest ad_delivery_start_time to
+                inlude in results.
+        Returns:
+            list of tuples of (archive_id, and ad_creative_body).
+        """
+        if start_time:
+            query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
+                     '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
+                     'ad_countries.country_code = %(country_lower)s) AND '
+                     'ads.ad_delivery_start_time >=  %(start_time)s AND '
+                     'ads.ad_creative_body IS NOT NULL')
+            query_params = {'country_upper': country.upper(), 'country_lower': country.lower(),
+                            'start_time': start_time}
+        else:
+            query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
+                     '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
+                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
+                     'ad_countries.country_code = %(country_lower)s) AND '
+                     'ads.ad_creative_body IS NOT NULL')
+            query_params = {'country_upper': country.upper(), 'country_lower': country.lower()}
+        cursor = self.get_cursor()
+        cursor.execute(query, query_params)
+        return [(row['archive_id'], row['ad_creative_body']) for row in cursor.fetchall()]
+
+    def insert_topic_names(self, topic_names):
+        """Inserts provide topic names if they do not already exist
+        Args:
+            topic_names: iterable of str of topic_names.
+        """
+        cursor = self.get_cursor()
+        topic_name_insert_query = (
+            'INSERT INTO topics (topic_name) VALUES %s ON CONFLICT (topic_name) DO NOTHING')
+        psycopg2.extras.execute_values(
+            cursor,
+            topic_name_insert_query,
+            # execute_values reqiures a sequence of sequnces, so we make a set of single element
+            # tuple out of each name.
+            {(topic_name,) for topic_name in topic_names})
+
+    def all_topics(self):
+        """Get all topics as dict of topics name -> topic ID.
+
+        Return:
+            dict of topic name -> topic ID.
+        """
+        cursor = self.get_cursor()
+        cursor.execute('SELECT topic_name, topic_id from topics')
+        return {row['topic_name']: row['topic_id'] for row in cursor.fetchall()}
+
+    def insert_ad_topics(self, ad_topic_records):
+        """Insert ad topics.
+
+        Args:
+            ad_topic_records: list of AdTopicRecord namedtuples.
+        """
+        cursor = self.get_cursor()
+        query = ('INSERT INTO ad_topics (topic_id, archive_id) VALUES %s ON CONFLICT '
+                 '(topic_id, archive_id) DO NOTHING')
+        insert_template = '(%(topic_id)s, %(archive_id)s)'
+        ad_topic_record_list = [x._asdict() for x in ad_topic_records]
+        psycopg2.extras.execute_values(
+            cursor,
+            query,
+            ad_topic_record_list,
+            template=insert_template,
+            page_size=250)
+
+    def update_ad_types(self, ad_type_map):
+        cursor = self.get_cursor()
+        insert_funder_query = (
+            "INSERT INTO ad_metadata(archive_id, ad_type) VALUES %s ON CONFLICT (archive_id) "
+            "DO UPDATE SET ad_type = EXCLUDED.ad_type")
+        insert_template = "(%s, %s)"
+        psycopg2.extras.execute_values(cursor,
+                                       insert_funder_query,
+                                       ad_type_map,
+                                       template=insert_template,
+                                       page_size=250)
