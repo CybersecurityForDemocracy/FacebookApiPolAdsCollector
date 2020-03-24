@@ -14,7 +14,10 @@ class DBInterface():
     def __init__(self, connection):
         self.connection = connection
 
-    def get_cursor(self):
+    def get_cursor(self, real_dict_cursor=False):
+        if real_dict_cursor:
+            return self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
         return self.connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def existing_ads(self):
@@ -617,14 +620,35 @@ class DBInterface():
             template=insert_template,
             page_size=_DEFAULT_PAGE_SIZE)
 
-    def topic_top_ads_by_spend(self, topic_id, limit=50):
+    def ads_funder_names(self, archive_ids):
         cursor = self.get_cursor()
-        query = ('SELECT ad_topics.archive_id, min_spend, max_spend FROM impressions JOIN ad_topics ON '
+        query = 'SELECT archive_id, funding_entity from ads where archive_id = ANY (%s)'
+        cursor.execute(query, (archive_ids,))
+        return {r['archive_id']: r['funding_entity'] for r in cursor.fetchall()}
+
+    def topic_top_ads_by_spend(self, topic_id, limit=50):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query = ('SELECT ad_topics.archive_id FROM impressions JOIN ad_topics ON '
                  'impressions.archive_id = ad_topics.archive_id WHERE topic_id = %(topic_id)s '
                  ' ORDER BY max_spend DESC LIMIT %(limit)s')
         cursor.execute(query, {'topic_id': topic_id, 'limit': limit})
         return cursor.fetchall()
 
+    def region_impression_results(self, archive_ids):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query = (
+            'SELECT archive_id, region, min_spend, max_spend, min_impressions, max_impressions '
+            'FROM region_impression_results WHERE archive_id = ANY (%s)')
+        cursor.execute(query, (archive_ids,))
+        return cursor.fetchall()
+
+    def demo_impression_results(self, archive_ids):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query = (
+            'SELECT archive_id, age_group, gender, min_spend, max_spend, min_impressions, '
+            'max_impressions FROM demo_impression_results WHERE archive_id = ANY (%s)')
+        cursor.execute(query, (archive_ids,))
+        return cursor.fetchall()
 
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
