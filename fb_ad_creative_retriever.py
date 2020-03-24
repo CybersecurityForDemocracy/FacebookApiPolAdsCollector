@@ -300,7 +300,7 @@ class FacebookAdCreativeRetriever:
             self.log_stats()
 
     @tenacity.retry(stop=tenacity.stop_after_attempt(4),
-                    wait=tenacity.wait_random_exponential(multiplier=1, max=30),
+                    wait=tenacity.wait_random_exponential(multiplier=1, min=5, max=300),
                     before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
     def upload_blob(self, blob_path, blob_data):
         blob = self.bucket_client.blob(blob_path)
