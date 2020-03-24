@@ -524,6 +524,21 @@ class DBInterface():
         cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
                        'batch_id = %s', (batch_id,))
 
+    def advertiser_age(self, min_ad_creation_time):
+        """Get age of pages with an ad created on or before the specified time."""
+        advertiser_age_query = (
+            'SELECT page_id, min(ad_creation_time) AS creation_time FROM ads WHERE page_id IN '
+            '(SELECT DISTINCT(page_id) FROM ads WHERE ad_creation_time >= '
+            '%(min_ad_creation_time)s) GROUP BY page_id')
+        cursor = self.get_cursor()
+        cursor.execute(advertiser_age_query, {'min_ad_creation_time': min_ad_creation_time})
+        for row in cursor:
+            first_date = row['creation_time']
+            delta = datetime.datetime.today().date() - first_date
+            page_age[row['page_id']] = delta.days
+        return page_age
+
+
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a
         certain timeframe."""
