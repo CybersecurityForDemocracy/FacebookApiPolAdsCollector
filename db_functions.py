@@ -8,6 +8,8 @@ import psycopg2.extras
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
                                         ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
+PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
+                                   ['page_id', 'snapshot_fetch_status', 'count'])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -542,6 +544,22 @@ class DBInterface():
                                                            oldest_ad_date=row['oldest_ad_date'],
                                                            min_impressions_sum=row['min_impressions']))
         return page_details
+
+    def page_snapshot_status_fetch_counts(self, min_ad_creation_time, country_code)
+        query = (
+            'SELECT page_id, snapshot_fetch_status, COUNT(*) FROM ad_snapshot_metadata '
+            'JOIN ads ON ad_snapshot_metadata.archive_id = ads.archive_id WHERE '
+            'ads.archive_id IN ('
+            '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s AND '
+            '  archive_id IN ('
+            '    SELECT archive_id from ad_countries where country_code = %(country_code))) '
+            'group by page_id, snapshot_fetch_status')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time, 'country_code':
+                               country_code})
+        return [PageSnapshotFetchInfo(page_id=row['page_id'],
+                                      snapshot_fetch_status=row['snapshot_fetch_status'],
+                                      count=row['count']) for row in cursor.fetchall()]
 
 
     def unique_ad_body_texts(self, country, start_time, end_time):
