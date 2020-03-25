@@ -5,6 +5,7 @@ import numpy as np
 
 import config_utils
 import db_functions
+from fb_ad_creative_retriever import SnapshotFetchStatus
 
 _AGE_IN_DAYS_TIER_1_CUTOFF = 365
 _AGE_IN_DAYS_TIER_2_CUTOFF = 240
@@ -66,10 +67,34 @@ def main(config_path):
     for page_info in page_age_and_min_impressions_sum:
         page_id_to_age_score[page_info.page_id] = page_age_score(page_info.oldest_ad_date)
     print('page_id_to_age_score:\n', page_id_to_age_score)
+
     page_id_to_min_impressions_sum = {page.page_id: page.min_impressions_sum for page in
                   page_age_and_min_impressions_sum}
     page_id_to_size_score = pages_size_score(page_id_to_min_impressions_sum)
     print('page_id_to_size_score:\n', page_id_to_size_score)
+
+    page_snapshot_status_fetch_counts = db_interface.page_snapshot_status_fetch_counts(
+        min_ad_creation_time)
+    page_id_to_fetch_counts = defaultdict(dict)
+    for fetch_info in page_snapshot_status_fetch_counts:
+        page_id_to_fetch_counts[fetch_info.page_id][fetch_info.snapshot_fetch_status] = (
+            fetch_info.count)
+
+    for page, fetch_status_map in page_id_to_fetch_counts.items():
+        if SnapshotFetchStatus.AGE_RESTRICTION_ERROR in fetch_status_map:
+            age_restricted_count = fetch_status_map[AGE_RESTRICTION_ERROR]
+            total_count = sum(fetch_status_map.values())
+            page_quality[page] = (total_count - age_restricted_count) / total_count
+        else:
+            page_quality[page] = 1
+
+    #advertiser score is 50% their age rank, 50% their size rank, and then adjusted by their quality score
+    advertiser_score = {}
+    for page, quality in page_quality.items():
+        size_score = page_size_score[page]
+        age_score = page_age_score[page]
+        advertiser_score[page] = quality * ((.5 * size_score) + (.5 * age_score))
+
 
 
 if __name__ == '__main__':
