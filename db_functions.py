@@ -1,11 +1,13 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 import logging
 
 import psycopg2
 import psycopg2.extras
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
+PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
+                                        ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -524,19 +526,22 @@ class DBInterface():
         cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
                        'batch_id = %s', (batch_id,))
 
-    def advertiser_age(self, min_ad_creation_time):
+    def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
         """Get age of pages with an ad created on or before the specified time."""
         advertiser_age_query = (
-            'SELECT page_id, min(ad_creation_time) AS creation_time FROM ads WHERE page_id IN '
+            'SELECT page_id, min(ad_creation_time) AS oldest_ad_date, '
+            'sum(min_impressions) as min_impressions FROM ads JOIN impressions ON ads.archive_id = '
+            'impressions.archive_id WHERE page_id IN '
             '(SELECT DISTINCT(page_id) FROM ads WHERE ad_creation_time >= '
             '%(min_ad_creation_time)s) GROUP BY page_id')
         cursor = self.get_cursor()
         cursor.execute(advertiser_age_query, {'min_ad_creation_time': min_ad_creation_time})
+        page_details = []
         for row in cursor:
-            first_date = row['creation_time']
-            delta = datetime.datetime.today().date() - first_date
-            page_age[row['page_id']] = delta.days
-        return page_age
+            page_details.append(PageAgeAndMinImpressionSum(page_id=row['page_id'],
+                                                           oldest_ad_date=row['oldest_ad_date'],
+                                                           min_impressions_sum=row['min_impressions']))
+        return page_details
 
 
     def unique_ad_body_texts(self, country, start_time, end_time):
