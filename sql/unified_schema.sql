@@ -82,6 +82,7 @@ CREATE TABLE page_metadata (
   country_code_list character varying,
   page_owner character varying,
   page_status character varying,
+  advertiser_score decimal(8, 8),
   PRIMARY KEY (page_id),
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );

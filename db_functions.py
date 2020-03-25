@@ -1,5 +1,5 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 import logging
 
 import psycopg2
@@ -545,14 +545,14 @@ class DBInterface():
                                                            min_impressions_sum=row['min_impressions']))
         return page_details
 
-    def page_snapshot_status_fetch_counts(self, min_ad_creation_time, country_code)
+    def page_snapshot_status_fetch_counts(self, min_ad_creation_time, country_code):
         query = (
             'SELECT page_id, snapshot_fetch_status, COUNT(*) FROM ad_snapshot_metadata '
             'JOIN ads ON ad_snapshot_metadata.archive_id = ads.archive_id WHERE '
             'ads.archive_id IN ('
             '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s AND '
             '  archive_id IN ('
-            '    SELECT archive_id from ad_countries where country_code = %(country_code))) '
+            '    SELECT archive_id from ad_countries where country_code = %(country_code)s)) '
             'group by page_id, snapshot_fetch_status')
         cursor = self.get_cursor()
         cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time, 'country_code':

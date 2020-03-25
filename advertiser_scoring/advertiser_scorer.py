@@ -1,4 +1,7 @@
+from collections import defaultdict
 import datetime
+import json
+import logging
 import sys
 
 import numpy as np
@@ -31,6 +34,7 @@ def page_age_score(oldest_ad_date):
     return score
 
 
+#advertiser size
 def pages_size_score(page_id_to_min_impressions_sum):
     impressions_sums = list(page_id_to_min_impressions_sum.values())
     tier_1_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_1_QUANTILE)
@@ -54,46 +58,78 @@ def pages_size_score(page_id_to_min_impressions_sum):
     return page_size_score
 
 
+#page quality - % of ads reported for violating community standards
+def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
+    page_fetch_status_count_score = {}
+    for page, fetch_status_map in page_id_to_fetch_counts.items():
+        if SnapshotFetchStatus.AGE_RESTRICTION_ERROR in fetch_status_map:
+            age_restricted_count = fetch_status_map[SnapshotFetchStatus.AGE_RESTRICTION_ERROR]
+            total_count = sum(fetch_status_map.values())
+            page_fetch_status_count_score[page] = (total_count - age_restricted_count) / total_count
+        else:
+            page_fetch_status_count_score[page] = 1
+
+    return page_fetch_status_count_score
+
+def calculate_advertiser_score(fetch_status_score, size_score, age_score):
+        return fetch_status_score * ((.5 * size_score) + (.5 * age_score))
+
 
 def main(config_path):
     config = config_utils.get_config(config_path)
     db_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(db_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
-        min_ad_creation_time = datetime.date.today() - datetime.timedelta(days=30)
+        #  min_ad_creation_time = datetime.date.today() - datetime.timedelta(days=30)
+        min_ad_creation_time = datetime.date(year=2015, month=1, day=1)
         page_age_and_min_impressions_sum = db_interface.advertisers_age_and_sum_min_impressions(
             min_ad_creation_time)
+        logging.info('Got %d age and min_impressions_sums records.',
+                     len(page_age_and_min_impressions_sum))
+        age_page_ids = {page.page_id for page in page_age_and_min_impressions_sum}
+        page_snapshot_status_fetch_counts = db_interface.page_snapshot_status_fetch_counts(
+            min_ad_creation_time, country_code='US')
+        fetch_status_page_ids = {page.page_id for page in page_snapshot_status_fetch_counts}
+        logging.info('Got %d snapshot_fetch_count info records.',
+                     len(page_snapshot_status_fetch_counts))
+        page_ids_difference = age_page_ids.symmetric_difference(fetch_status_page_ids)
+        logging.info('age_page_ids.symmetric_difference(fetch_status_page_ids): %s len(%d)',
+                     page_ids_difference, len(page_ids_difference))
+        page_ids_intersection = age_page_ids.intersection(fetch_status_page_ids)
+        logging.info('age_page_ids.intersection(fetch_status_page_ids): len(%d)',
+                     len(page_ids_intersection))
+
     page_id_to_age_score = {}
     for page_info in page_age_and_min_impressions_sum:
         page_id_to_age_score[page_info.page_id] = page_age_score(page_info.oldest_ad_date)
-    print('page_id_to_age_score:\n', page_id_to_age_score)
 
     page_id_to_min_impressions_sum = {page.page_id: page.min_impressions_sum for page in
                   page_age_and_min_impressions_sum}
     page_id_to_size_score = pages_size_score(page_id_to_min_impressions_sum)
-    print('page_id_to_size_score:\n', page_id_to_size_score)
 
-    page_snapshot_status_fetch_counts = db_interface.page_snapshot_status_fetch_counts(
-        min_ad_creation_time)
-    page_id_to_fetch_counts = defaultdict(dict)
+    page_id_to_fetch_counts = defaultdict(lambda: dict())
     for fetch_info in page_snapshot_status_fetch_counts:
         page_id_to_fetch_counts[fetch_info.page_id][fetch_info.snapshot_fetch_status] = (
             fetch_info.count)
 
-    for page, fetch_status_map in page_id_to_fetch_counts.items():
-        if SnapshotFetchStatus.AGE_RESTRICTION_ERROR in fetch_status_map:
-            age_restricted_count = fetch_status_map[AGE_RESTRICTION_ERROR]
-            total_count = sum(fetch_status_map.values())
-            page_quality[page] = (total_count - age_restricted_count) / total_count
-        else:
-            page_quality[page] = 1
+    page_id_to_fetch_status_score = page_snapshot_fetch_status_counts_scores(
+        page_id_to_fetch_counts)
 
     #advertiser score is 50% their age rank, 50% their size rank, and then adjusted by their quality score
     advertiser_score = {}
-    for page, quality in page_quality.items():
-        size_score = page_size_score[page]
-        age_score = page_age_score[page]
-        advertiser_score[page] = quality * ((.5 * size_score) + (.5 * age_score))
+    for page_id in page_ids_intersection:
+        fetch_status_score = page_id_to_fetch_status_score[page_id]
+        size_score = page_id_to_size_score[page_id]
+        age_score = page_id_to_age_score[page_id]
+        advertiser_score[page_id] = calculate_advertiser_score(
+            fetch_status_score, size_score, age_score)
+
+    logging.info('Scored %d pages', len(advertiser_score))
+
+    advertiser_score_outfile = "advertiser_score.json"
+    with open(advertiser_score_outfile, 'w') as f:
+        json.dump(advertiser_score, f)
+    logging.info('Wrote advertiser score info to %s', advertiser_score_outfile)
 
 
 
