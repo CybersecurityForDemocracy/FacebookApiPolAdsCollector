@@ -568,12 +568,17 @@ class DBInterface():
         cursor.execute(query, query_params)
         return [(row['archive_id'], row['ad_creative_body']) for row in cursor.fetchall()]
 
-    def insert_topic_names(self, topic_names):
+    def insert_new_topic_names(self, topic_names):
         """Inserts provide topic names if they do not already exist
+
         Args:
             topic_names: iterable of str of topic_names.
         """
         cursor = self.get_cursor()
+        existing_topic_name_query = ('SELECT topic_name FROM topics')
+        cursor.execute(existing_topic_name_query)
+        existing_topic_names = {row['topic_name'] for row in cursor.fetchall()}
+        new_topic_names = topic_names - existing_topic_names
         topic_name_insert_query = (
             'INSERT INTO topics (topic_name) VALUES %s ON CONFLICT (topic_name) DO NOTHING')
         psycopg2.extras.execute_values(
@@ -581,7 +586,7 @@ class DBInterface():
             topic_name_insert_query,
             # execute_values reqiures a sequence of sequnces, so we make a set of single element
             # tuple out of each name.
-            {(topic_name,) for topic_name in topic_names})
+            {(topic_name,) for topic_name in new_topic_names})
 
     def all_topics(self):
         """Get all topics as dict of topics name -> topic ID.
