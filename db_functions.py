@@ -532,8 +532,10 @@ class DBInterface():
         """Get age of pages with an ad created on or before the specified time."""
         advertiser_age_query = (
             'SELECT page_id, min(ad_creation_time) AS oldest_ad_date, '
-            'sum(min_impressions) as min_impressions FROM ads JOIN impressions ON ads.archive_id = '
-            'impressions.archive_id WHERE page_id IN '
+            'sum(min_impressions) as min_impressions FROM ads '
+            '  JOIN impressions ON ads.archive_id = impressions.archive_id '
+            '  JOIN ad_creatives ON ads.archive_id = ad_creatives.archive_id '
+            'WHERE ad_creatives.archive_id IS NOT NULL AND page_id IN '
             '(SELECT DISTINCT(page_id) FROM ads WHERE ad_creation_time >= '
             '%(min_ad_creation_time)s) GROUP BY page_id')
         cursor = self.get_cursor()
@@ -545,18 +547,15 @@ class DBInterface():
                                                            min_impressions_sum=row['min_impressions']))
         return page_details
 
-    def page_snapshot_status_fetch_counts(self, min_ad_creation_time, country_code):
+    def page_snapshot_status_fetch_counts(self, min_ad_creation_time):
         query = (
             'SELECT page_id, snapshot_fetch_status, COUNT(*) FROM ad_snapshot_metadata '
             'JOIN ads ON ad_snapshot_metadata.archive_id = ads.archive_id WHERE '
             'ads.archive_id IN ('
-            '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s AND '
-            '  archive_id IN ('
-            '    SELECT archive_id from ad_countries where country_code = %(country_code)s)) '
+            '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s) '
             'group by page_id, snapshot_fetch_status')
         cursor = self.get_cursor()
-        cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time, 'country_code':
-                               country_code})
+        cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time})
         return [PageSnapshotFetchInfo(page_id=row['page_id'],
                                       snapshot_fetch_status=row['snapshot_fetch_status'],
                                       count=row['count']) for row in cursor.fetchall()]
@@ -620,6 +619,21 @@ class DBInterface():
             # execute_values reqiures a sequence of sequnces, so we make a set of single element
             # tuple out of each name.
             {(topic_name,) for topic_name in topic_names})
+
+    def update_advertiser_scores(self, advertiser_score_records):
+        query = (
+            'UPDATE page_metadata SET advertiser_score = data.advertiser_score FROM (VALUES %s) AS '
+            'data (page_id, advertiser_score) WHERE page_metadata.page_id = data.page_id')
+        insert_template = '(%(page_id)s, %(advertiser_score)s)'
+        advertiser_score_record_list = [x._asdict() for x in advertiser_score_records]
+        cursor = self.get_cursor()
+        psycopg2.extras.execute_values(
+            cursor,
+            query,
+            advertiser_score_record_list,
+            template=insert_template)
+
+
 
     def all_topics(self):
         """Get all topics as dict of topics name -> topic ID.

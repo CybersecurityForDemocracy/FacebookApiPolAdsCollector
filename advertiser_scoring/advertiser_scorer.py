@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import datetime
 import json
 import logging
@@ -18,6 +18,8 @@ _MIN_IMPRESSIONS_SUM_TIER_1_QUANTILE = 0.7
 _MIN_IMPRESSIONS_SUM_TIER_2_QUANTILE = 0.5
 _MIN_IMPRESSIONS_SUM_TIER_3_QUANTILE = 0.35
 _MIN_IMPRESSIONS_SUM_TIER_4_QUANTILE = 0.15
+
+AdvertiserScoreRecord = namedtuple('AdvertiserScoreRecord', ['page_id', 'advertiser_score'])
 
 def page_age_score(oldest_ad_date):
     delta = datetime.datetime.today().date() - oldest_ad_date
@@ -81,20 +83,20 @@ def main(config_path):
     with config_utils.get_database_connection(db_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
         #  min_ad_creation_time = datetime.date.today() - datetime.timedelta(days=30)
-        min_ad_creation_time = datetime.date(year=2015, month=1, day=1)
+        min_ad_creation_time = datetime.date(year=2020, month=1, day=1)
         page_age_and_min_impressions_sum = db_interface.advertisers_age_and_sum_min_impressions(
             min_ad_creation_time)
         logging.info('Got %d age and min_impressions_sums records.',
                      len(page_age_and_min_impressions_sum))
         age_page_ids = {page.page_id for page in page_age_and_min_impressions_sum}
         page_snapshot_status_fetch_counts = db_interface.page_snapshot_status_fetch_counts(
-            min_ad_creation_time, country_code='US')
+            min_ad_creation_time)
         fetch_status_page_ids = {page.page_id for page in page_snapshot_status_fetch_counts}
-        logging.info('Got %d snapshot_fetch_count info records.',
-                     len(page_snapshot_status_fetch_counts))
+        logging.info('Got %d snapshot_fetch_count info records. %d page_ids',
+                     len(page_snapshot_status_fetch_counts), len(fetch_status_page_ids))
         page_ids_difference = age_page_ids.symmetric_difference(fetch_status_page_ids)
-        logging.info('age_page_ids.symmetric_difference(fetch_status_page_ids): %s len(%d)',
-                     page_ids_difference, len(page_ids_difference))
+        logging.info('age_page_ids.symmetric_difference(fetch_status_page_ids): len(%d)',
+                     len(page_ids_difference))
         page_ids_intersection = age_page_ids.intersection(fetch_status_page_ids)
         logging.info('age_page_ids.intersection(fetch_status_page_ids): len(%d)',
                      len(page_ids_intersection))
@@ -130,6 +132,13 @@ def main(config_path):
     with open(advertiser_score_outfile, 'w') as f:
         json.dump(advertiser_score, f)
     logging.info('Wrote advertiser score info to %s', advertiser_score_outfile)
+
+    advertiser_score_records = [
+        AdvertiserScoreRecord(page_id=k, advertiser_score=v) for k, v in advertiser_score.items()]
+    with config_utils.get_database_connection(db_connection_params) as db_connection:
+        db_interface = db_functions.DBInterface(db_connection)
+        logging.info('Updating advertiser score for %d page IDs', len(advertiser_score_records))
+        db_interface.update_advertiser_scores(advertiser_score_records)
 
 
 
