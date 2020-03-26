@@ -47,6 +47,7 @@ pitch in,Donate
 donate,Donate
 income inequality,Economy/Taxes
 budget,Economy/Taxes
+recession,Economy/Taxes
 tax reform,Economy/Taxes
 minimum wage,Economy/Taxes
 national debt,Economy/Taxes
@@ -139,3 +140,7 @@ domestic,Womens Issues
 sexual assault,Womens Issues
 veteran,Veterans Issues
 the VA,Veterans Issues
+covid,COVID-19
+virus,COVID-19
+ventilator,COVID-19
+social distancing,COVID-19
