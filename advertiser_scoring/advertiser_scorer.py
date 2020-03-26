@@ -1,4 +1,4 @@
-"""Module to score pages based on how long they have been advertising, min number of imporessions,
+"""Module to score pages based on how long they have been advertising, min number of impressions,
 and percentage of ads reported for violating community standards."""
 from collections import defaultdict, namedtuple
 import datetime
