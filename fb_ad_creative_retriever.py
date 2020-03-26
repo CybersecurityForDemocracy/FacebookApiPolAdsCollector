@@ -170,8 +170,7 @@ def get_headless_chrome_driver(webdriver_executable_path):
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
-    prefs = {"profile.managed_default_content_settings.images":2,
-             "profile.default_content_setting_values.notifications":2,
+    prefs = {"profile.default_content_setting_values.notifications":2,
              "profile.managed_default_content_settings.stylesheets":2,
              "profile.managed_default_content_settings.cookies":2,
              "profile.managed_default_content_settings.javascript":1,
