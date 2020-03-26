@@ -21,23 +21,41 @@ _MIN_IMPRESSIONS_SUM_TIER_4_QUANTILE = 0.15
 
 AdvertiserScoreRecord = namedtuple('AdvertiserScoreRecord', ['page_id', 'advertiser_score'])
 
-def page_age_score(oldest_ad_date):
-    delta = datetime.datetime.today().date() - oldest_ad_date
-    age_in_days = delta.days
-    score = 0
-    if age_in_days > _AGE_IN_DAYS_TIER_1_CUTOFF:
-        score = 1.0
-    elif age_in_days > _AGE_IN_DAYS_TIER_2_CUTOFF:
-        score = .75
-    elif age_in_days > _AGE_IN_DAYS_TIER_3_CUTOFF:
-        score = .5
-    elif age_in_days > _AGE_IN_DAYS_TIER_4_CUTOFF:
-        score = .25
-    return score
+def pages_age_scores(page_age_and_min_impressions_sums):
+    """Calculate pages scores based on age page's oldest ad.
+
+    Args:
+        page_age_and_min_impressions_sums: list of PageAgeAndMinImpressionSum records.
+    Returns:
+        dict page_id -> age score as float.
+    """
+    today = datetime.datetime.today().date()
+    page_id_to_age_score = {}
+    for page_info in page_age_and_min_impressions_sums:
+        delta = today - page.info.oldest_ad_date
+        age_in_days = delta.days
+        score = 0
+        if age_in_days > _AGE_IN_DAYS_TIER_1_CUTOFF:
+            score = 1.0
+        elif age_in_days > _AGE_IN_DAYS_TIER_2_CUTOFF:
+            score = .75
+        elif age_in_days > _AGE_IN_DAYS_TIER_3_CUTOFF:
+            score = .5
+        elif age_in_days > _AGE_IN_DAYS_TIER_4_CUTOFF:
+            score = .25
+        page_id_to_age_score[page_info.page_id] = score
+
+    return page_id_to_age_score
 
 
-#advertiser size
-def pages_size_score(page_id_to_min_impressions_sum):
+def page_size_scores(page_id_to_min_impressions_sum):
+    """Calculate pages scores based on min number of impressions (as a proxy for page size).
+
+    Args:
+        page_id_to_min_impressions_sum: dict page_id -> sum of page's ads min impressions.
+    Returns:
+        dict page_id -> age score as float.
+    """
     impressions_sums = list(page_id_to_min_impressions_sum.values())
     tier_1_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_1_QUANTILE)
     tier_2_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_2_QUANTILE)
@@ -60,8 +78,16 @@ def pages_size_score(page_id_to_min_impressions_sum):
     return page_size_score
 
 
-#page quality - % of ads reported for violating community standards
 def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
+    """Calculate pages scores based on ratio of creatives that have been reported for community
+    standards violation (as a proxy for page quality)
+
+    Args:
+        page_id_to_fetch_counts: dict page_id -> dict of fetch status -> int count of fetch status
+        for page's ad creatives.
+    Returns:
+        dict page_id -> age score as float.
+    """
     page_fetch_status_count_score = {}
     for page, fetch_status_map in page_id_to_fetch_counts.items():
         if SnapshotFetchStatus.AGE_RESTRICTION_ERROR in fetch_status_map:
@@ -74,6 +100,7 @@ def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
     return page_fetch_status_count_score
 
 def calculate_advertiser_score(fetch_status_score, size_score, age_score):
+    """Score is 50% age score, 50% size score, and then adjusted by quality score."""
         return fetch_status_score * ((.5 * size_score) + (.5 * age_score))
 
 
@@ -82,7 +109,6 @@ def main(config_path):
     db_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(db_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
-        #  min_ad_creation_time = datetime.date.today() - datetime.timedelta(days=30)
         min_ad_creation_time = datetime.date(year=2020, month=1, day=1)
         page_age_and_min_impressions_sum = db_interface.advertisers_age_and_sum_min_impressions(
             min_ad_creation_time)
@@ -101,13 +127,11 @@ def main(config_path):
         logging.info('age_page_ids.intersection(fetch_status_page_ids): len(%d)',
                      len(page_ids_intersection))
 
-    page_id_to_age_score = {}
-    for page_info in page_age_and_min_impressions_sum:
-        page_id_to_age_score[page_info.page_id] = page_age_score(page_info.oldest_ad_date)
+    page_id_to_age_score = pages_age_scores(page_age_and_min_impressions_sum)
 
     page_id_to_min_impressions_sum = {page.page_id: page.min_impressions_sum for page in
                   page_age_and_min_impressions_sum}
-    page_id_to_size_score = pages_size_score(page_id_to_min_impressions_sum)
+    page_id_to_size_score = page_size_scores(page_id_to_min_impressions_sum)
 
     page_id_to_fetch_counts = defaultdict(lambda: dict())
     for fetch_info in page_snapshot_status_fetch_counts:
@@ -117,14 +141,12 @@ def main(config_path):
     page_id_to_fetch_status_score = page_snapshot_fetch_status_counts_scores(
         page_id_to_fetch_counts)
 
-    #advertiser score is 50% their age rank, 50% their size rank, and then adjusted by their quality score
     advertiser_score = {}
     for page_id in page_ids_intersection:
-        fetch_status_score = page_id_to_fetch_status_score[page_id]
-        size_score = page_id_to_size_score[page_id]
-        age_score = page_id_to_age_score[page_id]
         advertiser_score[page_id] = calculate_advertiser_score(
-            fetch_status_score, size_score, age_score)
+                page_id_to_fetch_status_score[page_id],
+                page_id_to_size_score[page_id],
+                page_id_to_age_score[page_id])
 
     logging.info('Scored %d pages', len(advertiser_score))
 
