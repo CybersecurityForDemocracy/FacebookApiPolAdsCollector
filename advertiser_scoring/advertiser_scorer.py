@@ -1,6 +1,7 @@
+"""Module to score pages based on how long they have been advertising, min number of imporessions,
+and percentage of ads reported for violating community standards."""
 from collections import defaultdict, namedtuple
 import datetime
-import json
 import logging
 import sys
 
@@ -32,7 +33,7 @@ def pages_age_scores(page_age_and_min_impressions_sums):
     today = datetime.datetime.today().date()
     page_id_to_age_score = {}
     for page_info in page_age_and_min_impressions_sums:
-        delta = today - page.info.oldest_ad_date
+        delta = today - page_info.oldest_ad_date
         age_in_days = delta.days
         score = 0
         if age_in_days > _AGE_IN_DAYS_TIER_1_CUTOFF:
@@ -101,7 +102,7 @@ def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
 
 def calculate_advertiser_score(fetch_status_score, size_score, age_score):
     """Score is 50% age score, 50% size score, and then adjusted by quality score."""
-        return fetch_status_score * ((.5 * size_score) + (.5 * age_score))
+    return fetch_status_score * ((.5 * size_score) + (.5 * age_score))
 
 
 def main(config_path):
@@ -130,7 +131,7 @@ def main(config_path):
     page_id_to_age_score = pages_age_scores(page_age_and_min_impressions_sum)
 
     page_id_to_min_impressions_sum = {page.page_id: page.min_impressions_sum for page in
-                  page_age_and_min_impressions_sum}
+                                      page_age_and_min_impressions_sum}
     page_id_to_size_score = page_size_scores(page_id_to_min_impressions_sum)
 
     page_id_to_fetch_counts = defaultdict(lambda: dict())
@@ -144,17 +145,11 @@ def main(config_path):
     advertiser_score = {}
     for page_id in page_ids_intersection:
         advertiser_score[page_id] = calculate_advertiser_score(
-                page_id_to_fetch_status_score[page_id],
-                page_id_to_size_score[page_id],
-                page_id_to_age_score[page_id])
+            page_id_to_fetch_status_score[page_id],
+            page_id_to_size_score[page_id],
+            page_id_to_age_score[page_id])
 
     logging.info('Scored %d pages', len(advertiser_score))
-
-    advertiser_score_outfile = "advertiser_score.json"
-    with open(advertiser_score_outfile, 'w') as f:
-        json.dump(advertiser_score, f)
-    logging.info('Wrote advertiser score info to %s', advertiser_score_outfile)
-
     advertiser_score_records = [
         AdvertiserScoreRecord(page_id=k, advertiser_score=v) for k, v in advertiser_score.items()]
     with config_utils.get_database_connection(db_connection_params) as db_connection:
