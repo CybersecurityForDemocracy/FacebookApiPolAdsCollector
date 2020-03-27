@@ -6,6 +6,10 @@ import psycopg2
 import psycopg2.extras
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
+PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
+                                        ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
+PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
+                                   ['page_id', 'snapshot_fetch_status', 'count'])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -524,6 +528,40 @@ class DBInterface():
         cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
                        'batch_id = %s', (batch_id,))
 
+    def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
+        """Get age of pages with an ad created on or after the specified time."""
+        advertiser_age_query = (
+            'SELECT page_id, min(ad_creation_time) AS oldest_ad_date, '
+            'sum(min_impressions) as min_impressions FROM ads '
+            '  JOIN impressions ON ads.archive_id = impressions.archive_id '
+            '  JOIN ad_creatives ON ads.archive_id = ad_creatives.archive_id '
+            'WHERE ad_creatives.archive_id IS NOT NULL AND page_id IN '
+            '(SELECT DISTINCT(page_id) FROM ads WHERE ad_creation_time >= '
+            '%(min_ad_creation_time)s) GROUP BY page_id')
+        cursor = self.get_cursor()
+        cursor.execute(advertiser_age_query, {'min_ad_creation_time': min_ad_creation_time})
+        page_details = []
+        for row in cursor:
+            page_details.append(PageAgeAndMinImpressionSum(
+                page_id=row['page_id'],
+                oldest_ad_date=row['oldest_ad_date'],
+                min_impressions_sum=row['min_impressions']))
+        return page_details
+
+    def page_snapshot_status_fetch_counts(self, min_ad_creation_time):
+        query = (
+            'SELECT page_id, snapshot_fetch_status, COUNT(*) FROM ad_snapshot_metadata '
+            'JOIN ads ON ad_snapshot_metadata.archive_id = ads.archive_id WHERE '
+            'ads.archive_id IN ('
+            '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s) '
+            'group by page_id, snapshot_fetch_status')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time})
+        return [PageSnapshotFetchInfo(page_id=row['page_id'],
+                                      snapshot_fetch_status=row['snapshot_fetch_status'],
+                                      count=row['count']) for row in cursor.fetchall()]
+
+
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a
         certain timeframe."""
@@ -587,6 +625,24 @@ class DBInterface():
             # execute_values reqiures a sequence of sequnces, so we make a set of single element
             # tuple out of each name.
             {(topic_name,) for topic_name in new_topic_names})
+
+    def update_advertiser_scores(self, advertiser_score_records):
+        """Update/insert advertiser scores to page_metadata table.
+
+        Args:
+            advertiser_score_records: iterable of AdvertiserScoreRecord.
+        """
+        query = (
+            'INSERT INTO page_metadata (page_id, advertiser_score) VALUES %s ON CONFLICT (page_id) '
+            'DO UPDATE SET advertiser_score = EXCLUDED.advertiser_score')
+        insert_template = '(%(page_id)s, %(advertiser_score)s)'
+        advertiser_score_record_list = [x._asdict() for x in advertiser_score_records]
+        cursor = self.get_cursor()
+        psycopg2.extras.execute_values(
+            cursor,
+            query,
+            advertiser_score_record_list,
+            template=insert_template)
 
     def all_topics(self):
         """Get all topics as dict of topics name -> topic ID.
