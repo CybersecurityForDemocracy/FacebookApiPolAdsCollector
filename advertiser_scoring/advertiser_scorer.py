@@ -112,31 +112,45 @@ def calculate_advertiser_score(fetch_status_score, size_score, age_score):
 
 
 def main(config_path):
-    config = config_utils.get_config(config_path)
-    db_connection_params = config_utils.get_database_connection_params_from_config(config)
+    """Get scoring criteria and compute score for pages that ran ads in 2020.
+
+    Args:
+        config_path: str path to config file.
+    """
+    db_connection_params = config_utils.get_database_connection_params_from_config(
+        config_utils.get_config(config_path))
+
     with config_utils.get_database_connection(db_connection_params) as db_connection:
         db_interface = db_functions.DBInterface(db_connection)
+        # Get age and sum of impressions for all pages that created an ad in 2020
         min_ad_creation_time = datetime.date(year=2020, month=1, day=1)
         page_age_and_min_impressions_sum = db_interface.advertisers_age_and_sum_min_impressions(
             min_ad_creation_time)
         logging.info('Got %d age and min_impressions_sums records.',
                      len(page_age_and_min_impressions_sum))
-        age_page_ids = {page.page_id for page in page_age_and_min_impressions_sum}
+
+        # Get snapshot fetch status counts for all pages that created an ad in 2020
         page_snapshot_status_fetch_counts = db_interface.page_snapshot_status_fetch_counts(
             min_ad_creation_time)
         fetch_status_page_ids = {page.page_id for page in page_snapshot_status_fetch_counts}
         logging.info('Got %d snapshot_fetch_count info records. %d page_ids',
                      len(page_snapshot_status_fetch_counts), len(fetch_status_page_ids))
+
+        # Determine which pages IDs for which we have all scoring criteria (age, impressions sums,
+        # and snapshot fetch status counts).
+        age_page_ids = {page.page_id for page in page_age_and_min_impressions_sum}
         page_ids_intersection = age_page_ids.intersection(fetch_status_page_ids)
         logging.info(
             'Intersection of age and impression info, and fetch status info has %d page_ids',
             len(page_ids_intersection))
 
+    # Compute scores for individual criteria
     page_id_to_age_score = pages_age_scores(page_age_and_min_impressions_sum)
     page_id_to_size_score = page_size_scores(page_age_and_min_impressions_sum)
     page_id_to_fetch_status_score = page_snapshot_fetch_status_counts_scores(
-            page_snapshot_status_fetch_counts)
+        page_snapshot_status_fetch_counts)
 
+    # Compute overall score based on individual scores.
     advertiser_score = {}
     for page_id in page_ids_intersection:
         advertiser_score[page_id] = calculate_advertiser_score(
@@ -144,6 +158,7 @@ def main(config_path):
             page_id_to_size_score[page_id],
             page_id_to_age_score[page_id])
 
+    # Update/insert scores in database.
     logging.info('Scored %d pages', len(advertiser_score))
     advertiser_score_records = [
         AdvertiserScoreRecord(page_id=k, advertiser_score=v) for k, v in advertiser_score.items()]
