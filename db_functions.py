@@ -6,6 +6,10 @@ import psycopg2
 import psycopg2.extras
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
+PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
+                                        ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
+PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
+                                   ['page_id', 'snapshot_fetch_status', 'count'])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -527,6 +531,40 @@ class DBInterface():
         cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
                        'batch_id = %s', (batch_id,))
 
+    def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
+        """Get age of pages with an ad created on or after the specified time."""
+        advertiser_age_query = (
+            'SELECT page_id, min(ad_creation_time) AS oldest_ad_date, '
+            'sum(min_impressions) as min_impressions FROM ads '
+            '  JOIN impressions ON ads.archive_id = impressions.archive_id '
+            '  JOIN ad_creatives ON ads.archive_id = ad_creatives.archive_id '
+            'WHERE ad_creatives.archive_id IS NOT NULL AND page_id IN '
+            '(SELECT DISTINCT(page_id) FROM ads WHERE ad_creation_time >= '
+            '%(min_ad_creation_time)s) GROUP BY page_id')
+        cursor = self.get_cursor()
+        cursor.execute(advertiser_age_query, {'min_ad_creation_time': min_ad_creation_time})
+        page_details = []
+        for row in cursor:
+            page_details.append(PageAgeAndMinImpressionSum(
+                page_id=row['page_id'],
+                oldest_ad_date=row['oldest_ad_date'],
+                min_impressions_sum=row['min_impressions']))
+        return page_details
+
+    def page_snapshot_status_fetch_counts(self, min_ad_creation_time):
+        query = (
+            'SELECT page_id, snapshot_fetch_status, COUNT(*) FROM ad_snapshot_metadata '
+            'JOIN ads ON ad_snapshot_metadata.archive_id = ads.archive_id WHERE '
+            'ads.archive_id IN ('
+            '  SELECT archive_id FROM ads WHERE ad_creation_time > %(min_ad_creation_time)s) '
+            'group by page_id, snapshot_fetch_status')
+        cursor = self.get_cursor()
+        cursor.execute(query, {'min_ad_creation_time': min_ad_creation_time})
+        return [PageSnapshotFetchInfo(page_id=row['page_id'],
+                                      snapshot_fetch_status=row['snapshot_fetch_status'],
+                                      count=row['count']) for row in cursor.fetchall()]
+
+
     def unique_ad_body_texts(self, country, start_time, end_time):
         """ Return all unique ad_creative_body_text (and it's sha256) for ads active/started in a
         certain timeframe."""
@@ -546,12 +584,11 @@ class DBInterface():
         return {row['text_sha256_hash']: row['ad_creative_body'] for row in cursor.fetchall()}
 
 
-    def ad_body_texts(self, country, start_time):
+    def ad_body_texts(self, start_time):
         """Get all ad creative body texts for given params. if start_time is false no time limit are
         applied (all ads from country).
 
         Args:
-            country: str country code to get ads for (eg 'us', 'ca', 'gb).
             start_time: datetime.date, datetime.datetime, str of earliest ad_delivery_start_time to
                 inlude in results.
         Returns:
@@ -560,29 +597,29 @@ class DBInterface():
         if start_time:
             query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
-                     'ad_countries.country_code = %(country_lower)s) AND '
-                     'ads.ad_delivery_start_time >=  %(start_time)s AND '
+                     'WHERE ads.ad_delivery_start_time >=  %(start_time)s AND '
                      'ads.ad_creative_body IS NOT NULL')
-            query_params = {'country_upper': country.upper(), 'country_lower': country.lower(),
-                            'start_time': start_time}
+            query_params = {'start_time': start_time}
         else:
             query = ('SELECT ads.archive_id, ads.ad_creative_body FROM ads '
                      '    JOIN ad_countries ON ads.archive_id = ad_countries.archive_id '
-                     'WHERE (ad_countries.country_code = %(country_upper)s OR '
-                     'ad_countries.country_code = %(country_lower)s) AND '
-                     'ads.ad_creative_body IS NOT NULL')
-            query_params = {'country_upper': country.upper(), 'country_lower': country.lower()}
+                     'WHERE ads.ad_creative_body IS NOT NULL')
+            query_params = {}
         cursor = self.get_cursor()
         cursor.execute(query, query_params)
         return [(row['archive_id'], row['ad_creative_body']) for row in cursor.fetchall()]
 
-    def insert_topic_names(self, topic_names):
+    def insert_new_topic_names(self, topic_names):
         """Inserts provide topic names if they do not already exist
+
         Args:
             topic_names: iterable of str of topic_names.
         """
         cursor = self.get_cursor()
+        existing_topic_name_query = ('SELECT topic_name FROM topics')
+        cursor.execute(existing_topic_name_query)
+        existing_topic_names = {row['topic_name'] for row in cursor.fetchall()}
+        new_topic_names = topic_names - existing_topic_names
         topic_name_insert_query = (
             'INSERT INTO topics (topic_name) VALUES %s ON CONFLICT (topic_name) DO NOTHING')
         psycopg2.extras.execute_values(
@@ -590,7 +627,25 @@ class DBInterface():
             topic_name_insert_query,
             # execute_values reqiures a sequence of sequnces, so we make a set of single element
             # tuple out of each name.
-            {(topic_name,) for topic_name in topic_names})
+            {(topic_name,) for topic_name in new_topic_names})
+
+    def update_advertiser_scores(self, advertiser_score_records):
+        """Update/insert advertiser scores to page_metadata table.
+
+        Args:
+            advertiser_score_records: iterable of AdvertiserScoreRecord.
+        """
+        query = (
+            'INSERT INTO page_metadata (page_id, advertiser_score) VALUES %s ON CONFLICT (page_id) '
+            'DO UPDATE SET advertiser_score = EXCLUDED.advertiser_score')
+        insert_template = '(%(page_id)s, %(advertiser_score)s)'
+        advertiser_score_record_list = [x._asdict() for x in advertiser_score_records]
+        cursor = self.get_cursor()
+        psycopg2.extras.execute_values(
+            cursor,
+            query,
+            advertiser_score_record_list,
+            template=insert_template)
 
     def all_topics(self):
         """Get all topics as dict of topics name -> topic ID.
