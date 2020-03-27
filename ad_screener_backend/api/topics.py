@@ -1,4 +1,5 @@
 from collections import defaultdict
+import datetime
 from flask import Blueprint, current_app, jsonify, request
 
 import config_utils
@@ -17,9 +18,16 @@ def list_all_topics():
 @topics.route('/<int:topic_id>')
 def get_topic_top_ad(topic_id):
     db_connection = current_app.config['DATABASE_CONNECTION']
+    min_date = request.args.get('min_date', None)
+    max_date = request.args.get('max_date', None)
+    if min_date and max_date:
+        min_date = datetime.datetime.strptime(min_date, '%Y%m%d')
+        max_date = datetime.datetime.strptime(max_date, '%Y%m%d')
+
     db_interface = db_functions.DBInterface(db_connection)
     topic_top_ads_archive_ids = [
-        r['archive_id'] for r in db_interface.topic_top_ads_by_spend(topic_id)]
+        r['archive_id'] for r in db_interface.topic_top_ads_by_spend(topic_id, min_date=min_date,
+                                                                     max_date=max_date)]
 
     ret = defaultdict(lambda: defaultdict(list))
     region_impression_results = db_interface.region_impression_results(topic_top_ads_archive_ids)
@@ -32,8 +40,10 @@ def get_topic_top_ad(topic_id):
     demo_impression_results = db_interface.demo_impression_results(topic_top_ads_archive_ids)
     for row in demo_impression_results:
         ret[row['archive_id']]['demo_impression_results'].append({
-            'age_group': row['age_group'], 'gender': row['gender'],
-            'max_spend': str(row['max_spend']), 'min_impressions': row['min_impressions'],
+            'age_group': row['age_group'],
+            'gender': row['gender'],
+            'max_spend': str(row['max_spend']),
+            'min_impressions': row['min_impressions'],
             'max_impressions': row['max_impressions']})
 
     archive_id_to_funding_entity = db_interface.ads_funder_names(topic_top_ads_archive_ids)

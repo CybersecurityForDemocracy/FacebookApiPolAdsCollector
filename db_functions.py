@@ -681,12 +681,25 @@ class DBInterface():
         cursor.execute(query, (archive_ids,))
         return {r['archive_id']: r['funding_entity'] for r in cursor.fetchall()}
 
-    def topic_top_ads_by_spend(self, topic_id, limit=50):
+    def topic_top_ads_by_spend(self, topic_id, min_date=None, max_date=None, limit=50):
         cursor = self.get_cursor(real_dict_cursor=True)
-        query = ('SELECT ad_topics.archive_id FROM impressions JOIN ad_topics ON '
-                 'impressions.archive_id = ad_topics.archive_id WHERE topic_id = %(topic_id)s '
-                 ' ORDER BY max_spend DESC LIMIT %(limit)s')
-        cursor.execute(query, {'topic_id': topic_id, 'limit': limit})
+        query_args = {'topic_id': topic_id, 'limit': limit}
+        if min_date and max_date:
+            query = ('SELECT ad_topics.archive_id FROM impressions '
+                     '  JOIN ad_topics ON impressions.archive_id = ad_topics.archive_id '
+                     '  JOIN ads ON ads.archive_id = impressions.archive_id '
+                     'WHERE topic_id = %(topic_id)s AND '
+                     'ads.ad_delivery_start_time >= %(min_date)s AND '
+                     'ads.ad_delivery_stop_time <= %(max_date)s ORDER BY max_spend DESC '
+                     'LIMIT %(limit)s')
+            query_args['min_date'] = min_date
+            query_args['max_date'] = max_date
+        else:
+            query = ('SELECT ad_topics.archive_id FROM impressions JOIN ad_topics ON '
+                     'impressions.archive_id = ad_topics.archive_id WHERE topic_id = %(topic_id)s '
+                     ' ORDER BY max_spend DESC LIMIT %(limit)s')
+        cursor.execute(query, query_args)
+        print(cursor.query)
         return cursor.fetchall()
 
     def region_impression_results(self, archive_ids):
