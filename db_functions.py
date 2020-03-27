@@ -621,9 +621,14 @@ class DBInterface():
             {(topic_name,) for topic_name in topic_names})
 
     def update_advertiser_scores(self, advertiser_score_records):
+        """Update/insert advertiser scores to page_metadata table.
+
+        Args:
+            advertiser_score_records: iterable of AdvertiserScoreRecord.
+        """
         query = (
-            'UPDATE page_metadata SET advertiser_score = data.advertiser_score FROM (VALUES %s) AS '
-            'data (page_id, advertiser_score) WHERE page_metadata.page_id = data.page_id')
+            'INSERT INTO page_metadata (page_id, advertiser_score) VALUES %s ON CONFLICT (page_id) '
+            'DO UPDATE SET advertiser_score = EXCLUDED.advertiser_score')
         insert_template = '(%(page_id)s, %(advertiser_score)s)'
         advertiser_score_record_list = [x._asdict() for x in advertiser_score_records]
         cursor = self.get_cursor()
@@ -632,8 +637,6 @@ class DBInterface():
             query,
             advertiser_score_record_list,
             template=insert_template)
-
-
 
     def all_topics(self):
         """Get all topics as dict of topics name -> topic ID.
