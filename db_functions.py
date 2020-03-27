@@ -529,7 +529,7 @@ class DBInterface():
                        'batch_id = %s', (batch_id,))
 
     def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
-        """Get age of pages with an ad created on or before the specified time."""
+        """Get age of pages with an ad created on or after the specified time."""
         advertiser_age_query = (
             'SELECT page_id, min(ad_creation_time) AS oldest_ad_date, '
             'sum(min_impressions) as min_impressions FROM ads '
@@ -542,9 +542,10 @@ class DBInterface():
         cursor.execute(advertiser_age_query, {'min_ad_creation_time': min_ad_creation_time})
         page_details = []
         for row in cursor:
-            page_details.append(PageAgeAndMinImpressionSum(page_id=row['page_id'],
-                                                           oldest_ad_date=row['oldest_ad_date'],
-                                                           min_impressions_sum=row['min_impressions']))
+            page_details.append(PageAgeAndMinImpressionSum(
+                page_id=row['page_id'],
+                oldest_ad_date=row['oldest_ad_date'],
+                min_impressions_sum=row['min_impressions']))
         return page_details
 
     def page_snapshot_status_fetch_counts(self, min_ad_creation_time):
