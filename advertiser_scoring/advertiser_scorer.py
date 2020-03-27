@@ -39,11 +39,11 @@ def pages_age_scores(page_age_and_min_impressions_sums):
         if age_in_days > _AGE_IN_DAYS_TIER_1_CUTOFF:
             score = 1.0
         elif age_in_days > _AGE_IN_DAYS_TIER_2_CUTOFF:
-            score = .75
+            score = 0.75
         elif age_in_days > _AGE_IN_DAYS_TIER_3_CUTOFF:
-            score = .5
+            score = 0.5
         elif age_in_days > _AGE_IN_DAYS_TIER_4_CUTOFF:
-            score = .25
+            score = 0.25
         page_id_to_age_score[page_info.page_id] = score
 
     return page_id_to_age_score
@@ -70,26 +70,31 @@ def page_size_scores(page_age_and_min_impressions_sums):
         if size > tier_1_cutoff:
             score = 1.0
         elif size > tier_2_cutoff:
-            score = .75
+            score = 0.75
         elif size > tier_3_cutoff:
-            score = .5
+            score = 0.5
         elif size > tier_4_cutoff:
-            score = .25
+            score = 0.25
         page_size_score[page_info.page_id] = score
 
     return page_size_score
 
 
-def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
+def page_snapshot_fetch_status_counts_scores(page_snapshot_status_fetch_counts):
     """Calculate pages scores based on ratio of creatives that have been reported for community
     standards violation (as a proxy for page quality)
 
     Args:
-        page_id_to_fetch_counts: dict page_id -> dict of fetch status -> int count of fetch status
-        for page's ad creatives.
+        list of PageSnapshotFetchInfo namedtuples
     Returns:
         dict page_id -> age score as float.
     """
+    # Create dict page_id -> dict of fetch status -> count of fetch status for page's ad creatives.
+    page_id_to_fetch_counts = defaultdict(lambda: dict())
+    for fetch_info in page_snapshot_status_fetch_counts:
+        page_id_to_fetch_counts[fetch_info.page_id][fetch_info.snapshot_fetch_status] = (
+            fetch_info.count)
+
     page_fetch_status_count_score = {}
     for page, fetch_status_map in page_id_to_fetch_counts.items():
         if SnapshotFetchStatus.AGE_RESTRICTION_ERROR in fetch_status_map:
@@ -103,7 +108,7 @@ def page_snapshot_fetch_status_counts_scores(page_id_to_fetch_counts):
 
 def calculate_advertiser_score(fetch_status_score, size_score, age_score):
     """Score is 50% age score, 50% size score, and then adjusted by quality score."""
-    return fetch_status_score * ((.5 * size_score) + (.5 * age_score))
+    return fetch_status_score * ((0.5 * size_score) + (0.5 * age_score))
 
 
 def main(config_path):
@@ -129,14 +134,8 @@ def main(config_path):
 
     page_id_to_age_score = pages_age_scores(page_age_and_min_impressions_sum)
     page_id_to_size_score = page_size_scores(page_age_and_min_impressions_sum)
-
-    page_id_to_fetch_counts = defaultdict(lambda: dict())
-    for fetch_info in page_snapshot_status_fetch_counts:
-        page_id_to_fetch_counts[fetch_info.page_id][fetch_info.snapshot_fetch_status] = (
-            fetch_info.count)
-
     page_id_to_fetch_status_score = page_snapshot_fetch_status_counts_scores(
-        page_id_to_fetch_counts)
+            page_snapshot_status_fetch_counts)
 
     advertiser_score = {}
     for page_id in page_ids_intersection:
@@ -152,8 +151,6 @@ def main(config_path):
         db_interface = db_functions.DBInterface(db_connection)
         logging.info('Updating advertiser score for %d page IDs', len(advertiser_score_records))
         db_interface.update_advertiser_scores(advertiser_score_records)
-
-
 
 
 if __name__ == '__main__':
