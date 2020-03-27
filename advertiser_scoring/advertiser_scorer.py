@@ -49,22 +49,23 @@ def pages_age_scores(page_age_and_min_impressions_sums):
     return page_id_to_age_score
 
 
-def page_size_scores(page_id_to_min_impressions_sum):
+def page_size_scores(page_age_and_min_impressions_sums):
     """Calculate pages scores based on min number of impressions (as a proxy for page size).
 
     Args:
-        page_id_to_min_impressions_sum: dict page_id -> sum of page's ads min impressions.
+        page_age_and_min_impressions_sums: list of PageAgeAndMinImpressionSum records.
     Returns:
         dict page_id -> age score as float.
     """
-    impressions_sums = list(page_id_to_min_impressions_sum.values())
+    impressions_sums = [page.min_impressions_sum for page in page_age_and_min_impressions_sums]
     tier_1_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_1_QUANTILE)
     tier_2_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_2_QUANTILE)
     tier_3_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_3_QUANTILE)
     tier_4_cutoff = np.quantile(impressions_sums, _MIN_IMPRESSIONS_SUM_TIER_4_QUANTILE)
 
     page_size_score = {}
-    for page_id, size in page_id_to_min_impressions_sum.items():
+    for page_info in page_age_and_min_impressions_sums:
+        size = page_info.min_impressions_sum
         score = 0
         if size > tier_1_cutoff:
             score = 1.0
@@ -74,7 +75,7 @@ def page_size_scores(page_id_to_min_impressions_sum):
             score = .5
         elif size > tier_4_cutoff:
             score = .25
-        page_size_score[page_id] = score
+        page_size_score[page_info.page_id] = score
 
     return page_size_score
 
@@ -121,18 +122,13 @@ def main(config_path):
         fetch_status_page_ids = {page.page_id for page in page_snapshot_status_fetch_counts}
         logging.info('Got %d snapshot_fetch_count info records. %d page_ids',
                      len(page_snapshot_status_fetch_counts), len(fetch_status_page_ids))
-        page_ids_difference = age_page_ids.symmetric_difference(fetch_status_page_ids)
-        logging.info('age_page_ids.symmetric_difference(fetch_status_page_ids): len(%d)',
-                     len(page_ids_difference))
         page_ids_intersection = age_page_ids.intersection(fetch_status_page_ids)
-        logging.info('age_page_ids.intersection(fetch_status_page_ids): len(%d)',
-                     len(page_ids_intersection))
+        logging.info(
+            'Intersection of age and impression info, and fetch status info has %d page_ids',
+            len(page_ids_intersection))
 
     page_id_to_age_score = pages_age_scores(page_age_and_min_impressions_sum)
-
-    page_id_to_min_impressions_sum = {page.page_id: page.min_impressions_sum for page in
-                                      page_age_and_min_impressions_sum}
-    page_id_to_size_score = page_size_scores(page_id_to_min_impressions_sum)
+    page_id_to_size_score = page_size_scores(page_age_and_min_impressions_sum)
 
     page_id_to_fetch_counts = defaultdict(lambda: dict())
     for fetch_info in page_snapshot_status_fetch_counts:
@@ -156,6 +152,7 @@ def main(config_path):
         db_interface = db_functions.DBInterface(db_connection)
         logging.info('Updating advertiser score for %d page IDs', len(advertiser_score_records))
         db_interface.update_advertiser_scores(advertiser_score_records)
+
 
 
 
