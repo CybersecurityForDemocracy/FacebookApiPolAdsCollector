@@ -1,11 +1,16 @@
-from flask import Flask
+from flask import Flask, request
 from ad_screener_backend.api import topics
-
+from flask_cors import CORS
 import config_utils
+
+import json
 
 app = Flask(__name__)
 app.register_blueprint(topics.topics)
 app.debug = True
+
+
+CORS(app, origins=["http://ccs3usr.engineering.nyu.edu:8080"])
 
 def load_config(config_path):
     config = config_utils.get_config(config_path)
@@ -16,9 +21,11 @@ def load_config(config_path):
     app.config['FACEBOOK_ACCESS_TOKEN'] = config_utils.get_facebook_access_token(config)
 
 
-load_config('/home/paul/FacebookApiPolAdsCollector/fb_ad_image_retriever.cfg')
+load_config('db.cfg')
 
 
 @app.route('/')
 def index():
-    return 'Hello world'
+    print(request.args)
+    return topics.get_topic_top_ad(914)
+

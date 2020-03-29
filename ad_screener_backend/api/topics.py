@@ -1,7 +1,8 @@
 from collections import defaultdict
 import datetime
-from flask import Blueprint, current_app, jsonify, request
+from flask import Blueprint, current_app, jsonify, request, Response
 
+import json
 import config_utils
 import db_functions
 import snapshot_url_util
@@ -54,5 +55,7 @@ def get_topic_top_ad(topic_id):
         current_app.config['FACEBOOK_ACCESS_TOKEN'], topic_top_ads_archive_ids)
     for archive_id, url in archive_id_to_snapshot_url.items():
         ret[archive_id]['snapshot_url'] = url
-    return ret
+        ret[archive_id]['archive_id'] = archive_id
+    return Response(json.dumps(list(ret.values())),  mimetype='application/json')
+
 
