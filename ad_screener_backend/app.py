@@ -14,6 +14,7 @@ def load_config(config_path):
     app.config['DATABASE_CONNECTION'] = config_utils.get_database_connection(
         app.config['DATABASE_CONNECTION_PARAMS'])
     app.config['FACEBOOK_ACCESS_TOKEN'] = config_utils.get_facebook_access_token(config)
+    app.config['COUNTRY_CODE'] = config['SEARCH']['COUNTRY_CODE']
 
 
 load_config('/home/paul/FacebookApiPolAdsCollector/fb_ad_image_retriever.cfg')

@@ -18,6 +18,7 @@ def list_all_topics():
 @topics.route('/<int:topic_id>')
 def get_topic_top_ad(topic_id):
     db_connection = current_app.config['DATABASE_CONNECTION']
+    country_code = current_app.config['COUNTRY_CODE']
     min_date = request.args.get('min_date', None)
     max_date = request.args.get('max_date', None)
     if min_date and max_date:
@@ -26,7 +27,9 @@ def get_topic_top_ad(topic_id):
 
     db_interface = db_functions.DBInterface(db_connection)
     topic_top_ads_archive_ids = [
-        r['archive_id'] for r in db_interface.topic_top_ads_by_spend(topic_id, min_date=min_date,
+        r['archive_id'] for r in db_interface.topic_top_ads_by_spend(country_code,
+                                                                     topic_id,
+                                                                     min_date=min_date,
                                                                      max_date=max_date)]
 
     ret = defaultdict(lambda: defaultdict(list))
