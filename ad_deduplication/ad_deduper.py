@@ -163,11 +163,12 @@ def update_ad_clusters(database_connection):
         return components
 
 def main(config_path):
+    # select ad_cluster_id, sum(max_spend) as cluster_max_spend, sum(min_spend) as cluster_min_spend, sum(max_impressions) as cluster_max_impressions, sum(min_impressions) as cluster_min_impressions from ads join ad_clusters on ads.archive_id = ad_clusters.archive_id join impressions on ads.archive_id = impressions.archive_id group by ad_cluster_id order by cluster_max_spend DESC;
     config = config_utils.get_config(config_path)
     database_connection = config_utils.get_database_connection_from_config(config)
     update_ad_clusters(database_connection)
 
 
 if __name__ == '__main__':
-    config_utils.configure_logger("find_text_and_image_clusters.log")
+    config_utils.configure_logger("ad_deduper.log")
     main(sys.argv[1])
