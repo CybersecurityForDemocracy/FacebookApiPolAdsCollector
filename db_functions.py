@@ -691,16 +691,18 @@ class DBInterface():
                      '  JOIN ad_countries ON ad_countries.archive_id = ad_topics.archive_id '
                      'WHERE topic_id = %(topic_id)s AND ad_countries.country_code = %(country_code)s '
                      'AND ads.ad_delivery_start_time >= %(min_date)s AND '
-                     'ads.ad_delivery_stop_time <= %(max_date)s ORDER BY max_spend DESC '
-                     'LIMIT %(limit)s')
+                     'ads.ad_delivery_stop_time <= %(max_date)s ORDER BY max_spend, '
+                     'date_trunc(\'week\', ads.ad_creation_time) DESC LIMIT %(limit)s')
             query_args['min_date'] = min_date
             query_args['max_date'] = max_date
         else:
-            query = ('SELECT ad_topics.archive_id FROM impressions JOIN ad_topics ON '
-                     'impressions.archive_id = ad_topics.archive_id JOIN ad_countries ON '
-                     'ad_countries.archive_id = ad_topics.archive_id WHERE topic_id = %(topic_id)s '
-                     'AND ad_countries.country_code = %(country_code)s '
-                     'ORDER BY max_spend DESC LIMIT %(limit)s')
+            query = ('SELECT ad_topics.archive_id FROM impressions '
+                     '  JOIN ad_topics ON impressions.archive_id = ad_topics.archive_id '
+                     '  JOIN ads ON ads.archive_id = ad_topics.archive_id '
+                     '  JOIN ad_countries ON ad_countries.archive_id = ad_topics.archive_id '
+                     'WHERE topic_id = %(topic_id)s AND ad_countries.country_code = %(country_code)s '
+                     'ORDER BY max_spend, date_trunc(\'week\', ads.ad_creation_time) DESC LIMIT '
+                     '%(limit)s')
         cursor.execute(query, query_args)
         logging.debug('topic_top_ads_by_spend query: %s', cursor.query)
         return cursor.fetchall()
