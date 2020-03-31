@@ -20,6 +20,7 @@ import config_utils
 
 DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
 DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
+FACEBOOK_API_VERSION = "6.0"
 
 #data structures to hold new ads
 AdRecord = namedtuple(
@@ -242,6 +243,9 @@ class SearchRunner():
                         '%s error while processing ad archive ID %s region_distribution: %s',
                         key_error, curr_ad.archive_id, region_result)
 
+    def new_graph_api_instance(self):
+        return facebook.GraphAPI(access_token=self.fb_access_token, version=FACEBOOK_API_VERSION)
+
 
     def run_search(self, page_id=None, page_name=None):
         self.crawl_date = datetime.date.today()
@@ -252,7 +256,7 @@ class SearchRunner():
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
-        graph = facebook.GraphAPI(access_token=self.fb_access_token)
+        graph = self.new_graph_api_instance()
         has_next = True
         next_cursor = ""
         backoff_multiplier = 1
@@ -326,7 +330,7 @@ class SearchRunner():
                     backoff_multiplier += 1
 
                 logging.info("resetting graph")
-                graph = facebook.GraphAPI(access_token=self.fb_access_token)
+                graph = self.new_graph_api_instance()
                 continue
 
             except OSError as e:
@@ -335,14 +339,14 @@ class SearchRunner():
                 # Reset backoff multiplier since this is a local OS issue and not an API issue.
                 backoff_multiplier = 1
                 logging.info("resetting graph")
-                graph = facebook.GraphAPI(access_token=self.fb_access_token)
+                graph = self.new_graph_api_instance()
                 continue
 
             except SSL.SysCallError as e:
                 logging.error(e)
                 backoff_multiplier += backoff_multiplier
                 logging.error("resetting graph")
-                graph = facebook.GraphAPI(access_token=self.fb_access_token)
+                graph = self.new_graph_api_instance()
                 continue
 
             finally:
