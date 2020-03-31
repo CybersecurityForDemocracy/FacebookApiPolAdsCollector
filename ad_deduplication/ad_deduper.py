@@ -139,13 +139,16 @@ def update_ad_clusters(database_connection):
         logging.info('Got %d text image clusters', len(components))
         db_interface = db_functions.DBInterface(database_connection)
         existing_ad_archive_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
+        existing_cluster_ids = set()
         if existing_ad_archive_id_to_ad_cluster_id:
-            next_new_cluster_id = max(existing_ad_archive_id_to_ad_cluster_id.values())
+            next_new_cluster_id = max(existing_ad_archive_id_to_ad_cluster_id.values()) + 1
+            existing_cluster_ids = set(existing_ad_archive_id_to_ad_cluster_id.values())
         else:
             next_new_cluster_id = 0
 
 
         # TODO(macpd): report orphaned cluster IDs.
+        allocated_cluster_ids = set()
         ad_cluster_records = []
         for component in components:
             cluster_id = _get_lowest_archive_id_cluster_id(
@@ -156,7 +159,11 @@ def update_ad_clusters(database_connection):
             for archive_id in component:
                 ad_cluster_records.append(AdClusterRecord(archive_id=int(archive_id),
                                                           ad_cluster_id=cluster_id))
+            allocated_cluster_ids.add(cluster_id)
 
+        orphaned_cluster_ids = existing_cluster_ids - allocated_cluster_ids
+        if orphaned_cluster_ids:
+            logging.info('Orphaned cluster ID(s): %s', orphaned_cluster_ids)
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
         db_interface.ad_clusters_spend_and_impression_sums()
