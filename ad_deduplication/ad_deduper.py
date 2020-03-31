@@ -1,4 +1,4 @@
-"""Module to perform text and image clustering based on hash simialirty."""
+"""Module to dedupe ads based via text and image clustering based on hash simialirty."""
 import collections
 import itertools
 import logging
