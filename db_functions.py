@@ -80,7 +80,7 @@ class DBInterface():
             '  ON ad_clusters.archive_id = impressions.archive_id GROUP BY ad_cluster_id)'
             'ON CONFLICT (ad_cluster_id) DO UPDATE SET min_spend_sum = EXCLUDED.min_spend_sum, '
             'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
-            'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum'
+            'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
         cursor.execute(query)
         return cursor.fetchall()
 
