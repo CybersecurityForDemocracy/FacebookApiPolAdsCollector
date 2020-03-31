@@ -168,6 +168,13 @@ CREATE TABLE ad_clusters (
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_creative_per_cluster UNIQUE(archive_id, ad_cluster_id)
 );
+CREATE TABLE ad_cluster_metadata (
+  ad_cluster_id bigint PRIMARY KEY,
+  min_spend_sum decimal(10, 2),
+  max_spend_sum decimal(10, 2),
+  min_impressions_sum integer,
+  max_impressions_sum integer
+);
 CREATE TABLE recognized_entities (
   entity_id bigserial PRIMARY KEY,
   entity_name character varying NOT NULL,

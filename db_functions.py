@@ -67,6 +67,23 @@ class DBInterface():
         return {EntityRecord(name=row['entity_name'], type=row['entity_type']): row['entity_id']
                 for row in cursor.fetchall()}
 
+    def ad_clusters_spend_and_impression_sums(self):
+        """Update min/max spend and impressions sums for each ad_cluster_id in
+        ad_cluster_metadata."""
+        cursor = self.get_cursor()
+        query = (
+            'INSERT INTO ad_cluster_metadata (ad_cluster_id, min_spend_sum, max_spend_sum, '
+            'min_impressions_sum, max_impressions_sum) '
+            '  (SELECT ad_cluster_id, SUM(max_spend) AS cluster_max_spend, SUM(min_spend) AS '
+            '  cluster_min_spend, SUM(max_impressions) AS cluster_max_impressions, '
+            '  SUM(min_impressions) AS cluster_min_impressions FROM ad_clusters JOIN impressions '
+            '  ON ad_clusters.archive_id = impressions.archive_id GROUP BY ad_cluster_id)'
+            'ON CONFLICT (ad_cluster_id) DO UPDATE SET min_spend_sum = EXCLUDED.min_spend_sum, '
+            'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
+            'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum'
+        cursor.execute(query)
+        return cursor.fetchall()
+
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
 

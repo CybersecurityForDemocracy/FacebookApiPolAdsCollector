@@ -1,4 +1,4 @@
-"""Module to dedupe ads based via text and image clustering based on hash simialirty."""
+"""Module to dedupe ads into clusters based via text and image clustering based on hash simialirty."""
 import collections
 import itertools
 import logging
@@ -159,11 +159,11 @@ def update_ad_clusters(database_connection):
 
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
+        db_interface.ad_clusters_spend_and_impression_sums()
         database_connection.commit()
         return components
 
 def main(config_path):
-    # select ad_cluster_id, sum(max_spend) as cluster_max_spend, sum(min_spend) as cluster_min_spend, sum(max_impressions) as cluster_max_impressions, sum(min_impressions) as cluster_min_impressions from ads join ad_clusters on ads.archive_id = ad_clusters.archive_id join impressions on ads.archive_id = impressions.archive_id group by ad_cluster_id order by cluster_max_spend DESC;
     config = config_utils.get_config(config_path)
     database_connection = config_utils.get_database_connection_from_config(config)
     update_ad_clusters(database_connection)
