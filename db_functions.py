@@ -82,7 +82,6 @@ class DBInterface():
             'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
         cursor.execute(query)
-        return cursor.fetchall()
 
     def all_archive_ids_that_need_scrape(self):
         """Get ALL ad archive IDs marked as needs_scrape in ad_snapshot_metadata.
