@@ -1,5 +1,5 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 import logging
 
 import psycopg2
@@ -116,7 +116,7 @@ class DBInterface():
         return [row['archive_id'] for row in results]
 
     def all_ad_creative_image_simhashes(self):
-        """Returns list of ad creative image simhashes.
+        """Returns Dict image_sim_hash -> set of archive_ids.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
@@ -124,7 +124,9 @@ class DBInterface():
         )
         cursor.execute(duplicate_simhash_query)
         results = cursor.fetchall()
-        return {row['archive_id']: row['image_sim_hash'] for row in results}
+        sim_hash_to_archive_id_set = defaultdict(set)
+        [sim_hash_to_archive_id_set[int(row['image_sim_hash'], 16)].add(row['archive_id']) for row in results]
+        return sim_hash_to_archive_id_set
 
     def all_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes.
