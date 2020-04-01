@@ -89,8 +89,7 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
     for curr_simhash in simhash_to_archive_id_set:
         num_simhash_processed += 1
         # We create a fake ArchiveIDAndSimHash with ID -1, but the current
-        found = image_simhash_tree.find(ArchiveIDAndSimHash(sim_hash=curr_simhash,
-                                                               archive_id=-1),
+        found = image_simhash_tree.find(ArchiveIDAndSimHash(sim_hash=curr_simhash, archive_id=-1),
                                         BIT_DIFFERENCE_THRESHOLD)
         if num_simhash_processed % 1000 == 0:
             logging.info('Processed %d image simhashses.', num_simhash_processed)
