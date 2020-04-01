@@ -123,21 +123,21 @@ class DBInterface():
             'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
-        results = cursor.fetchall()
         sim_hash_to_archive_id_set = defaultdict(set)
-        [sim_hash_to_archive_id_set[int(row['image_sim_hash'], 16)].add(row['archive_id']) for row in results]
+        [sim_hash_to_archive_id_set[int(row['image_sim_hash'], 16)].add(row['archive_id']) for row in cursor.fetchall()]
         return sim_hash_to_archive_id_set
 
     def all_ad_creative_text_simhashes(self):
-        """Returns list of ad creative text simhashes.
+        """Returns Dict ad body text sim_hash -> set of archive_ids.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
             'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
         )
         cursor.execute(duplicate_simhash_query)
-        results = cursor.fetchall()
-        return {row['archive_id']: row['text_sim_hash'] for row in results}
+        sim_hash_to_archive_id_set = defaultdict(set)
+        [sim_hash_to_archive_id_set[int(row['text_sim_hash'], 16)].add(row['archive_id']) for row in cursor.fetchall()]
+        return sim_hash_to_archive_id_set
 
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.

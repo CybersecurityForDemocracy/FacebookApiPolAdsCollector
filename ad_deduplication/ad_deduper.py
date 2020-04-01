@@ -28,26 +28,28 @@ def _ad_creative_body_text_similarity_clusters(database_connection, existing_clu
     db_interface = db_functions.DBInterface(database_connection)
 
     # Get all ad creative body simhashes from database.
-    raw_archive_id_to_simhash = db_interface.all_ad_creative_text_simhashes()
+    simhash_to_archive_ids = db_interface.all_ad_creative_text_simhashes()
 
-    # Convert map to str id -> Simhash obj
-    archive_id_to_simhash = {}
-    simhash_to_archive_ids = collections.defaultdict(set)
-    for archive_id in raw_archive_id_to_simhash:
-        text_simhash_as_int = int(raw_archive_id_to_simhash[archive_id], 16)
-        simhash_to_archive_ids[text_simhash_as_int].add(archive_id)
-        archive_id_to_simhash[str(archive_id)] = simhash.Simhash(text_simhash_as_int)
+    # Tuples to populate SimhashIndex
+    min_archive_id_and_sim_hash_tuples = []
+    for sim_hash, archive_id_set in simhash_to_archive_ids.items():
+        # Add single entry for simhash index with lowest archive_id.
+        min_archive_id_and_sim_hash_tuples.append((str(min(archive_id_set)),
+                                                   simhash.Simhash(sim_hash)))
+        # Connect all archive IDs that have the same simhash.
+        for archive_id_pair in itertools.combinations(archive_id_set, 2):
+            existing_clusters_union_find.union(archive_id_pair[0], archive_id_pair[1])
 
     # Create simhash index
-    text_simhash_index = simhash.SimhashIndex(archive_id_to_simhash.items(),
+    text_simhash_index = simhash.SimhashIndex(min_archive_id_and_sim_hash_tuples,
                                               k=BIT_DIFFERENCE_THRESHOLD)
 
     # Process all simhashes to get clusters of archive_ids with similar text
     logging.info('Have %d text simhashes to process.', len(simhash_to_archive_ids))
     for curr_simhash_as_int in simhash_to_archive_ids:
         found = text_simhash_index.get_near_dups(simhash.Simhash(curr_simhash_as_int))
-        # Convert found creative IDs back to ints since SimhashIndex converts returns them as
-        # strings regardless of the provided type.
+        # Convert found creative IDs back to ints since SimhashIndex returns them as strings
+        # regardless of the provided type.
         found = [int(x) for x in found]
         # Connect all combinantions (regardless of order) of found simhashes
         for archive_id_pair in itertools.combinations(found, 2):
