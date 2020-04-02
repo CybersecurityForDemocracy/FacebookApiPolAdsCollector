@@ -51,12 +51,9 @@ class DBInterface():
 
     def existing_ad_clusters(self):
         cursor = self.get_cursor()
-        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters VALUES'
+        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters'
         cursor.execute(existing_ad_clusters_query)
-        existing_ad_clusters = dict()
-        for row in cursor:
-            existing_ad_clusters[row['archive_id']] = row['ad_cluster_id']
-        return existing_ad_clusters
+        return {row['archive_id']: row['ad_cluster_id'] for row in cursor}
 
     def existing_recognized_entities(self):
         """Gets all regonized entities from DB as dict EntityRecord(name, type) -> entity_id."""
