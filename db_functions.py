@@ -413,10 +413,22 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_or_update_ad_cluster_records(self, ad_cluster_records):
+    def insert_or_update_ad_text_cluster_records(self, ad_cluster_records):
         cursor = self.get_cursor()
         insert_query = (
-            'INSERT INTO ad_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
+            'INSERT INTO ad_text_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
+            '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
+        insert_template = '(%(archive_id)s, %(ad_cluster_id)s)'
+        ad_cluster_record_list = [x._asdict() for x in ad_cluster_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       ad_cluster_record_list,
+                                       template=insert_template,
+                                       page_size=_DEFAULT_PAGE_SIZE)
+    def insert_or_update_ad_image_cluster_records(self, ad_cluster_records):
+        cursor = self.get_cursor()
+        insert_query = (
+            'INSERT INTO ad_image_clusters (archive_id, ad_cluster_id) VALUES %s ON CONFLICT '
             '(archive_id) DO UPDATE SET ad_cluster_id = EXCLUDED.ad_cluster_id')
         insert_template = '(%(archive_id)s, %(ad_cluster_id)s)'
         ad_cluster_record_list = [x._asdict() for x in ad_cluster_records]
