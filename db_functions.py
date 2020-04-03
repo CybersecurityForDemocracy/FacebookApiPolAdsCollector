@@ -118,7 +118,7 @@ class DBInterface():
         cursor = self.get_cursor()
         duplicate_simhash_query = (
             'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL '
-            'AND image_sim_hash != '';'
+            'AND image_sim_hash != \'\''
         )
         cursor.execute(duplicate_simhash_query)
         sim_hash_to_archive_id_set = defaultdict(set)
