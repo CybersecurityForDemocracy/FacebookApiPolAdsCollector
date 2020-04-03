@@ -43,7 +43,6 @@ def main(config_path):
         'ad_creative_link_title, ad_creative_link_description, funding_entity '
         'FROM ads WHERE ad_creation_time >= %(start_date)s')
     cursor.execute(ad_data_query, {'start_date': start_date})
-    print(cursor.query)
     ads_data = {}
     archive_ids = []
     for row in cursor:
@@ -94,13 +93,7 @@ def main(config_path):
     print('len(ads_data): ', len(ads_data))
     with open('data_expose.json', 'w') as f:
         json.dump(ads_data, f)
-        print('Dumped to ', f.name())
-
-    #  archive_id_to_snapshot_url = snapshot_url_util.construct_archive_id_to_snapshot_url_map(
-        #  current_app.config['FACEBOOK_ACCESS_TOKEN'], archive_ids)
-    #  for archive_id, url in archive_id_to_snapshot_url.items():
-        #  ret[archive_id]['snapshot_url'] = url
-    #  return ret
+        print('Dumped to ', f.name)
 
 
 if __name__ == '__main__':
