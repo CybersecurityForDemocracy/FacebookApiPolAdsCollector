@@ -172,7 +172,7 @@ class SearchRunner():
             spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
             spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
         )
-        if not curr_ad.page_id:
+        if curr_ad.page_id is None or int(curr_ad.page_id) == 0:
             logging.error('Got bad page_id \'%s\' for archive_id %d.\nFull api response:\n%s',
                           curr_ad.page_id, archive_id, result)
         return curr_ad
