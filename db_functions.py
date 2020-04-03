@@ -117,7 +117,8 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL '
+            'and image_sim_hash != '';'
         )
         cursor.execute(duplicate_simhash_query)
         sim_hash_to_archive_id_set = defaultdict(set)
@@ -129,7 +130,8 @@ class DBInterface():
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL '
+            'AND length(ad_creative_body) > 9'
         )
         cursor.execute(duplicate_simhash_query)
         sim_hash_to_archive_id_set = defaultdict(set)
