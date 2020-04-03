@@ -166,7 +166,6 @@ def update_ad_clusters(database_connection):
         logging.info('Inserting/updating %d Ad image cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_image_cluster_records(ad_cluster_records)
         database_connection.commit()
-        return components
 
 def main(config_path):
     config = config_utils.get_config(config_path)
