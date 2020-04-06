@@ -56,6 +56,10 @@ CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
                             '//img[@class=\'_7jys img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
+# Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
+# box. (ex: 411302822856762).
+MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
+    SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
 
 CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
@@ -532,6 +536,15 @@ class FacebookAdCreativeRetriever:
 
         return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
 
+    def click_multiple_creative_overflow_navigation_arrow(self):
+        try:
+            navigation_elem = self.chromedriver.find_element_by_xpath(
+                    MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
+            navigation_elem.click()
+        except NoSuchElementException:
+            return False
+        return True
+
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s', archive_id)
@@ -576,13 +589,18 @@ class FacebookAdCreativeRetriever:
             try:
                 self.chromedriver.find_element_by_xpath(xpath).click()
             except ElementClickInterceptedException:
+                # If there are more ad creatives than can fit in the multiple creative selection
+                # list the UI renders a navitation arrow over the last visible element. That arrow
+                # element intercepts clicks. So we click the element to move the next ad creative
+                # selection element into a clickable position.
+                self.click_multiple_creative_overflow_navigation_arrow()
+
                 # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
                 # that occludes the multiple creative selection elements.
-
-                # First we click on the first element in the multiple creative selector to move
+                # First we click on the previous element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                    1)
+                    i - 1)
                 self.chromedriver.find_element_by_xpath(xpath).click()
                 # Then click on the desired element.
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
