@@ -600,7 +600,7 @@ class FacebookAdCreativeRetriever:
                 # First we click on the first element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                    1)
+                    i - 1)
                 self.chromedriver.find_element_by_xpath(xpath).click()
                 # Then click on the desired element.
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
