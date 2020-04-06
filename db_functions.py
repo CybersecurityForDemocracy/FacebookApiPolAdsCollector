@@ -426,7 +426,7 @@ class DBInterface():
                                        insert_query,
                                        ad_cluster_record_list,
                                        template=insert_template,
-                                       page_size=_DEFAULT_PAGE_SIZE)
+                                       page_size=10000)
 
     def insert_named_entity_recognition_results(
             self, text_sha256_hash, named_entity_recognition_json):
