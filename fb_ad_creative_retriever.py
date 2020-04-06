@@ -597,7 +597,7 @@ class FacebookAdCreativeRetriever:
 
                 # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
                 # that occludes the multiple creative selection elements.
-                # First we click on the first element in the multiple creative selector to move
+                # First we click on the previous element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                     i - 1)
