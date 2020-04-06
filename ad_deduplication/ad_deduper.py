@@ -167,6 +167,8 @@ def update_ad_clusters(database_connection):
             logging.info('Orphaned cluster ID(s): %s', orphaned_cluster_ids)
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
+        database_connection.commit()
+        logging.info('Updating cluster spend and impression sums.')
         db_interface.ad_clusters_spend_and_impression_sums()
         database_connection.commit()
         return components
