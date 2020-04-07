@@ -77,10 +77,16 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
     # hashes
     image_simhash_tree = pybktree.BKTree(get_num_bits_different)
 
+    sim_hashes_added_to_tree = 0
+    total_sim_hashes = len(simhash_to_archive_id_set)
     for sim_hash, archive_id_set in simhash_to_archive_id_set.items():
         # Add single entry in BK tree for simhash with lowest archive_id.
         image_simhash_tree.add(ArchiveIDAndSimHash(sim_hash=sim_hash,
                                                    archive_id=min(archive_id_set)))
+        sim_hashes_added_to_tree += 1
+        if sim_hashes_added_to_tree % 10000:
+            logging.info('Added %d/%d simhashes to BKtree.', sim_hashes_added_to_tree,
+                         total_sim_hashes)
         # Connect all archive IDs that have the same simhash.
         for archive_id_pair in itertools.combinations(archive_id_set, 2):
             existing_clusters_union_find.union(archive_id_pair[0], archive_id_pair[1])
@@ -94,7 +100,8 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
         found = image_simhash_tree.find(ArchiveIDAndSimHash(sim_hash=curr_simhash, archive_id=-1),
                                         BIT_DIFFERENCE_THRESHOLD)
         if num_simhash_processed % 1000 == 0:
-            logging.info('Processed %d image simhashses.', num_simhash_processed)
+            logging.info('Processed %d/%d image simhashses.', num_simhash_processed,
+                         total_sim_hashes)
         # BKTree.find returns tuples of form (bit difference, value). This extracts a set of all
         # archive IDs found.
         found_archive_ids = {x[1].archive_id for x in found}
