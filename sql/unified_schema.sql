@@ -170,10 +170,10 @@ CREATE TABLE ad_clusters (
 );
 CREATE TABLE ad_cluster_metadata (
   ad_cluster_id bigint PRIMARY KEY,
-  min_spend_sum decimal(10, 2),
-  max_spend_sum decimal(10, 2),
-  min_impressions_sum integer,
-  max_impressions_sum integer
+  min_spend_sum decimal(12, 2),
+  max_spend_sum decimal(12, 2),
+  min_impressions_sum bigint,
+  max_impressions_sum bigint
 );
 CREATE TABLE recognized_entities (
   entity_id bigserial PRIMARY KEY,
