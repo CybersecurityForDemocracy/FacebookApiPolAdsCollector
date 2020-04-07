@@ -31,6 +31,12 @@ class DBInterface():
             ads_to_end_time_map[row['archive_id']] = ad_stop_time
         return ads_to_end_time_map
 
+    def existing_archive_ids(self):
+        cursor = self.get_cursor()
+        existing_ad_query = "select archive_id from ads"
+        cursor.execute(existing_ad_query)
+        return {row['archive_id'] for row in cursor}
+
     def existing_pages(self):
         cursor = self.get_cursor()
         existing_pages_query = "select page_id, page_name from pages;"

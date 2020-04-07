@@ -138,7 +138,9 @@ def update_ad_clusters(database_connection):
         Clusters of archive IDs with similar text and images.
     """
     with database_connection:
-        all_clusters_union_find = unionfind.UnionFind()
+        db_interface = db_functions.DBInterface(database_connection)
+        all_archive_ids = db_interface.existing_archive_ids()
+        all_clusters_union_find = unionfind.UnionFind(elements=all_archive_ids)
         logging.info('Starting text clustering')
         _ad_creative_body_text_similarity_clusters(database_connection, all_clusters_union_find)
         components = all_clusters_union_find.components()
@@ -151,7 +153,6 @@ def update_ad_clusters(database_connection):
         connected_archive_ids = set(itertools.chain.from_iterable(components))
         solitary_archive_ids = all_archive_ids - connected_archive_ids
         logging.info('Got %d unconnected/solitary archive_ids.', len(solitary_archive_ids))
-        db_interface = db_functions.DBInterface(database_connection)
         existing_ad_archive_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
         existing_cluster_ids = set()
         if existing_ad_archive_id_to_ad_cluster_id:
