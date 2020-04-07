@@ -147,6 +147,9 @@ def update_ad_clusters(database_connection):
         _ad_creative_image_similarity_clusters(database_connection, all_clusters_union_find)
         components = all_clusters_union_find.components()
         logging.info('Got %d text image clusters', len(components))
+        all_archive_ids = {all_clusters_union_find[i] for i in range(len(all_clusters_union_find))}
+        connected_archive_ids = set(itertools.chain.from_iterable(components))
+        solitary_archive_ids = all_archive_ids - connected_archive_ids
         db_interface = db_functions.DBInterface(database_connection)
         existing_ad_archive_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
         existing_cluster_ids = set()
@@ -168,6 +171,17 @@ def update_ad_clusters(database_connection):
                 ad_cluster_records.append(AdClusterRecord(archive_id=int(archive_id),
                                                           ad_cluster_id=cluster_id))
             allocated_cluster_ids.add(cluster_id)
+
+        for archive_id in solitary_archive_ids:
+            if archive_id in existing_ad_archive_id_to_ad_cluster_id:
+                cluster_id = existing_ad_archive_id_to_ad_cluster_id[existing_ad_archive_id_to_ad_cluster_id]
+            else:
+                cluster_id = next_new_cluster_id
+                next_new_cluster_id += 1
+            ad_cluster_records.append(AdClusterRecord(archive_id=int(archive_id),
+                                                      ad_cluster_id=cluster_id))
+            allocated_cluster_ids.add(cluster_id)
+
 
         orphaned_cluster_ids = existing_cluster_ids - allocated_cluster_ids
         if orphaned_cluster_ids:
