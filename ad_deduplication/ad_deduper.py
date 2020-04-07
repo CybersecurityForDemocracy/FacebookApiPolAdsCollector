@@ -84,7 +84,7 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
         image_simhash_tree.add(ArchiveIDAndSimHash(sim_hash=sim_hash,
                                                    archive_id=min(archive_id_set)))
         sim_hashes_added_to_tree += 1
-        if sim_hashes_added_to_tree % 10000 == 0:
+        if sim_hashes_added_to_tree % 1000 == 0:
             logging.info('Added %d/%d simhashes to BKtree.', sim_hashes_added_to_tree,
                          total_sim_hashes)
         # Connect all archive IDs that have the same simhash.
