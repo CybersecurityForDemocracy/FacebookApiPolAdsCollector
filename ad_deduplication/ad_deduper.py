@@ -150,6 +150,7 @@ def update_ad_clusters(database_connection):
         all_archive_ids = {all_clusters_union_find[i] for i in range(len(all_clusters_union_find))}
         connected_archive_ids = set(itertools.chain.from_iterable(components))
         solitary_archive_ids = all_archive_ids - connected_archive_ids
+        logging.info('Got %d unconnected/solitary archive_ids.', len(solitary_archive_ids))
         db_interface = db_functions.DBInterface(database_connection)
         existing_ad_archive_id_to_ad_cluster_id = db_interface.existing_ad_clusters()
         existing_cluster_ids = set()
