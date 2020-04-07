@@ -173,7 +173,37 @@ CREATE TABLE ad_cluster_metadata (
   min_spend_sum decimal(12, 2),
   max_spend_sum decimal(12, 2),
   min_impressions_sum bigint,
-  max_impressions_sum bigint
+  max_impressions_sum bigint,
+  min_ad_creation_time date,
+  max_ad_creation_time date,
+  topics bigint[],
+);
+CREATE TABLE ad_cluster_topics (
+  ad_cluster_id bigint,
+  topic_id bigint,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+CREATE TABLE ad_cluster_demo_impression_results (
+  ad_cluster_id bigint,
+  age_group character varying,
+  gender character varying,
+  min_spend_sum decimal(10, 2),
+  max_spend_sum decimal(10, 2),
+  min_impressions_sum bigint,
+  max_impressions_sum bigint,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_cluster_demo_results UNIQUE(ad_cluster_id, age_group, gender)
+);
+CREATE TABLE ad_cluster_region_impression_results (
+  ad_cluster_id bigint,
+  region character varying,
+  min_spend_sum decimal(10, 2),
+  max_spend_sum decimal(10, 2),
+  min_impressions_sum bigint,
+  max_impressions_sum bigint,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_cluster_region_results UNIQUE(ad_cluster_id, region)
 );
 CREATE TABLE recognized_entities (
   entity_id bigserial PRIMARY KEY,

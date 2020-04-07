@@ -149,7 +149,6 @@ def update_ad_clusters(database_connection):
         _ad_creative_image_similarity_clusters(database_connection, all_clusters_union_find)
         components = all_clusters_union_find.components()
         logging.info('Got %d text image clusters', len(components))
-        all_archive_ids = {all_clusters_union_find[i] for i in range(len(all_clusters_union_find))}
         connected_archive_ids = set(itertools.chain.from_iterable(components))
         solitary_archive_ids = all_archive_ids - connected_archive_ids
         logging.info('Got %d unconnected/solitary archive_ids.', len(solitary_archive_ids))
@@ -190,10 +189,12 @@ def update_ad_clusters(database_connection):
             logging.info('Orphaned cluster ID(s): %s', orphaned_cluster_ids)
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
-        database_connection.commit()
-        logging.info('Updating cluster spend and impression sums.')
-        db_interface.ad_clusters_spend_and_impression_sums()
-        database_connection.commit()
+        #  database_connection.commit()
+        logging.info('Updating cluster metadata.')
+        db_interface.update_ad_cluster_metadata()
+        logging.info('Repopulating ad cluster topic table.')
+        db_interface.repopulate_ad_cluster_topic_table()
+        #  database_connection.commit()
         return components
 
 def main(config_path):
