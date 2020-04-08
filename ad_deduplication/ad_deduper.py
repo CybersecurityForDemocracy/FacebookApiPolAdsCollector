@@ -44,10 +44,16 @@ def _ad_creative_body_text_similarity_clusters(database_connection, existing_clu
     text_simhash_index = simhash.SimhashIndex(min_archive_id_and_sim_hash_tuples,
                                               k=BIT_DIFFERENCE_THRESHOLD)
 
+    total_sim_hashes = len(simhash_to_archive_ids)
     # Process all simhashes to get clusters of archive_ids with similar text
-    logging.info('Have %d text simhashes to process.', len(simhash_to_archive_ids))
+    logging.info('Have %d text simhashes to process.', total_sim_hashes)
+    num_simhash_processed = 0
     for curr_simhash_as_int in simhash_to_archive_ids:
+        num_simhash_processed += 1
         found = text_simhash_index.get_near_dups(simhash.Simhash(curr_simhash_as_int))
+        if num_simhash_processed % 10000 == 0:
+            logging.info('Processed %d/%d text simhashses.', num_simhash_processed,
+                         total_sim_hashes)
         # Convert found creative IDs back to ints since SimhashIndex returns them as strings
         # regardless of the provided type.
         found = [int(x) for x in found]
@@ -71,14 +77,14 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
 
     # Get all ad creative images simhashes from database.
     simhash_to_archive_id_set = db_interface.all_ad_creative_image_simhashes()
-    logging.info('Got %d image sim_hashes to process.', len(simhash_to_archive_id_set))
+    total_sim_hashes = len(simhash_to_archive_id_set)
+    logging.info('Got %d image simhashes to process.', total_sim_hashes)
 
     # Create BKTree with dhash bit difference function as distance_function, used to find similar
     # hashes
     image_simhash_tree = pybktree.BKTree(get_num_bits_different)
 
     sim_hashes_added_to_tree = 0
-    total_sim_hashes = len(simhash_to_archive_id_set)
     for sim_hash, archive_id_set in simhash_to_archive_id_set.items():
         # Add single entry in BK tree for simhash with lowest archive_id.
         image_simhash_tree.add(ArchiveIDAndSimHash(sim_hash=sim_hash,
@@ -99,7 +105,7 @@ def _ad_creative_image_similarity_clusters(database_connection, existing_cluster
         # We create a fake ArchiveIDAndSimHash with ID -1, but the current
         found = image_simhash_tree.find(ArchiveIDAndSimHash(sim_hash=curr_simhash, archive_id=-1),
                                         BIT_DIFFERENCE_THRESHOLD)
-        if num_simhash_processed % 1000 == 0:
+        if num_simhash_processed % 10000 == 0:
             logging.info('Processed %d/%d image simhashses.', num_simhash_processed,
                          total_sim_hashes)
         # BKTree.find returns tuples of form (bit difference, value). This extracts a set of all
