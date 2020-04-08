@@ -26,8 +26,8 @@ import snapshot_url_util
 
 LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
-GCS_BUCKET = 'facebook_ad_images'
-SCREENSHOT_GCS_DIR = 'screenshots'
+AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
+ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
@@ -56,6 +56,10 @@ CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
                             '//img[@class=\'_7jys img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
+# Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
+# box. (ex: 411302822856762).
+MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
+    SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
 
 CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
@@ -206,11 +210,22 @@ def get_image_dhash(image_bytes):
     image_dhash = dhash.format_hex(row, col)
     return image_dhash
 
+@tenacity.retry(stop=tenacity.stop_after_attempt(4),
+                wait=tenacity.wait_random_exponential(multiplier=1, max=30),
+                before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
+def upload_blob(bucket_client, blob_path, blob_data):
+    blob = bucket_client.blob(blob_path)
+    blob.upload_from_string(blob_data)
+    return blob.id
+
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, bucket_client, access_token, commit_to_db_every_n_processed, slack_url):
-        self.bucket_client = bucket_client
+    def __init__(self, db_connection, ad_creative_images_bucket_client,
+                 archive_screenshots_bucket_client, access_token, commit_to_db_every_n_processed,
+                 slack_url):
+        self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
+        self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
         self.num_ad_creatives_found = 0
@@ -298,25 +313,18 @@ class FacebookAdCreativeRetriever:
                          num_snapshots_processed_in_current_batch, len(archive_id_batch))
             self.log_stats()
 
-    @tenacity.retry(stop=tenacity.stop_after_attempt(4),
-                    wait=tenacity.wait_random_exponential(multiplier=1, max=30),
-                    before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
-    def upload_blob(self, blob_path, blob_data):
-        blob = self.bucket_client.blob(blob_path)
-        blob.upload_from_string(blob_data)
-
     def store_image_in_google_bucket(self, image_dhash, image_bytes):
         image_bucket_path = make_image_hash_file_path(image_dhash)
-        self.upload_blob(image_bucket_path, image_bytes)
+        blob_id = upload_blob(self.ad_creative_images_bucket_client, image_bucket_path, image_bytes)
         self.num_image_uploade_to_gcs_bucket += 1
-        logging.debug('Image dhash: %s; uploaded to bucket path: %s',
-                      image_dhash, image_bucket_path)
+        logging.debug('Image dhash: %s; uploaded to: %s', image_dhash, blob_id)
         return image_bucket_path
 
     def store_snapshot_screenshot(self, archive_id, screenshot_binary_data):
-        bucket_path = os.path.join(SCREENSHOT_GCS_DIR, '%d.png' % archive_id)
-        self.upload_blob(bucket_path, screenshot_binary_data)
-        logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, bucket_path)
+        bucket_path = '%d.png' % archive_id
+        blob_id = upload_blob(self.archive_screenshots_bucket_client, bucket_path,
+                              screenshot_binary_data)
+        logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, blob_id)
 
     def get_video_element_from_creative_container(self):
         try:
@@ -528,6 +536,15 @@ class FacebookAdCreativeRetriever:
 
         return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
 
+    def click_multiple_creative_overflow_navigation_arrow(self):
+        try:
+            navigation_elem = self.chromedriver.find_element_by_xpath(
+                    MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
+            navigation_elem.click()
+        except NoSuchElementException:
+            return False
+        return True
+
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s', archive_id)
@@ -572,13 +589,18 @@ class FacebookAdCreativeRetriever:
             try:
                 self.chromedriver.find_element_by_xpath(xpath).click()
             except ElementClickInterceptedException:
+                # If there are more ad creatives than can fit in the multiple creative selection
+                # list the UI renders a navitation arrow over the last visible element. That arrow
+                # element intercepts clicks. So we click the element to move the next ad creative
+                # selection element into a clickable position.
+                self.click_multiple_creative_overflow_navigation_arrow()
+
                 # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
                 # that occludes the multiple creative selection elements.
-
-                # First we click on the first element in the multiple creative selector to move
+                # First we click on the previous element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                    1)
+                    i - 1)
                 self.chromedriver.find_element_by_xpath(xpath).click()
                 # Then click on the desired element.
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
@@ -739,10 +761,13 @@ def main(argv):
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
 
     with config_utils.get_database_connection(database_connection_params) as db_connection:
-        bucket_client = make_gcs_bucket_client(GCS_BUCKET,
-                                               GCS_CREDENTIALS_FILE)
+        ad_creative_images_bucket_client = make_gcs_bucket_client(AD_CREATIVE_IMAGES_BUCKET,
+                                                                  GCS_CREDENTIALS_FILE)
+        archive_screenshots_bucket_client = make_gcs_bucket_client(ARCHIVE_SCREENSHOTS_BUCKET,
+                                                                  GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, bucket_client, access_token, commit_to_db_every_n_processed, slack_url)
+            db_connection, ad_creative_images_bucket_client, archive_screenshots_bucket_client,
+            access_token, commit_to_db_every_n_processed, slack_url)
         image_retriever.retreive_and_store_ad_creatives()
 
 
