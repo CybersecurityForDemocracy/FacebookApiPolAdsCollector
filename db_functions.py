@@ -470,7 +470,7 @@ class DBInterface():
             'ON CONFLICT (ad_cluster_id, entity_id) DO NOTHING')
         cursor.execute(ad_cluster_recognized_entities_update_query)
         ad_cluster_categories_update_query = (
-            'INSERT INTO ad_cluster_typess (ad_cluster_id, ad_type) ('
+            'INSERT INTO ad_cluster_types (ad_cluster_id, ad_type) ('
             '  SELECT ad_cluster_id, ad_type FROM ad_clusters JOIN ad_metadata USING(archive_id) '
             '  WHERE ad_type IS NOT NULL and ad_type != \'\' GROUP BY ad_cluster_id, ad_type) '
             'ON CONFLICT (ad_cluster_id, ad_type) DO NOTHING')
