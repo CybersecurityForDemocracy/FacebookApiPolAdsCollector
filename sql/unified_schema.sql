@@ -196,3 +196,9 @@ CREATE TABLE ad_topics (
   CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE CASCADE ON DELETE CASCADE,
   PRIMARY KEY (archive_id, topic_id)
 );
+
+
+CREATE INDEX ad_clusters_ad_cluster_id_idx ON public.ad_clusters USING btree (ad_cluster_id);
+CREATE INDEX ad_clusters_archive_id_idx ON public.ad_clusters USING btree (archive_id);
+CREATE INDEX ad_topics_topic_id ON public.ad_topics USING btree (topic_id);
+CREATE INDEX ads_ads_creation_time_idx ON public.ads USING btree (ad_creation_time);
