@@ -176,7 +176,6 @@ CREATE TABLE ad_cluster_metadata (
   max_impressions_sum bigint,
   min_ad_creation_time date,
   max_ad_creation_time date,
-  topics bigint[],
 );
 CREATE TABLE ad_cluster_topics (
   ad_cluster_id bigint,

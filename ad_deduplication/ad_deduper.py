@@ -189,12 +189,13 @@ def update_ad_clusters(database_connection):
             logging.info('Orphaned cluster ID(s): %s', orphaned_cluster_ids)
         logging.info('Inserting/updating %d Ad cluster records in DB.', len(ad_cluster_records))
         db_interface.insert_or_update_ad_cluster_records(ad_cluster_records)
-        #  database_connection.commit()
+        database_connection.commit()
         logging.info('Updating cluster metadata.')
         db_interface.update_ad_cluster_metadata()
+        database_connection.commit()
         logging.info('Repopulating ad cluster topic table.')
         db_interface.repopulate_ad_cluster_topic_table()
-        #  database_connection.commit()
+        database_connection.commit()
         return components
 
 def main(config_path):
