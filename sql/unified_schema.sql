@@ -176,6 +176,8 @@ CREATE TABLE ad_cluster_metadata (
   max_impressions_sum bigint,
   min_ad_creation_time date,
   max_ad_creation_time date,
+  canonical_archive_id bigint,
+  CONSTRAINT archive_id_fk FOREIGN KEY (canonical_archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 CREATE TABLE ad_cluster_topics (
   ad_cluster_id bigint,
@@ -203,6 +205,19 @@ CREATE TABLE ad_cluster_region_impression_results (
   max_impressions_sum bigint,
   CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_ad_cluster_region_results UNIQUE(ad_cluster_id, region)
+);
+CREATE TABLE ad_cluster_types (
+  ad_cluster_id bigint,
+  ad_type character varying,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_cluster_id_per_ad_type UNIQUE(ad_cluster_id, ad_type)
+);
+CREATE TABLE ad_cluster_recognized_entities (
+  ad_cluster_id bigint,
+  entity_id bigint NOT NULL,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_cluster_id_per_recoginized_entity UNIQUE(ad_cluster_id, entity_id)
 );
 CREATE TABLE recognized_entities (
   entity_id bigserial PRIMARY KEY,

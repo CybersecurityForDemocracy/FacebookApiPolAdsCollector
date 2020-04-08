@@ -426,18 +426,20 @@ class DBInterface():
         cursor = self.get_cursor()
         ad_cluster_metadata_table_update_query = (
             'INSERT INTO ad_cluster_metadata (ad_cluster_id, min_spend_sum, max_spend_sum, '
-            'min_impressions_sum, max_impressions_sum, min_ad_creation_time, max_ad_creation_time) '
+            'min_impressions_sum, max_impressions_sum, min_ad_creation_time, max_ad_creation_time, '
+            'canonical_archive_id) '
             '  (SELECT ad_cluster_id, SUM(max_spend) AS cluster_max_spend, SUM(min_spend) AS '
             '  cluster_min_spend, SUM(max_impressions) AS cluster_max_impressions, '
             '  SUM(min_impressions) AS cluster_min_impressions, MIN(ad_creation_time) AS '
-            '  min_ad_creation_time, MAX(ad_creation_time) AS max_ad_creation_time FROM '
-            '  ad_clusters JOIN impressions USING(archive_id) JOIN ads USING(archive_id)'
-            '  GROUP BY ad_cluster_id)'
+            '  min_ad_creation_time, MAX(ad_creation_time) AS max_ad_creation_time, '
+            '  MIN(archive_id) AS canonical_archive_id FROM '
+            '  ad_clusters JOIN impressions USING(archive_id) JOIN ads USING(archive_id) '
+            '  GROUP BY ad_cluster_id) '
             'ON CONFLICT (ad_cluster_id) DO UPDATE SET min_spend_sum = EXCLUDED.min_spend_sum, '
             'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum, '
             'min_ad_creation_time = EXCLUDED.min_ad_creation_time, max_ad_creation_time = '
-            'EXCLUDED.max_ad_creation_time')
+            'EXCLUDED.max_ad_creation_time, canonical_archive_id = EXCLUDED.canonical_archive_id')
         cursor.execute(ad_cluster_metadata_table_update_query)
         ad_cluster_demo_impression_results_update_query = (
             'INSERT INTO ad_cluster_demo_impression_results (ad_cluster_id, age_group, gender, '
@@ -460,6 +462,19 @@ class DBInterface():
             'EXCLUDED.min_spend_sum, max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
         cursor.execute(ad_cluster_region_impression_results_update_query)
+        ad_cluster_recognized_entities_update_query = (
+            'INSERT INTO ad_cluster_recognized_entities (ad_cluster_id, entity_id) ('
+            '  SELECT ad_cluster_id, entity_id FROM ad_clusters JOIN ad_creatives '
+            '  USING(archive_id) JOIN ad_creative_to_recognized_entities USING(ad_creative_id) '
+            '  GROUP BY ad_cluster_id, entity_id) '
+            'ON CONFLICT (ad_cluster_id, entity_id) DO NOTHING')
+        cursor.execute(ad_cluster_recognized_entities_update_query)
+        ad_cluster_categories_update_query = (
+            'INSERT INTO ad_cluster_typess (ad_cluster_id, ad_type) ('
+            '  SELECT ad_cluster_id, ad_type FROM ad_clusters JOIN ad_metadata USING(archive_id) '
+            '  WHERE ad_type IS NOT NULL and ad_type != \'\' GROUP BY ad_cluster_id, ad_type) '
+            'ON CONFLICT (ad_cluster_id, ad_type) DO NOTHING')
+        cursor.execute(ad_cluster_categories_update_query)
 
 
     def repopulate_ad_cluster_topic_table(self):
