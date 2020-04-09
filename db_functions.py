@@ -464,6 +464,7 @@ class DBInterface():
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
         cursor.execute(ad_cluster_region_impression_results_update_query)
 
+        # Truncate table before repopulating to prevent stale mapping of cluster ID -> entity ID
         truncate_ad_cluster_recognized_entities_query = (
             'TRUNCATE TABLE ad_cluster_recognized_entities')
         ad_cluster_recognized_entities_update_query = (
@@ -475,6 +476,7 @@ class DBInterface():
         cursor.execute(truncate_ad_cluster_recognized_entities_query)
         cursor.execute(ad_cluster_recognized_entities_update_query)
 
+        # Truncate table before repopulating to prevent stale mapping of cluster ID -> type
         truncate_ad_cluster_categories_query = 'TRUNCATE TABLE ad_cluster_types'
         ad_cluster_categories_update_query = (
             'INSERT INTO ad_cluster_types (ad_cluster_id, ad_type) ('
