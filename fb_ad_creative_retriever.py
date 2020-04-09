@@ -71,8 +71,8 @@ INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the s
 AGE_RESTRICTION_ERROR_TEXT = (
         'Because we\'re unable to determine your age, we cannot show you this ad.')
 TOO_MANY_REQUESTS_ERROR_TEXT = (
-        'blocked from searching or viewing the Ad Archive due to too many requests. '
-        'Please try again later.').lower()
+    'You have been temporarily blocked from searching or viewing the Ad Library due to too many '
+    'requests. Please try again later.').lower()
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
