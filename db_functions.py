@@ -1,5 +1,5 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 import logging
 
 import psycopg2
@@ -31,6 +31,12 @@ class DBInterface():
             ads_to_end_time_map[row['archive_id']] = ad_stop_time
         return ads_to_end_time_map
 
+    def existing_archive_ids(self):
+        cursor = self.get_cursor()
+        existing_ad_query = "select archive_id from ads"
+        cursor.execute(existing_ad_query)
+        return {row['archive_id'] for row in cursor}
+
     def existing_pages(self):
         cursor = self.get_cursor()
         existing_pages_query = "select page_id, page_name from pages;"
@@ -51,12 +57,9 @@ class DBInterface():
 
     def existing_ad_clusters(self):
         cursor = self.get_cursor()
-        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters VALUES'
+        existing_ad_clusters_query = 'SELECT archive_id, ad_cluster_id FROM ad_clusters'
         cursor.execute(existing_ad_clusters_query)
-        existing_ad_clusters = dict()
-        for row in cursor:
-            existing_ad_clusters[row['archive_id']] = row['ad_cluster_id']
-        return existing_ad_clusters
+        return {row['archive_id']: row['ad_cluster_id'] for row in cursor}
 
     def existing_recognized_entities(self):
         """Gets all regonized entities from DB as dict EntityRecord(name, type) -> entity_id."""
@@ -100,26 +103,32 @@ class DBInterface():
         return [row['archive_id'] for row in results]
 
     def all_ad_creative_image_simhashes(self):
-        """Returns list of ad creative image simhashes.
+        """Returns Dict image_sim_hash -> set of archive_ids.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL;'
+            'SELECT archive_id, image_sim_hash FROM ad_creatives WHERE image_sim_hash IS NOT NULL '
+            'AND image_sim_hash != \'\' AND image_sim_hash NOT IN ('
+            '\'00000000000000000000000000000000\', \'000000000000100c00000000000c001c\', '
+            '\'000000000000000000000000000000ff\')'
         )
         cursor.execute(duplicate_simhash_query)
-        results = cursor.fetchall()
-        return {row['archive_id']: row['image_sim_hash'] for row in results}
+        sim_hash_to_archive_id_set = defaultdict(set)
+        [sim_hash_to_archive_id_set[int(row['image_sim_hash'], 16)].add(row['archive_id']) for row in cursor.fetchall()]
+        return sim_hash_to_archive_id_set
 
     def all_ad_creative_text_simhashes(self):
-        """Returns list of ad creative text simhashes.
+        """Returns Dict ad body text sim_hash -> set of archive_ids.
         """
         cursor = self.get_cursor()
         duplicate_simhash_query = (
-            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL;'
+            'SELECT archive_id, text_sim_hash FROM ad_creatives WHERE text_sim_hash IS NOT NULL '
+            'AND text_sim_hash != \'\' AND length(ad_creative_body) > 9'
         )
         cursor.execute(duplicate_simhash_query)
-        results = cursor.fetchall()
-        return {row['archive_id']: row['text_sim_hash'] for row in results}
+        sim_hash_to_archive_id_set = defaultdict(set)
+        [sim_hash_to_archive_id_set[int(row['text_sim_hash'], 16)].add(row['archive_id']) for row in cursor.fetchall()]
+        return sim_hash_to_archive_id_set
 
     def duplicate_ad_creative_text_simhashes(self):
         """Returns list of ad creative text simhashes appearing 2 or more times.
@@ -409,7 +418,83 @@ class DBInterface():
                                        insert_query,
                                        ad_cluster_record_list,
                                        template=insert_template,
-                                       page_size=_DEFAULT_PAGE_SIZE)
+                                       page_size=10000)
+
+    def update_ad_cluster_metadata(self):
+        """Update min/max spend and impressions sums for each ad_cluster_id in
+        ad_cluster_metadata."""
+        cursor = self.get_cursor()
+        ad_cluster_metadata_table_update_query = (
+            'INSERT INTO ad_cluster_metadata (ad_cluster_id, min_spend_sum, max_spend_sum, '
+            'min_impressions_sum, max_impressions_sum, min_ad_creation_time, max_ad_creation_time, '
+            'canonical_archive_id) '
+            '  (SELECT ad_cluster_id, SUM(min_spend) AS cluster_min_spend, '
+            '  SUM(max_spend) AS cluster_max_spend, '
+            '  SUM(min_impressions) AS cluster_min_impressions, '
+            '  SUM(max_impressions) AS cluster_max_impressions, MIN(ad_creation_time) AS '
+            '  min_ad_creation_time, MAX(ad_creation_time) AS max_ad_creation_time, '
+            '  MIN(archive_id) AS canonical_archive_id FROM '
+            '  ad_clusters JOIN impressions USING(archive_id) JOIN ads USING(archive_id) '
+            '  GROUP BY ad_cluster_id) '
+            'ON CONFLICT (ad_cluster_id) DO UPDATE SET min_spend_sum = EXCLUDED.min_spend_sum, '
+            'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
+            'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum, '
+            'min_ad_creation_time = EXCLUDED.min_ad_creation_time, max_ad_creation_time = '
+            'EXCLUDED.max_ad_creation_time, canonical_archive_id = EXCLUDED.canonical_archive_id')
+        cursor.execute(ad_cluster_metadata_table_update_query)
+        ad_cluster_demo_impression_results_update_query = (
+            'INSERT INTO ad_cluster_demo_impression_results (ad_cluster_id, age_group, gender, '
+            'min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum) ('
+            '  SELECT ad_cluster_id, age_group, gender, SUM(min_spend), SUM(max_spend), '
+            '  SUM(min_impressions), sum(max_impressions) FROM ad_clusters JOIN '
+            '  demo_impression_results USING(archive_id) GROUP BY ad_cluster_id, age_group, gender'
+            ') ON CONFLICT (ad_cluster_id, age_group, gender) DO UPDATE SET '
+            'min_spend_sum = EXCLUDED.min_spend_sum, max_spend_sum = EXCLUDED.max_spend_sum, '
+            'min_impressions_sum = EXCLUDED.min_impressions_sum, '
+            'max_impressions_sum = EXCLUDED.max_impressions_sum')
+        cursor.execute(ad_cluster_demo_impression_results_update_query)
+        ad_cluster_region_impression_results_update_query = (
+            'INSERT INTO ad_cluster_region_impression_results (ad_cluster_id, region, '
+            'min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum) ('
+            '  SELECT ad_cluster_id, region, SUM(min_spend), SUM(max_spend), SUM(min_impressions), '
+            '   sum(max_impressions) FROM ad_clusters JOIN region_impression_results '
+            '  USING(archive_id) GROUP BY ad_cluster_id, region'
+            ') ON CONFLICT (ad_cluster_id, region) DO UPDATE SET min_spend_sum = '
+            'EXCLUDED.min_spend_sum, max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
+            'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
+        cursor.execute(ad_cluster_region_impression_results_update_query)
+
+        # Truncate table before repopulating to prevent stale mapping of cluster ID -> entity ID
+        truncate_ad_cluster_recognized_entities_query = (
+            'TRUNCATE TABLE ad_cluster_recognized_entities')
+        ad_cluster_recognized_entities_update_query = (
+            'INSERT INTO ad_cluster_recognized_entities (ad_cluster_id, entity_id) ('
+            '  SELECT ad_cluster_id, entity_id FROM ad_clusters JOIN ad_creatives '
+            '  USING(archive_id) JOIN ad_creative_to_recognized_entities USING(ad_creative_id) '
+            '  GROUP BY ad_cluster_id, entity_id) '
+            'ON CONFLICT (ad_cluster_id, entity_id) DO NOTHING')
+        cursor.execute(truncate_ad_cluster_recognized_entities_query)
+        cursor.execute(ad_cluster_recognized_entities_update_query)
+
+        # Truncate table before repopulating to prevent stale mapping of cluster ID -> type
+        truncate_ad_cluster_categories_query = 'TRUNCATE TABLE ad_cluster_types'
+        ad_cluster_categories_update_query = (
+            'INSERT INTO ad_cluster_types (ad_cluster_id, ad_type) ('
+            '  SELECT ad_cluster_id, ad_type FROM ad_clusters JOIN ad_metadata USING(archive_id) '
+            '  WHERE ad_type IS NOT NULL and ad_type != \'\' GROUP BY ad_cluster_id, ad_type) '
+            'ON CONFLICT (ad_cluster_id, ad_type) DO NOTHING')
+        cursor.execute(truncate_ad_cluster_categories_query)
+        cursor.execute(ad_cluster_categories_update_query)
+
+
+    def repopulate_ad_cluster_topic_table(self):
+        cursor = self.get_cursor()
+        truncate_query = ('TRUNCATE ad_cluster_topics')
+        query = ('INSERT INTO ad_cluster_topics (ad_cluster_id, topic_id) (SELECT ad_cluster_id, '
+                 'topic_id FROM ad_clusters JOIN ad_topics USING(archive_id))')
+        cursor.execute(truncate_query)
+        cursor.execute(query)
+
 
     def insert_named_entity_recognition_results(
             self, text_sha256_hash, named_entity_recognition_json):
