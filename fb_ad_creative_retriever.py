@@ -71,8 +71,8 @@ INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the s
 AGE_RESTRICTION_ERROR_TEXT = (
         'Because we\'re unable to determine your age, we cannot show you this ad.')
 TOO_MANY_REQUESTS_ERROR_TEXT = (
-        'Blocked from Searching or Viewing the Ad Archive\nYou have been temporarily blocked from '
-        'searching or viewing the Ad Archive due to too many requests. Please try again later.')
+    'You have been temporarily blocked from searching or viewing the Ad Library due to too many '
+    'requests. Please try again later.').lower()
 
 FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
@@ -512,7 +512,7 @@ class FacebookAdCreativeRetriever:
         except NoSuchElementException:
             page_text = self.chromedriver.find_element_by_tag_name('html').text
             logging.warning('Could not find content in page:%s', page_text)
-            if TOO_MANY_REQUESTS_ERROR_TEXT in page_text:
+            if TOO_MANY_REQUESTS_ERROR_TEXT in page_text.lower():
                 raise TooManyRequestsException
 
             raise SnapshotNoContentFoundError
