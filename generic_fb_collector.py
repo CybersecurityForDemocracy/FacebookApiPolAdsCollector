@@ -350,6 +350,23 @@ class SearchRunner():
             for result in results['data']:
                 total_ad_count += 1
                 curr_ad = self.get_ad_from_result(result)
+                # Log information about API request and response to debug issue where API returns
+                # page_id: "0"
+                if curr_ad.page_id is None or int(curr_ad.page_id) == 0:
+                    logging.error(
+                        'Got bad page_id \'%s\' for archive_id %d.\n'
+                        'Args: %s\n'
+                        'Full api response:\n%s',
+                        curr_ad.page_id, curr_ad.archive_id,
+                        {'access_token': self.fb_access_token,
+                         'id': 'ads_archive',
+                         'ad_reached_countries': self.country_code,
+                         'ad_type': 'POLITICAL_AND_ISSUE_ADS',
+                         'ad_active_status': 'ALL',
+                         'limit': self.request_limit,
+                         'search_page_ids': page_id,
+                         'fields': ",".join(FIELDS_TO_REQUEST),
+                         'after': next_cursor}, result)
                 self.process_ad(curr_ad)
                 self.process_funding_entity(curr_ad)
                 self.process_page(curr_ad)
