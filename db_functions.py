@@ -463,18 +463,25 @@ class DBInterface():
             'EXCLUDED.min_spend_sum, max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum')
         cursor.execute(ad_cluster_region_impression_results_update_query)
+
+        truncate_ad_cluster_recognized_entities_query = (
+            'TRUNCATE TABLE ad_cluster_recognized_entities')
         ad_cluster_recognized_entities_update_query = (
             'INSERT INTO ad_cluster_recognized_entities (ad_cluster_id, entity_id) ('
             '  SELECT ad_cluster_id, entity_id FROM ad_clusters JOIN ad_creatives '
             '  USING(archive_id) JOIN ad_creative_to_recognized_entities USING(ad_creative_id) '
             '  GROUP BY ad_cluster_id, entity_id) '
             'ON CONFLICT (ad_cluster_id, entity_id) DO NOTHING')
+        cursor.execute(truncate_ad_cluster_recognized_entities_query)
         cursor.execute(ad_cluster_recognized_entities_update_query)
+
+        truncate_ad_cluster_categories_query = 'TRUNCATE TABLE ad_cluster_types'
         ad_cluster_categories_update_query = (
             'INSERT INTO ad_cluster_types (ad_cluster_id, ad_type) ('
             '  SELECT ad_cluster_id, ad_type FROM ad_clusters JOIN ad_metadata USING(archive_id) '
             '  WHERE ad_type IS NOT NULL and ad_type != \'\' GROUP BY ad_cluster_id, ad_type) '
             'ON CONFLICT (ad_cluster_id, ad_type) DO NOTHING')
+        cursor.execute(truncate_ad_cluster_categories_query)
         cursor.execute(ad_cluster_categories_update_query)
 
 
