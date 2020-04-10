@@ -176,7 +176,7 @@ def get_topic_top_ad():
 
     db_interface = db_functions.DBInterface(db_connection)
     ad_cluster_data = db_interface.topic_top_ad_clusters_by_spend(topic_id, min_date=min_date,
-                                                                  max_date=max_date, limit=6)
+                                                                  max_date=max_date, limit=20)
 
     ret = {}
     for row in ad_cluster_data:
