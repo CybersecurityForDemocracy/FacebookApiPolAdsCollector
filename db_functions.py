@@ -18,7 +18,10 @@ class DBInterface():
     def __init__(self, connection):
         self.connection = connection
 
-    def get_cursor(self):
+    def get_cursor(self, real_dict_cursor=False):
+        if real_dict_cursor:
+            return self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
         return self.connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     def existing_ads(self):
@@ -756,6 +759,76 @@ class DBInterface():
             ad_topic_record_list,
             template=insert_template,
             page_size=_DEFAULT_PAGE_SIZE)
+
+    def ad_cluster_funder_names(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = (
+            'SELECT funding_entity FROM ad_clusters JOIN ads USING(archive_id) '
+        'WHERE ad_cluster_id = %(ad_cluster_id)s')
+        cursor.execute(query, {'ad_cluster_id': ad_cluster_id})
+        return {r['funding_entity'] for r in cursor.fetchall()}
+
+    def topic_top_ad_clusters_by_spend(self, topic_id, min_date, max_date, limit=50):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query_args = {'topic_id': topic_id, 'limit': limit, 'min_date': min_date,
+                      'max_date': max_date}
+        query = (
+            'SELECT ad_cluster_metadata.ad_cluster_id, canonical_archive_id, '
+            'min_ad_creation_time, max_ad_creation_time, min_spend_sum, max_spend_sum, '
+            'min_impressions_sum, max_impressions_sum FROM ad_cluster_metadata '
+            'JOIN ad_cluster_topics USING(ad_cluster_id) WHERE topic_id = %(topic_id)s AND '
+            'ad_cluster_metadata.min_ad_creation_time >= %(min_date)s AND '
+            'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s GROUP BY ad_cluster_id '
+            'ORDER BY max_spend_sum DESC, '
+            'date_trunc(\'week\', ad_cluster_metadata.min_ad_creation_time) DESC LIMIT %(limit)s')
+        cursor.execute(query, query_args)
+        logging.info('topic_top_ad_clusters_by_spend query: %s', cursor.query)
+        return cursor.fetchall()
+
+    def ad_cluster_region_impression_results(self, ad_cluster_id):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query = (
+            'SELECT ad_cluster_id, region, min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum '
+            'FROM ad_cluster_region_impression_results WHERE ad_cluster_id = %(ad_cluster_id)s')
+        cursor.execute(query, {'ad_cluster_id': ad_cluster_id})
+        return cursor.fetchall()
+
+    def ad_cluster_demo_impression_results(self, ad_cluster_id):
+        cursor = self.get_cursor(real_dict_cursor=True)
+        query = (
+            'SELECT ad_cluster_id, age_group, gender, min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum '
+            'FROM ad_cluster_demo_impression_results WHERE ad_cluster_id = %(ad_cluster_id)s')
+        cursor.execute(query, {'ad_cluster_id': ad_cluster_id})
+        return cursor.fetchall()
+
+    def ad_cluster_archive_ids(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = 'SELECT archive_id FROM ad_clusters WHERE ad_cluster_id = %s'
+        cursor.execute(query, (ad_cluster_id, ))
+        return [row['archive_id'] for row in cursor.fetchall()]
+
+    def ad_cluster_canonical_archive_id(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = 'SELECT canonical_archive_id FROM ad_cluster_metadata WHERE ad_cluster_id = %s'
+        cursor.execute(query, (ad_cluster_id, ))
+        row = cursor.fetchone()
+        if row:
+            return row['canonical_archive_id']
+        return None
+
+    def ad_cluster_types(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = 'SELECT ad_type FROM ad_cluster_types WHERE ad_cluster_id = %s'
+        cursor.execute(query, (ad_cluster_id, ))
+        return [row['ad_type'] for row in cursor.fetchall()]
+
+    def ad_cluster_recognized_entities(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = (
+            'SELECT entity_name FROM ad_cluster_recognized_entities JOIN recognized_entities '
+            'USING(entity_id) WHERE ad_cluster_id = %s')
+        cursor.execute(query, (ad_cluster_id, ))
+        return [row['entity_name'] for row in cursor.fetchall()]
 
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
