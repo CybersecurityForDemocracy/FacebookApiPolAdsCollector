@@ -207,20 +207,20 @@ def get_ad_cluster_details(ad_cluster_id):
     for row in region_impression_results:
         ad_cluster_data['region_impression_results'].append(
             {'region': row['region'],
-             'min_spend': str(row['min_spend']),
-             'max_spend': str(row['max_spend']),
-             'min_impressions': row['min_impressions'],
-             'max_impressions': row['max_impressions']})
+             'min_spend': str(row['min_spend_sum']),
+             'max_spend': str(row['max_spend_sum']),
+             'min_impressions': row['min_impressions_sum'],
+             'max_impressions': row['max_impressions_sum']})
 
     demo_impression_results = db_interface.ad_cluster_demo_impression_results(ad_cluster_id)
     for row in demo_impression_results:
         ad_cluster_data['demo_impression_results'].append({
             'age_group': row['age_group'],
             'gender': row['gender'],
-            'min_spend': str(row['min_spend']),
-            'max_spend': str(row['max_spend']),
-            'min_impressions': row['min_impressions'],
-            'max_impressions': row['max_impressions']})
+            'min_spend': str(row['min_spend_sum']),
+            'max_spend': str(row['max_spend_sum']),
+            'min_impressions': row['min_impressions_sum'],
+            'max_impressions': row['max_impressions_sum']})
 
     ad_cluster_data['funding_entity'] = list(db_interface.ad_cluster_funder_names(ad_cluster_id))
     #  ad_cluster_data['alternative_ads'] = [{
