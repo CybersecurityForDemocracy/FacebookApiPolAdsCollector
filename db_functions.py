@@ -778,9 +778,9 @@ class DBInterface():
             'min_impressions_sum, max_impressions_sum FROM ad_cluster_metadata '
             'JOIN ad_cluster_topics USING(ad_cluster_id) WHERE topic_id = %(topic_id)s AND '
             'ad_cluster_metadata.min_ad_creation_time >= %(min_date)s AND '
-            'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s ORDER BY max_spend_sum DESC, '
-            'date_trunc(\'week\', ad_cluster_metadata.min_ad_creation_time) DESC '
-            'LIMIT %(limit)s')
+            'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s GROUP BY ad_cluster_id '
+            'ORDER BY max_spend_sum DESC, '
+            'date_trunc(\'week\', ad_cluster_metadata.min_ad_creation_time) DESC LIMIT %(limit)s')
         cursor.execute(query, query_args)
         logging.info('topic_top_ad_clusters_by_spend query: %s', cursor.query)
         return cursor.fetchall()
