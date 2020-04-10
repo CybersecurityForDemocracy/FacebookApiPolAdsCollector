@@ -19,8 +19,6 @@ def load_config(config_path):
     config = config_utils.get_config(config_path)
     app.config['DATABASE_CONNECTION_PARAMS'] = (
         config_utils.get_database_connection_params_from_config(config))
-    app.config['DATABASE_CONNECTION'] = config_utils.get_database_connection(
-        app.config['DATABASE_CONNECTION_PARAMS'])
     app.config['FACEBOOK_ACCESS_TOKEN'] = config_utils.get_facebook_access_token(
         config)
     app.config['COUNTRY_CODE'] = config['SEARCH']['COUNTRY_CODE']
@@ -54,7 +52,8 @@ def get_ad_cluster_record(ad_cluster_data_row):
 @app.route('/getads')
 def get_topic_top_ad():
     # This is a prototype impl with real data, it uses archive_ids instead of deduped clusters
-    db_connection = current_app.config['DATABASE_CONNECTION']
+    db_connection = config_utils.get_database_connection(
+        current_app.config['DATABASE_CONNECTION_PARAMS'])
     topic_id = request.args.get('topic', None)
     min_date = request.args.get('startDate', None)
     max_date = request.args.get('endDate', None)
@@ -85,7 +84,8 @@ def make_archive_id_and_image_map(archive_id):
             'https://storage.googleapis.com/facebook_ad_archive_screenshots/%s.png' % archive_id}
 
 def cluster_additional_ads(ad_cluster_id):
-    db_connection = current_app.config['DATABASE_CONNECTION']
+    db_connection = config_utils.get_database_connection(
+        current_app.config['DATABASE_CONNECTION_PARAMS'])
     db_interface = db_functions.DBInterface(db_connection)
     archive_ids = db_interface.ad_cluster_archive_ids(ad_cluster_id)
     return map(make_archive_id_and_image_map, archive_ids)
@@ -94,7 +94,8 @@ def cluster_additional_ads(ad_cluster_id):
 @app.route('/getaddetails/<int:ad_cluster_id>')
 def get_ad_cluster_details(ad_cluster_id):
     # TODO(macpd): validate ad_cluster_id existence
-    db_connection = current_app.config['DATABASE_CONNECTION']
+    db_connection = config_utils.get_database_connection(
+        current_app.config['DATABASE_CONNECTION_PARAMS'])
     db_interface = db_functions.DBInterface(db_connection)
 
     ad_cluster_data = defaultdict(list)
