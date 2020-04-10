@@ -4,15 +4,12 @@ from flask import Blueprint, current_app, jsonify, request, Response
 import datetime
 from collections import defaultdict
 from flask import Flask, request
-from ad_screener_backend.api import topics
 from flask_cors import CORS
 import config_utils
 
 import json
 
 app = Flask(__name__)
-app.register_blueprint(topics.topics)
-app.debug = True
 
 
 CORS(app, origins=["http://ccs3usr.engineering.nyu.edu:8080",
