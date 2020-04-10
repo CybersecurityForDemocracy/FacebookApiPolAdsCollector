@@ -140,6 +140,7 @@ def get_mock_ads():
 
 def get_ad_cluster_record(ad_cluster_data_row):
     ad_cluster_data = {}
+    ad_cluster_data['ad_cluster_id'] = ad_cluster_data_row['ad_cluster_id']
     ad_cluster_data['canonical_archive_id'] = ad_cluster_data_row['canonical_archive_id']
     # Ad start/end dates are used for display only, never used for computation
     ad_cluster_data['start_date'] = ad_cluster_data_row['min_ad_creation_time'].strftime('%Y-%m-%d')
