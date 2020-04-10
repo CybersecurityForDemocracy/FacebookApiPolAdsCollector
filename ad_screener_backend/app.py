@@ -223,9 +223,6 @@ def get_ad_cluster_details(ad_cluster_id):
             'max_impressions': row['max_impressions_sum']})
 
     ad_cluster_data['funding_entity'] = list(db_interface.ad_cluster_funder_names(ad_cluster_id))
-    #  ad_cluster_data['alternative_ads'] = [{
-        #  'archive_id': '488483418381824', 'url': 'https://storage.googleapis.com/facebook_ad_archive_screenshots/488483418381824.png'},{
-        #  'archive_id': '1658295924303363', 'url': 'https://storage.googleapis.com/facebook_ad_archive_screenshots/1658295924303363.png'}]
     # These are used to generate image urls for the alternative AdDetails Alternate Creatives tab
     # additional alternative_archive_ids for this ad_cluster_data if you'd like more results. '354236975482127', '565888870688521'
     canonical_archive_id = db_interface.ad_cluster_canonical_archive_id(ad_cluster_id)
