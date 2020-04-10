@@ -200,9 +200,9 @@ def get_ad_cluster_details(ad_cluster_id):
     # TODO(macpd): validate ad_cluster_id existence
     db_connection = current_app.config['DATABASE_CONNECTION']
     db_interface = db_functions.DBInterface(db_connection)
-    #  ad_cluster_id = request.args.get('ad_cluster_id')
 
     ad_cluster_data = defaultdict(list)
+    ad_cluster_data['ad_cluster_id'] = ad_cluster_id
     region_impression_results = db_interface.ad_cluster_region_impression_results(ad_cluster_id)
     for row in region_impression_results:
         ad_cluster_data['region_impression_results'].append(
