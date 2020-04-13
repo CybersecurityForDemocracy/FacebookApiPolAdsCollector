@@ -775,8 +775,10 @@ class DBInterface():
 
         Args:
             topic_id: int ID of topic to get ad clusters for.
-            min_date: str/datetime ad clusters with an ad creation date before this will be excluded
-            max_date: str/datetime ad clusters with an ad creation date after this will be excluded
+            min_date: str/datetime ad clusters containing an ad with creation date before this will
+                be excluded.
+            max_date: str/datetime ad clusters containing an ad with creation date after this will
+                be excluded.
             region: str region in which ad clusters must have impressions.
             gender: str gender for which ad clusters must have impressions.
             age_group: str age group for which ad clusters must have impressions.
