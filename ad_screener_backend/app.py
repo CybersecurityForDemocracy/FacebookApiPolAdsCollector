@@ -1,13 +1,12 @@
-import snapshot_url_util
-import db_functions
-from flask import Blueprint, current_app, jsonify, request, Response
-import datetime
 from collections import defaultdict
-from flask import Flask, request
-from flask_cors import CORS
-import config_utils
-
+import datetime
 import json
+
+from flask import current_app, Flask, request, Response
+from flask_cors import CORS
+
+import config_utils
+import db_functions
 
 app = Flask(__name__)
 
@@ -85,14 +84,14 @@ def get_topic_top_ad():
 
     db_interface = db_functions.DBInterface(db_connection)
     ad_cluster_data = db_interface.topic_top_ad_clusters_by_spend(
-            topic_id, min_date=min_date, max_date=max_date, region=region, gender=gender,
-            age_group=age_range, limit=20)
+        topic_id, min_date=min_date, max_date=max_date, region=region, gender=gender,
+        age_group=age_range, limit=20)
 
     ret = {}
     for row in ad_cluster_data:
         ret[row['ad_cluster_id']] = get_ad_cluster_record(row)
 
-    return Response(json.dumps(list(ret.values())),  mimetype='application/json')
+    return Response(json.dumps(list(ret.values())), mimetype='application/json')
 
 def make_archive_id_and_image_map(archive_id):
     return {'archive_id': archive_id, 'url':
@@ -153,4 +152,3 @@ def get_ad_cluster_details(ad_cluster_id):
     #  ad_cluster_data['advertizer_webiste'] = 'set_me!'
     #  ad_cluster_data['advertizer_risk_score'] = 'set_me!'
     return ad_cluster_data
-
