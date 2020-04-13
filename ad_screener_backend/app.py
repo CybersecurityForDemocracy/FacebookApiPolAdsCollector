@@ -61,12 +61,13 @@ def get_topic_top_ad():
     region = request.args.get('region', '%')
 
     # This date parsing is needed because the FE passes raw UTC formatted dates in Zulu time
-    # We can simplify this by not sending the time at all from the FE
+    # We can simplify this by not sending the time at all from the FE. Then we strip the time info
+    # and just take the date for simplicity.
     if min_date and max_date:
         min_date = datetime.datetime.strptime(
-            min_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+            min_date, "%Y-%m-%dT%H:%M:%S.%fZ").date()
         max_date = datetime.datetime.strptime(
-            max_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+            max_date, "%Y-%m-%dT%H:%M:%S.%fZ").date()
 
     if gender:
         if gender.lower() == 'all':
