@@ -771,6 +771,21 @@ class DBInterface():
 
     def topic_top_ad_clusters_by_spend(self, topic_id, min_date, max_date, region, gender,
                                        age_group, limit=50):
+        """Get ad cluster data for topic per specified constraints.
+
+        Args:
+            topic_id: int ID of topic to get ad clusters for.
+            min_date: str/datetime min ad creation date in clusters to retrieve
+            max_date: str/datetime max ad creation date in clusters to retrieve
+            region: str region in which ad clusters must have impressions.
+            gender: str gender for which ad clusters must have impressions.
+            age_group: str age group for which ad clusters must have impressions.
+            limit: int, max number of rows to fetch.
+        Returns:
+            iterable of dicts of ad_cluster_id, canonical_archive_id, min_ad_creation_time,
+            max_ad_creation_time, min_spend_sum, max_spend_sum, min_impressions_sum,
+            min_impressions_sum. Ordered by max_spend_sum
+        """
         cursor = self.get_cursor()
         query_args = {'topic_id': topic_id, 'limit': limit, 'min_date': min_date,
                       'max_date': max_date}
@@ -782,12 +797,12 @@ class DBInterface():
 
         gender_where_clause = sql.SQL('')
         if gender:
-            gender_where_clause =  sql.SQL('AND gender = %(gender)s')
+            gender_where_clause = sql.SQL('AND gender = %(gender)s')
             query_args['gender'] = gender
 
         age_group_where_clause = sql.SQL('')
         if age_group:
-            age_group_where_clause =  sql.SQL('AND age_group = %(age_group)s')
+            age_group_where_clause = sql.SQL('AND age_group = %(age_group)s')
             query_args['age_group'] = age_group
 
         topic_and_date_where_clause = sql.SQL(
@@ -795,7 +810,7 @@ class DBInterface():
             'ad_cluster_metadata.min_ad_creation_time >= %(min_date)s AND '
             'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s')
         where_clause = sql.SQL(' ').join([topic_and_date_where_clause, region_where_clause,
-                                         gender_where_clause, age_group_where_clause])
+                                          gender_where_clause, age_group_where_clause])
         query = sql.SQL(
             'SELECT ad_cluster_metadata.ad_cluster_id, canonical_archive_id, '
             'min_ad_creation_time, max_ad_creation_time, ad_cluster_metadata.min_spend_sum, '
