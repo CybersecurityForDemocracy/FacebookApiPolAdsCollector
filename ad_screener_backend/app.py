@@ -1,10 +1,10 @@
 from collections import defaultdict
 import datetime
-import humanize
 import json
 
 from flask import current_app, Flask, request, Response
 from flask_cors import CORS
+import humanize
 
 import config_utils
 import db_functions
@@ -56,11 +56,11 @@ def get_ad_cluster_record(ad_cluster_data_row):
     # Again, used for display and not computation
     # TODO(macpd): use correct currency symbol instead of assuming USD.
     ad_cluster_data['total_spend'] = '$%s - $%s' % (
-            humanize_int(int(ad_cluster_data_row['min_spend_sum'])),
-            humanize_int(int(ad_cluster_data_row['max_spend_sum'])))
+        humanize_int(int(ad_cluster_data_row['min_spend_sum'])),
+        humanize_int(int(ad_cluster_data_row['max_spend_sum'])))
     ad_cluster_data['total_impressions'] = '%s - %s' % (
-            humanize_int(int(ad_cluster_data_row['min_impressions_sum'])),
-            humanize_int(int(ad_cluster_data_row['max_impressions_sum'])))
+        humanize_int(int(ad_cluster_data_row['min_impressions_sum'])),
+        humanize_int(int(ad_cluster_data_row['max_impressions_sum'])))
     ad_cluster_data['url'] = (
         'https://storage.googleapis.com/facebook_ad_archive_screenshots/%(canonical_archive_id)s.png'
         % ad_cluster_data_row)
@@ -152,8 +152,6 @@ def get_ad_cluster_details(ad_cluster_id):
             'max_impressions': row['max_impressions_sum']})
 
     ad_cluster_data['funding_entity'] = list(db_interface.ad_cluster_funder_names(ad_cluster_id))
-    # These are used to generate image urls for the alternative AdDetails Alternate Creatives tab
-    # additional alternative_archive_ids for this ad_cluster_data if you'd like more results. '354236975482127', '565888870688521'
     canonical_archive_id = db_interface.ad_cluster_canonical_archive_id(ad_cluster_id)
     ad_cluster_data['canonical_archive_id'] = canonical_archive_id
     ad_cluster_data['url'] = (
