@@ -46,6 +46,7 @@ def get_ad_cluster_record(ad_cluster_data_row):
 
     # This is the total spend and impression for the ad across all demos/regions
     # Again, used for display and not computation
+    # TODO(macpd): use correct currency symbol instead of assuming USD.
     ad_cluster_data['total_spend'] = '$%s - $%s' % (
             humanize_int(int(ad_cluster_data_row['min_spend_sum'])),
             humanize_int(int(ad_cluster_data_row['max_spend_sum'])))
