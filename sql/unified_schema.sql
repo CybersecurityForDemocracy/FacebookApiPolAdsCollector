@@ -183,7 +183,8 @@ CREATE TABLE ad_cluster_topics (
   ad_cluster_id bigint,
   topic_id bigint,
   CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  PRIMARY KEY (ad_cluster_id, topic_id)
 );
 CREATE TABLE ad_cluster_demo_impression_results (
   ad_cluster_id bigint,
