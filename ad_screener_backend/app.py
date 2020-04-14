@@ -32,7 +32,7 @@ def index():
     return 'Welcome to the ad screening data server. try <a href="./getmockads"/> for data.'
 
 def humanize_int(i):
-    if i >= 1000000:
+    if i < 1000000:
         return humanize.intcomma(i)
     return humanize.intword(i)
 
