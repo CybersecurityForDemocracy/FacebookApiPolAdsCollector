@@ -32,6 +32,14 @@ def index():
     return 'Welcome to the ad screening data server. try <a href="./getmockads"/> for data.'
 
 def humanize_int(i):
+    """Format numbers for easier readability. Numbers over 1 million are comma formatted, numbers
+    over 1 million will be formatted like "1.2 million"
+
+    Args:
+        i: int to format.
+    Returns:
+        string of formatted number.
+    """
     if i < 1000000:
         return humanize.intcomma(i)
     return humanize.intword(i)
