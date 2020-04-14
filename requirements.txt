@@ -16,7 +16,6 @@ google-cloud-storage==1.19.0
 google-resumable-media==0.4.0
 googleapis-common-protos==1.6.0
 grpcio==1.27.2
-humanize==2.3.0
 idna==2.8
 joblib==0.14.1
 nltk==3.4.5
