@@ -811,6 +811,7 @@ class DBInterface():
         topic_and_date_where_clause = sql.SQL(
             'WHERE topic_id = %(topic_id)s AND '
             'ad_cluster_metadata.min_ad_creation_time >= %(min_date)s AND '
+            'ad_cluster_metadata.min_ad_creation_time <= %(max_date)s AND '
             'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s')
         where_clause = sql.SQL(' ').join([topic_and_date_where_clause, region_where_clause,
                                           gender_where_clause, age_group_where_clause])

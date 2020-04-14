@@ -50,7 +50,6 @@ def get_ad_cluster_record(ad_cluster_data_row):
 
 @app.route('/getads')
 def get_topic_top_ad():
-    # This is a prototype impl with real data, it uses archive_ids instead of deduped clusters
     db_connection = config_utils.get_database_connection(
         current_app.config['DATABASE_CONNECTION_PARAMS'])
     topic_id = request.args.get('topic', None)
