@@ -495,7 +495,8 @@ class DBInterface():
         cursor = self.get_cursor()
         truncate_query = ('TRUNCATE ad_cluster_topics')
         query = ('INSERT INTO ad_cluster_topics (ad_cluster_id, topic_id) (SELECT ad_cluster_id, '
-                 'topic_id FROM ad_clusters JOIN ad_topics USING(archive_id))')
+                 'topic_id FROM ad_clusters JOIN ad_topics USING(archive_id)) ON CONFLICT '
+                 '(ad_cluster_id, topic_id) DO NOTHING')
         cursor.execute(truncate_query)
         cursor.execute(query)
 
@@ -810,6 +811,7 @@ class DBInterface():
         topic_and_date_where_clause = sql.SQL(
             'WHERE topic_id = %(topic_id)s AND '
             'ad_cluster_metadata.min_ad_creation_time >= %(min_date)s AND '
+            'ad_cluster_metadata.min_ad_creation_time <= %(max_date)s AND '
             'ad_cluster_metadata.max_ad_creation_time <= %(max_date)s')
         where_clause = sql.SQL(' ').join([topic_and_date_where_clause, region_where_clause,
                                           gender_where_clause, age_group_where_clause])
