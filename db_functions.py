@@ -495,7 +495,8 @@ class DBInterface():
         cursor = self.get_cursor()
         truncate_query = ('TRUNCATE ad_cluster_topics')
         query = ('INSERT INTO ad_cluster_topics (ad_cluster_id, topic_id) (SELECT ad_cluster_id, '
-                 'topic_id FROM ad_clusters JOIN ad_topics USING(archive_id))')
+                 'topic_id FROM ad_clusters JOIN ad_topics USING(archive_id)) ON CONFLICT '
+                 '(ad_cluster_id, topic_id) DO NOTHING')
         cursor.execute(truncate_query)
         cursor.execute(query)
 
