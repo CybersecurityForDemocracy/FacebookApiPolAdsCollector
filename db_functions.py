@@ -874,6 +874,16 @@ class DBInterface():
         cursor.execute(query, (ad_cluster_id, ))
         return [row['entity_name'] for row in cursor.fetchall()]
 
+    def ad_cluster_advertiser_info(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = (
+            'SELECT DISTINCT advertiser_score, partisan_lean, party, fec_id, page_url, page_type '
+            'FROM page_metadata JOIN ads USING(page_id) JOIN ad_clusters USING(archive_id) WHERE '
+            'ad_cluster_id = %s')
+        cursor.execute(query, (ad_cluster_id, ))
+        print(cursor.query)
+        return cursor.fetchall()
+
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
         insert_funder_query = (
