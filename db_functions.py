@@ -890,7 +890,6 @@ class DBInterface():
             'SELECT DISTINCT advertiser_score, partisan_lean, party, fec_id, page_url, page_type '
             'FROM page_metadata JOIN ad_cluster_pages USING(page_id) WHERE ad_cluster_id = %s')
         cursor.execute(query, (ad_cluster_id, ))
-        print(cursor.query)
         return cursor.fetchall()
 
     def update_ad_types(self, ad_type_map):
