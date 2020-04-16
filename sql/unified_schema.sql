@@ -252,5 +252,9 @@ CREATE TABLE ad_topics (
 
 CREATE INDEX ad_clusters_ad_cluster_id_idx ON public.ad_clusters USING btree (ad_cluster_id);
 CREATE INDEX ad_clusters_archive_id_idx ON public.ad_clusters USING btree (archive_id);
+CREATE INDEX ad_cluster_metadata_min_ad_creation_time_idx ON public.ad_cluster_metadata USING btree (min_ad_creation_time);
+CREATE INDEX ad_cluster_metadata_max_ad_creation_time_idx ON public.ad_cluster_metadata USING btree (max_ad_creation_time);
+CREATE INDEX ad_cluster_pages_ad_cluster_id_idx ON public.ad_cluster_pages USING btree (ad_cluster_id);
+CREATE INDEX ad_cluster_pages_page_id_idx ON public.ad_cluster_pages USING btree (page_id);
 CREATE INDEX ad_topics_topic_id ON public.ad_topics USING btree (topic_id);
 CREATE INDEX ads_ads_creation_time_idx ON public.ads USING btree (ad_creation_time);
