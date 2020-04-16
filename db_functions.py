@@ -832,7 +832,7 @@ class DBInterface():
             'JOIN ad_cluster_topics USING(ad_cluster_id) JOIN ad_cluster_region_impression_results '
             'USING (ad_cluster_id) JOIN ad_cluster_demo_impression_results USING(ad_cluster_id) '
             '{where_clause} GROUP BY ad_cluster_id ORDER BY max_spend_sum DESC, '
-            'date_trunc(\'week\', ad_cluster_metadata.min_ad_creation_time) DESC LIMIT %(limit)s'
+            'ad_cluster_metadata.min_ad_creation_time DESC LIMIT %(limit)s'
             ).format(where_clause=where_clause)
         cursor.execute(query, query_args)
         logging.info('topic_top_ad_clusters_by_spend query: %s', cursor.query)
