@@ -121,18 +121,18 @@ def cluster_additional_ads(db_interface, ad_cluster_id):
 
 def cluster_advertiser_info(db_interface, ad_cluster_id):
     advertiser_info = db_interface.ad_cluster_advertiser_info(ad_cluster_id)
-    advertiser_info_dict = defaultdict(list)
+    advertiser_info_dict = defaultdict(set)
     for row in advertiser_info:
         if row['page_type']:
-            advertiser_info_dict['advertiser_type'].append(row['page_type'])
+            advertiser_info_dict['advertiser_type'].add(row['page_type'])
         if row['party']:
-            advertiser_info_dict['advertiser_party'].append(row['party'])
+            advertiser_info_dict['advertiser_party'].add(row['party'])
         if row['fec_id']:
-            advertiser_info_dict['advertiser_fec_id'].append(row['fec_id'])
+            advertiser_info_dict['advertiser_fec_id'].add(row['fec_id'])
         if row['page_url']:
-            advertiser_info_dict['advertiser_webiste'].append(row['page_url'])
+            advertiser_info_dict['advertiser_webiste'].add(row['page_url'])
         if row['advertiser_score']:
-            advertiser_info_dict['advertiser_risk_score'].append(str(row['advertiser_score']))
+            advertiser_info_dict['advertiser_risk_score'].add(str(row['advertiser_score']))
 
     return {
         'advertiser_type': ', '.join(advertiser_info_dict['advertiser_type']),
