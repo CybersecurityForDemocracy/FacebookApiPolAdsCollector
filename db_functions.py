@@ -490,6 +490,16 @@ class DBInterface():
         cursor.execute(truncate_ad_cluster_categories_query)
         cursor.execute(ad_cluster_categories_update_query)
 
+        # Truncate table before repopulating to prevent stale mapping of cluster ID -> page IDs
+        truncate_ad_cluster_pages_query = 'TRUNCATE TABLE ad_cluster_pages'
+        ad_cluster_pages_update_query = (
+            'INSERT INTO ad_cluster_pages (ad_cluster_id, page_id) ('
+            '  SELECT ad_cluster_id, page_id FROM pages JOIN ads USING(page_id) JOIN ad_clusters '
+            '  USING(archive_id) GROUP BY ad_cluster_id, page_id)'
+            'ON CONFLICT (ad_cluster_id, page_id) DO NOTHING')
+        cursor.execute(truncate_ad_cluster_pages_query)
+        cursor.execute(ad_cluster_pages_update_query)
+
 
     def repopulate_ad_cluster_topic_table(self):
         cursor = self.get_cursor()
@@ -878,8 +888,7 @@ class DBInterface():
         cursor = self.get_cursor()
         query = (
             'SELECT DISTINCT advertiser_score, partisan_lean, party, fec_id, page_url, page_type '
-            'FROM page_metadata JOIN ads USING(page_id) JOIN ad_clusters USING(archive_id) WHERE '
-            'ad_cluster_id = %s')
+            'FROM page_metadata JOIN ad_cluster_pages USING(page_id) WHERE ad_cluster_id = %s')
         cursor.execute(query, (ad_cluster_id, ))
         print(cursor.query)
         return cursor.fetchall()

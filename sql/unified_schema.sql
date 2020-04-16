@@ -188,6 +188,13 @@ CREATE TABLE ad_cluster_topics (
   CONSTRAINT topic_id_fk FOREIGN KEY (topic_id) REFERENCES topics (topic_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   PRIMARY KEY (ad_cluster_id, topic_id)
 );
+CREATE TABLE ad_cluster_pages (
+  ad_cluster_id bigint,
+  page_id bigint,
+  CONSTRAINT ad_cluster_id_fk FOREIGN KEY (ad_cluster_id) REFERENCES ad_cluster_metadata (ad_cluster_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_cluster_and_page_id UNIQUE(ad_cluster_id, page_id)
+);
 CREATE TABLE ad_cluster_demo_impression_results (
   ad_cluster_id bigint,
   age_group character varying,
