@@ -505,7 +505,7 @@ class DBInterface():
             'WHERE ad_cluster_metadata.ad_cluster_id = data.ad_cluster_id')
         cursor.execute(truncate_ad_cluster_pages_query)
         cursor.execute(ad_cluster_pages_update_query)
-        cursor.execute(ad_cluster_metadata)
+        cursor.execute(ad_cluster_metadata_page_count_update_query)
 
 
     def repopulate_ad_cluster_topic_table(self):
