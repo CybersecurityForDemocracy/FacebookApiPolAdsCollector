@@ -870,17 +870,11 @@ class DBInterface():
         cursor.execute(query, (ad_cluster_id, ))
         return [row['archive_id'] for row in cursor.fetchall()]
 
-    def ad_cluster_canonical_archive_id_and_size(self, ad_cluster_id):
+    def ad_cluster_metadata(self, ad_cluster_id):
         cursor = self.get_cursor()
-        query = (
-            'SELECT canonical_archive_id, cluster_size FROM ad_cluster_metadata WHERE '
-            'ad_cluster_id = %s')
+        query = 'SELECT * FROM ad_cluster_metadata WHERE ad_cluster_id = %s'
         cursor.execute(query, (ad_cluster_id, ))
-        row = cursor.fetchone()
-        if row:
-            return {'canonical_archive_id': row['canonical_archive_id'],
-                    'cluster_size': row['cluster_size']}
-        return None
+        return cursor.fetchone()
 
     def ad_cluster_types(self, ad_cluster_id):
         cursor = self.get_cursor()

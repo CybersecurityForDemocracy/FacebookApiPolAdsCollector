@@ -175,10 +175,11 @@ def get_ad_cluster_details(ad_cluster_id):
     ad_cluster_data['advertiser_info'] = cluster_advertiser_info(db_interface, ad_cluster_id)
 
     ad_cluster_data['funding_entity'] = list(db_interface.ad_cluster_funder_names(ad_cluster_id))
-    canonical_archive_id_and_size = db_interface.ad_cluster_canonical_archive_id_and_size(
-        ad_cluster_id)
-    ad_cluster_data['canonical_archive_id'] = canonical_archive_id_and_size['canonical_archive_id']
-    ad_cluster_data['cluster_size'] = canonical_archive_id_and_size['cluster_size']
+    ad_cluster_metadata = db_interface.ad_cluster_metadata(ad_cluster_id)
+    ad_cluster_data['cluster_size'] = ad_cluster_metadata['cluster_size']
+    ad_cluster_data['num_pages'] = ad_cluster_metadata['num_pages']
+    canonical_archive_id = ad_cluster_metadata['canonical_archive_id']
+    ad_cluster_data['canonical_archive_id'] = canonical_archive_id
     ad_cluster_data['url'] = (
         'https://storage.googleapis.com/facebook_ad_archive_screenshots/%s.png' %
         canonical_archive_id)
