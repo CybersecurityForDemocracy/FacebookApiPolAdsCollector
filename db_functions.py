@@ -510,7 +510,7 @@ class DBInterface():
         ad_cluster_metadata_page_count_update_query = (
             'UPDATE ad_cluster_metadata SET num_pages = data.num_pages FROM ( '
             '  SELECT ad_cluster_id, COUNT(DISTINCT(page_id)) AS num_pages FROM ad_cluster_pages '
-            '  GROUP BY ad_cluster_id) AS data'
+            '  GROUP BY ad_cluster_id) AS data '
             'WHERE ad_cluster_metadata.ad_cluster_id = data.ad_cluster_id')
         cursor.execute(truncate_ad_cluster_pages_query)
         cursor.execute(ad_cluster_pages_update_query)
