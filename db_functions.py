@@ -446,6 +446,15 @@ class DBInterface():
             'min_ad_creation_time = EXCLUDED.min_ad_creation_time, max_ad_creation_time = '
             'EXCLUDED.max_ad_creation_time, canonical_archive_id = EXCLUDED.canonical_archive_id')
         cursor.execute(ad_cluster_metadata_table_update_query)
+        # Re-assign canonical archive_ids where we have crawl info for the archive IDs in that
+        # cluster, and know they were crawled successfully.
+        ad_cluster_canonical_id_update_query = (
+            'UPDATE ad_cluster_metadata SET canonical_archive_id = data.canonical_archive_id FROM '
+            '  (SELECT ad_cluster_id, MIN(archive_id) AS canonical_archive_id FROM ad_clusters '
+            '   JOIN ad_snapshot_metadata USING(archive_id) WHERE snapshot_fetch_status = 1 '
+            '   GROUP BY ad_cluster_id) as data '
+            'WHERE ad_cluster_metadata.ad_cluster_id = data.ad_cluster_id')
+        cursor.execute(ad_cluster_canonical_id_update_query)
         ad_cluster_demo_impression_results_update_query = (
             'INSERT INTO ad_cluster_demo_impression_results (ad_cluster_id, age_group, gender, '
             'min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum) ('
