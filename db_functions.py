@@ -835,10 +835,11 @@ class DBInterface():
             'SELECT ad_cluster_metadata.ad_cluster_id, canonical_archive_id, '
             'min_ad_creation_time, max_ad_creation_time, ad_cluster_metadata.min_spend_sum, '
             'ad_cluster_metadata.max_spend_sum, ad_cluster_metadata.min_impressions_sum, '
-            'ad_cluster_metadata.max_impressions_sum, cluster_size FROM ad_cluster_metadata '
-            'JOIN ad_cluster_topics USING(ad_cluster_id) JOIN ad_cluster_region_impression_results '
-            'USING (ad_cluster_id) JOIN ad_cluster_demo_impression_results USING(ad_cluster_id) '
-            '{where_clause} GROUP BY ad_cluster_id ORDER BY max_spend_sum DESC, '
+            'ad_cluster_metadata.max_impressions_sum, cluster_size, num_pages FROM '
+            'ad_cluster_metadata JOIN ad_cluster_topics USING(ad_cluster_id) JOIN '
+            'ad_cluster_region_impression_results USING (ad_cluster_id) JOIN '
+            'ad_cluster_demo_impression_results USING(ad_cluster_id) {where_clause} '
+            'GROUP BY ad_cluster_id ORDER BY max_spend_sum DESC, '
             'ad_cluster_metadata.min_ad_creation_time DESC LIMIT %(limit)s'
             ).format(where_clause=where_clause)
         cursor.execute(query, query_args)

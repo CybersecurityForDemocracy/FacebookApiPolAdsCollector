@@ -65,6 +65,7 @@ def get_ad_cluster_record(ad_cluster_data_row):
         'https://storage.googleapis.com/facebook_ad_archive_screenshots/%(canonical_archive_id)s.png'
         % ad_cluster_data_row)
     ad_cluster_data['cluster_size'] = humanize_int(int(ad_cluster_data_row['cluster_size']))
+    ad_cluster_data['num_pages'] = humanize_int(int(ad_cluster_data_row['num_pages']))
     return ad_cluster_data
 
 @app.route('/getads')
