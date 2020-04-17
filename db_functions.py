@@ -431,20 +431,21 @@ class DBInterface():
         ad_cluster_metadata_table_update_query = (
             'INSERT INTO ad_cluster_metadata (ad_cluster_id, min_spend_sum, max_spend_sum, '
             'min_impressions_sum, max_impressions_sum, min_ad_creation_time, max_ad_creation_time, '
-            'canonical_archive_id) '
+            'canonical_archive_id, cluster_size) '
             '  (SELECT ad_cluster_id, SUM(min_spend) AS cluster_min_spend, '
             '  SUM(max_spend) AS cluster_max_spend, '
             '  SUM(min_impressions) AS cluster_min_impressions, '
             '  SUM(max_impressions) AS cluster_max_impressions, MIN(ad_creation_time) AS '
             '  min_ad_creation_time, MAX(ad_creation_time) AS max_ad_creation_time, '
-            '  MIN(archive_id) AS canonical_archive_id FROM '
+            '  MIN(archive_id) AS canonical_archive_id, COUNT(archive_id) as cluster_size FROM '
             '  ad_clusters JOIN impressions USING(archive_id) JOIN ads USING(archive_id) '
             '  GROUP BY ad_cluster_id) '
             'ON CONFLICT (ad_cluster_id) DO UPDATE SET min_spend_sum = EXCLUDED.min_spend_sum, '
             'max_spend_sum = EXCLUDED.max_spend_sum, min_impressions_sum = '
             'EXCLUDED.min_impressions_sum, max_impressions_sum = EXCLUDED.max_impressions_sum, '
             'min_ad_creation_time = EXCLUDED.min_ad_creation_time, max_ad_creation_time = '
-            'EXCLUDED.max_ad_creation_time, canonical_archive_id = EXCLUDED.canonical_archive_id')
+            'EXCLUDED.max_ad_creation_time, canonical_archive_id = EXCLUDED.canonical_archive_id, '
+            'cluster_size = EXCLUDED.cluster_size')
         cursor.execute(ad_cluster_metadata_table_update_query)
         ad_cluster_demo_impression_results_update_query = (
             'INSERT INTO ad_cluster_demo_impression_results (ad_cluster_id, age_group, gender, '
@@ -497,8 +498,14 @@ class DBInterface():
             '  SELECT ad_cluster_id, page_id FROM pages JOIN ads USING(page_id) JOIN ad_clusters '
             '  USING(archive_id) GROUP BY ad_cluster_id, page_id)'
             'ON CONFLICT (ad_cluster_id, page_id) DO NOTHING')
+        ad_cluster_metadata_page_count_update_query = (
+            'UPDATE ad_cluster_metadata SET num_pages = data.num_pages FROM ( '
+            '  SELECT ad_cluster_id, COUNT(DISTINCT(page_id)) AS num_pages FROM ad_cluster_pages '
+            '  GROUP BY ad_cluster_id) AS data'
+            'WHERE ad_cluster_metadata.ad_cluster_id = data.ad_cluster_id')
         cursor.execute(truncate_ad_cluster_pages_query)
         cursor.execute(ad_cluster_pages_update_query)
+        cursor.execute(ad_cluster_metadata)
 
 
     def repopulate_ad_cluster_topic_table(self):
@@ -828,7 +835,7 @@ class DBInterface():
             'SELECT ad_cluster_metadata.ad_cluster_id, canonical_archive_id, '
             'min_ad_creation_time, max_ad_creation_time, ad_cluster_metadata.min_spend_sum, '
             'ad_cluster_metadata.max_spend_sum, ad_cluster_metadata.min_impressions_sum, '
-            'ad_cluster_metadata.max_impressions_sum FROM ad_cluster_metadata '
+            'ad_cluster_metadata.max_impressions_sum, cluster_size FROM ad_cluster_metadata '
             'JOIN ad_cluster_topics USING(ad_cluster_id) JOIN ad_cluster_region_impression_results '
             'USING (ad_cluster_id) JOIN ad_cluster_demo_impression_results USING(ad_cluster_id) '
             '{where_clause} GROUP BY ad_cluster_id ORDER BY max_spend_sum DESC, '
@@ -841,16 +848,18 @@ class DBInterface():
     def ad_cluster_region_impression_results(self, ad_cluster_id):
         cursor = self.get_cursor(real_dict_cursor=True)
         query = (
-            'SELECT ad_cluster_id, region, min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum '
-            'FROM ad_cluster_region_impression_results WHERE ad_cluster_id = %(ad_cluster_id)s')
+            'SELECT ad_cluster_id, region, min_spend_sum, max_spend_sum, min_impressions_sum, '
+            'max_impressions_sum FROM ad_cluster_region_impression_results WHERE '
+            'ad_cluster_id = %(ad_cluster_id)s')
         cursor.execute(query, {'ad_cluster_id': ad_cluster_id})
         return cursor.fetchall()
 
     def ad_cluster_demo_impression_results(self, ad_cluster_id):
         cursor = self.get_cursor(real_dict_cursor=True)
         query = (
-            'SELECT ad_cluster_id, age_group, gender, min_spend_sum, max_spend_sum, min_impressions_sum, max_impressions_sum '
-            'FROM ad_cluster_demo_impression_results WHERE ad_cluster_id = %(ad_cluster_id)s')
+            'SELECT ad_cluster_id, age_group, gender, min_spend_sum, max_spend_sum, '
+            'min_impressions_sum, max_impressions_sum FROM ad_cluster_demo_impression_results '
+            'WHERE ad_cluster_id = %(ad_cluster_id)s')
         cursor.execute(query, {'ad_cluster_id': ad_cluster_id})
         return cursor.fetchall()
 
@@ -860,13 +869,16 @@ class DBInterface():
         cursor.execute(query, (ad_cluster_id, ))
         return [row['archive_id'] for row in cursor.fetchall()]
 
-    def ad_cluster_canonical_archive_id(self, ad_cluster_id):
+    def ad_cluster_canonical_archive_id_and_size(self, ad_cluster_id):
         cursor = self.get_cursor()
-        query = 'SELECT canonical_archive_id FROM ad_cluster_metadata WHERE ad_cluster_id = %s'
+        query = (
+            'SELECT canonical_archive_id, cluster_size FROM ad_cluster_metadata WHERE '
+            'ad_cluster_id = %s')
         cursor.execute(query, (ad_cluster_id, ))
         row = cursor.fetchone()
         if row:
-            return row['canonical_archive_id']
+            return {'canonical_archive_id': row['canonical_archive_id'],
+                    'cluster_size': row['cluster_size']}
         return None
 
     def ad_cluster_types(self, ad_cluster_id):

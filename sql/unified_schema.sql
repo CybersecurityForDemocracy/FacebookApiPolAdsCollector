@@ -179,6 +179,10 @@ CREATE TABLE ad_cluster_metadata (
   min_ad_creation_time date,
   max_ad_creation_time date,
   canonical_archive_id bigint,
+  -- Number of archive_id in cluster
+  cluster_size bigint,
+  -- Number of unique pages associated with the ads in a cluster.
+  num_pages bigint,
   CONSTRAINT archive_id_fk FOREIGN KEY (canonical_archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
 CREATE TABLE ad_cluster_topics (
