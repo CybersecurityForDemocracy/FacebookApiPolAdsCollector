@@ -6,6 +6,7 @@ import hashlib
 import logging
 import io
 import os.path
+import socket
 import sys
 import time
 
@@ -33,6 +34,7 @@ DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
 RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
+TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -645,13 +647,15 @@ class FacebookAdCreativeRetriever:
                         '%s', archive_id, snapshot_url)
 
             except TooManyRequestsException as error:
-                # TODO(macpd): implement logic to signal all threads to backoff.
-                slack_notifier.notify_slack(self.slack_url,
-                        ':rotating_light: :rotating_light: :rotating_light: fb_ad_creative_retriever.py '
-                        'thread raised with TooManyRequestsException. Aborting! :rotating_light: '
-                        ':rotating_light: :rotating_light:')
-                logging.error('TooManyRequestsException raised aborting!')
-                sys.exit(1)
+                slack_msg = (
+                    ':rotating_light: :rotating_light: :rotating_light: '
+                    'fb_ad_creative_retriever.py thread raised with TooManyRequestsException on '
+                    'host %s. Sleeping %d seconds! :rotating_light: :rotating_light: '
+                    ':rotating_light:' % (socket.getfqdn(), TOO_MANY_REQUESTS_SLEEP_TIME))
+                slack_notifier.notify_slack(self.slack_url, slack_msg)
+                logging.error('TooManyRequestsException raised. Sleeping %d seconds.',
+                              TOO_MANY_REQUESTS_SLEEP_TIME)
+                time.sleep(TOO_MANY_REQUESTS_SLEEP_TIME)
 
             except requests.RequestException as request_exception:
                 logging.info(
