@@ -797,7 +797,7 @@ class DBInterface():
         return {r['funding_entity'] for r in cursor.fetchall()}
 
     def topic_top_ad_clusters_by_spend(self, topic_id, min_date, max_date, region, gender,
-                                       age_group, limit=50):
+                                       age_group, order_by=None, limit=50):
         """Get ad cluster data for topic per specified constraints.
 
         Args:
@@ -834,6 +834,12 @@ class DBInterface():
             age_group_where_clause = sql.SQL('AND age_group = %(age_group)s')
             query_args['age_group'] = age_group
 
+        if order_by:
+            order_by_clause = sql.SQL('ORDER BY {} DESC').format(sql.Identifier(order_by))
+        else:
+            order_by_clause = sql.SQL(
+                'ORDER BY max_spend_sum DESC, ad_cluster_metadata.min_ad_creation_time DESC')
+
         topic_and_date_where_clause = sql.SQL(
             'WHERE topic_id = %(topic_id)s AND '
             '(ad_cluster_metadata.min_ad_creation_time <= %(max_date)s AND '
@@ -848,9 +854,8 @@ class DBInterface():
             'ad_cluster_metadata JOIN ad_cluster_topics USING(ad_cluster_id) JOIN '
             'ad_cluster_region_impression_results USING (ad_cluster_id) JOIN '
             'ad_cluster_demo_impression_results USING(ad_cluster_id) {where_clause} '
-            'GROUP BY ad_cluster_id ORDER BY max_spend_sum DESC, '
-            'ad_cluster_metadata.min_ad_creation_time DESC LIMIT %(limit)s'
-            ).format(where_clause=where_clause)
+            'GROUP BY ad_cluster_id {order_by_clause} LIMIT %(limit)s'
+            ).format(where_clause=where_clause, order_by_clause=order_by_clause)
         cursor.execute(query, query_args)
         logging.info('topic_top_ad_clusters_by_spend query: %s', cursor.query)
         return cursor.fetchall()
