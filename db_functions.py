@@ -905,6 +905,14 @@ class DBInterface():
         cursor.execute(query, (ad_cluster_id, ))
         return cursor.fetchall()
 
+    def ad_cluster_topics(self, ad_cluster_id):
+        cursor = self.get_cursor()
+        query = (
+            'SELECT DISTINCT topic_name FROM topics JOIN ad_cluster_topics USING(topic_id) '
+            'WHERE ad_cluster_id = %s')
+        cursor.execute(query, (ad_cluster_id, ))
+        return [row['topic_name'] for row in cursor.fetchall()]
+
     def update_ad_types(self, ad_type_map):
         cursor = self.get_cursor()
         insert_funder_query = (

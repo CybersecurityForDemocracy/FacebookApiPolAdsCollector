@@ -173,6 +173,7 @@ def get_ad_cluster_details(ad_cluster_id):
             'max_impressions': row['max_impressions_sum']})
 
     ad_cluster_data['advertiser_info'] = cluster_advertiser_info(db_interface, ad_cluster_id)
+    ad_cluster_data['topics'] = ', '.join(db_interface.ad_cluster_topics(ad_cluster_id))
 
     ad_cluster_data['funding_entity'] = list(db_interface.ad_cluster_funder_names(ad_cluster_id))
     ad_cluster_metadata = db_interface.ad_cluster_metadata(ad_cluster_id)
