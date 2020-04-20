@@ -82,7 +82,7 @@ def get_allowed_order_by_and_direction(order_by, direction):
         return None, None
 
     if order_by in ALLOWED_ORDER_BY_FIELDS and direction in ALLOWD_ORDER_DIRECTIONS:
-            return order_by, direction
+        return order_by, direction
 
     return None, None
 
