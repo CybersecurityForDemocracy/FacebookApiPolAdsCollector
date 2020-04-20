@@ -75,6 +75,9 @@ def get_ad_cluster_record(ad_cluster_data_row):
     return ad_cluster_data
 
 def get_allowed_order_by_and_direction(order_by, direction):
+    """Get |order_by| and |direction| which are valid and safe to send to DBInterface. Invalid args
+    return None.
+    """
     if not (order_by and direction):
         return None, None
 
