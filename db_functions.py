@@ -834,9 +834,9 @@ class DBInterface():
             age_group_where_clause = sql.SQL('AND age_group = %(age_group)s')
             query_args['age_group'] = age_group
 
-        if order_direction not in set(['ASC', 'DESC']):
-            raise ValueError('Invalid ORDER BY directive: \'%s\'' % order_direction)
-        if order_by:
+        if order_by and order_direction:
+            if order_direction not in set(['ASC', 'DESC']):
+                raise ValueError('Invalid ORDER BY directive: \'%s\'' % order_direction)
             order_by_clause = sql.SQL('ORDER BY {} {}').format(
                 sql.Identifier(order_by), sql.SQL(order_direction))
         else:

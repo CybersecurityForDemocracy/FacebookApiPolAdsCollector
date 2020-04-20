@@ -75,11 +75,10 @@ def get_ad_cluster_record(ad_cluster_data_row):
     return ad_cluster_data
 
 def get_allowed_order_by_and_direction(order_by, direction):
-    if not order_by:
+    if not (order_by and direction):
         return None, None
 
-    if order_by and order_by in ALLOWED_ORDER_BY_FIELDS:
-        if direction and direction in ALLOWD_ORDER_DIRECTIONS:
+    if order_by in ALLOWED_ORDER_BY_FIELDS and direction in ALLOWD_ORDER_DIRECTIONS:
             return order_by, direction
 
     return None, None
