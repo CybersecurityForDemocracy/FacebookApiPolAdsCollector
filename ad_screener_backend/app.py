@@ -1,6 +1,7 @@
 from collections import defaultdict
 import datetime
 import json
+import logging
 
 from flask import current_app, Flask, request, Response
 from flask_cors import CORS
@@ -14,6 +15,8 @@ app = Flask(__name__)
 CORS(app, origins=["http://ccs3usr.engineering.nyu.edu:8080",
                    "http://localhost:8080", "http://localhost:5000"])
 
+CLUSTER_ID_DENY_LIST = set([84184, 109726, 84353])
+
 
 def load_config(config_path):
     config = config_utils.get_config(config_path)
@@ -25,6 +28,7 @@ def load_config(config_path):
 
 
 load_config('db.cfg')
+config_utils.configure_logger('ad_screener_backend.log')
 
 
 @app.route('/')
@@ -109,6 +113,9 @@ def get_topic_top_ad():
 
     ret = {}
     for row in ad_cluster_data:
+        if int(row['ad_cluster_id']) in CLUSTER_ID_DENY_LIST:
+            logging.info('Skipping cluster ID %d', row['ad_cluster_id'])
+            continue
         ret[row['ad_cluster_id']] = get_ad_cluster_record(row)
 
     return Response(json.dumps(list(ret.values())), mimetype='application/json')
