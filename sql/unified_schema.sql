@@ -270,5 +270,6 @@ CREATE INDEX ad_cluster_metadata_max_ad_creation_time_idx ON public.ad_cluster_m
 CREATE INDEX ad_cluster_pages_ad_cluster_id_idx ON public.ad_cluster_pages USING btree (ad_cluster_id);
 CREATE INDEX ad_cluster_pages_page_id_idx ON public.ad_cluster_pages USING btree (page_id);
 CREATE INDEX ad_topics_topic_id ON public.ad_topics USING btree (topic_id);
+CREATE INDEX ad_cluster_topics_ad_cluster_id_idx ON public.ad_cluster_topics USING btree (ad_cluster_id);
 CREATE INDEX ads_ads_creation_time_idx ON public.ads USING btree (ad_creation_time);
 CREATE INDEX ads_page_id_idx ON public.ads USING btree (page_id);
