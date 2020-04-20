@@ -797,7 +797,7 @@ class DBInterface():
         return {r['funding_entity'] for r in cursor.fetchall()}
 
     def topic_top_ad_clusters_by_spend(self, topic_id, min_date, max_date, region, gender,
-                                       age_group, order_by=None, limit=50):
+                                       age_group, order_by=None, order_direction=None, limit=50):
         """Get ad cluster data for topic per specified constraints.
 
         Args:
@@ -834,8 +834,11 @@ class DBInterface():
             age_group_where_clause = sql.SQL('AND age_group = %(age_group)s')
             query_args['age_group'] = age_group
 
+        if order_direction not in set(['ASC', 'DESC']):
+            raise ValueError('Invalid ORDER BY directive: \'%s\'' % order_direction)
         if order_by:
-            order_by_clause = sql.SQL('ORDER BY {} DESC').format(sql.Identifier(order_by))
+            order_by_clause = sql.SQL('ORDER BY {} {}').format(
+                sql.Identifier(order_by), sql.SQL(order_direction))
         else:
             order_by_clause = sql.SQL(
                 'ORDER BY max_spend_sum DESC, ad_cluster_metadata.min_ad_creation_time DESC')

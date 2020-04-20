@@ -17,6 +17,7 @@ CORS(app, origins=["http://ccs3usr.engineering.nyu.edu:8080",
 ALLOWED_ORDER_BY_FIELDS = set(['min_ad_creation_time', 'max_ad_creation_time', 'min_spend_sum',
                                'max_spend_sum', 'min_impressions_sum', 'max_impressions_sum',
                                'cluster_size', 'num_pages'])
+ALLOWD_ORDER_DIRECTIONS = set(['ASC', 'DESC'])
 
 
 def load_config(config_path):
@@ -73,11 +74,15 @@ def get_ad_cluster_record(ad_cluster_data_row):
     ad_cluster_data['num_pages'] = humanize_int(int(ad_cluster_data_row['num_pages']))
     return ad_cluster_data
 
-def get_allowed_order_by_field(order_by_str):
-    if order_by_str and order_by_str in ALLOWED_ORDER_BY_FIELDS:
-        return order_by_str
+def get_allowed_order_by_and_direction(order_by, direction):
+    if not order_by:
+        return None, None
 
-    return None
+    if order_by and order_by in ALLOWED_ORDER_BY_FIELDS:
+        if direction and direction in ALLOWD_ORDER_DIRECTIONS:
+            return order_by, direction
+
+    return None, None
 
 @app.route('/getads')
 def get_topic_top_ad():
@@ -89,7 +94,8 @@ def get_topic_top_ad():
     gender = request.args.get('gender', None)
     age_range = request.args.get('ageRange', None)
     region = request.args.get('region', '%')
-    order_by = get_allowed_order_by_field(request.args.get('orderBy', None))
+    order_by, order_direction = get_allowed_order_by_and_direction(
+        request.args.get('orderBy', None), request.args.get('orderDirection', None))
 
     # This date parsing is needed because the FE passes raw UTC formatted dates in Zulu time
     # We can simplify this by not sending the time at all from the FE. Then we strip the time info
@@ -117,7 +123,7 @@ def get_topic_top_ad():
     db_interface = db_functions.DBInterface(db_connection)
     ad_cluster_data = db_interface.topic_top_ad_clusters_by_spend(
         topic_id, min_date=min_date, max_date=max_date, region=region, gender=gender,
-        age_group=age_range, order_by=order_by, limit=20)
+        age_group=age_range, order_by=order_by, order_direction=order_direction, limit=20)
 
     ret = {}
     for row in ad_cluster_data:
