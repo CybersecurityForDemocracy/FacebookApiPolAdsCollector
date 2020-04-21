@@ -4,7 +4,6 @@ import logging
 
 import psycopg2
 import psycopg2.extras
-from psycopg2 import sql
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
