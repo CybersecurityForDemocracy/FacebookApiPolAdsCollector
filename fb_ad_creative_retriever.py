@@ -15,6 +15,7 @@ from google.cloud import storage
 import requests
 from PIL import Image
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
     WebDriverException, ElementClickInterceptedException)
 import tenacity
@@ -27,6 +28,7 @@ import snapshot_url_util
 
 LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
+CHROME_BROWSER_PATH = '/usr/bin/chromium-browser'
 AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
 ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
@@ -173,9 +175,10 @@ def chunks(original_list, chunk_size):
 
 
 def get_headless_chrome_driver(webdriver_executable_path):
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
+    browser_options = Options()
+    browser_options.binary_location = CHROME_BROWSER_PATH
+    browser_options.add_argument("--headless")
+    browser_options.add_argument("--disable-gpu")
     prefs = {"profile.default_content_setting_values.notifications":2,
              "profile.managed_default_content_settings.stylesheets":2,
              "profile.managed_default_content_settings.cookies":2,
@@ -184,9 +187,8 @@ def get_headless_chrome_driver(webdriver_executable_path):
              "profile.managed_default_content_settings.popups":2,
              "profile.managed_default_content_settings.geolocation":2,
              "profile.managed_default_content_settings.media_stream":2}
-    chrome_options.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(executable_path=webdriver_executable_path,
-                              chrome_options=chrome_options)
+    browser_options.add_experimental_option("prefs", prefs)
+    driver = webdriver.Chrome(executable_path=webdriver_executable_path, options=browser_options)
     driver.set_window_size(800, 1000)
     return driver
 
