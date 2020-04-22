@@ -175,10 +175,10 @@ def chunks(original_list, chunk_size):
 
 
 def get_headless_chrome_driver(webdriver_executable_path):
-    browser_options = Options()
-    browser_options.binary_location = CHROME_BROWSER_PATH
-    browser_options.add_argument("--headless")
-    browser_options.add_argument("--disable-gpu")
+    chrome_options = Options()
+    chrome_options.binary_location = CHROME_BROWSER_PATH
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--disable-gpu")
     prefs = {"profile.default_content_setting_values.notifications":2,
              "profile.managed_default_content_settings.stylesheets":2,
              "profile.managed_default_content_settings.cookies":2,
@@ -187,8 +187,8 @@ def get_headless_chrome_driver(webdriver_executable_path):
              "profile.managed_default_content_settings.popups":2,
              "profile.managed_default_content_settings.geolocation":2,
              "profile.managed_default_content_settings.media_stream":2}
-    browser_options.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(executable_path=webdriver_executable_path, options=browser_options)
+    chrome_options.add_experimental_option("prefs", prefs)
+    driver = webdriver.Chrome(executable_path=webdriver_executable_path, options=chrome_options)
     driver.set_window_size(800, 1000)
     return driver
 
