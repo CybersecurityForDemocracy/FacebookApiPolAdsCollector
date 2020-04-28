@@ -68,7 +68,6 @@ CREATE TABLE funder_metadata (
 CREATE TABLE ad_metadata (
   archive_id bigint,
   funder_id bigint,
-  category character varying,
   ad_id bigint,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
@@ -243,7 +242,8 @@ CREATE TABLE ad_creative_to_recognized_entities (
   ad_creative_id bigint NOT NULL,
   entity_id bigint NOT NULL,
   CONSTRAINT ad_creative_id_fk FOREIGN KEY (ad_creative_id) REFERENCES ad_creatives (ad_creative_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT entity_id_fk FOREIGN KEY (entity_id) REFERENCES recognized_entities (entity_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_ad_creative_id_and_entity_id UNIQUE(ad_creative_id, entity_id)
 );
 CREATE TABLE snapshot_fetch_batches (
   batch_id bigserial PRIMARY KEY,
