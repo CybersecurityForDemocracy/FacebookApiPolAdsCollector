@@ -175,7 +175,7 @@ CREATE TABLE region_impression_results (
 CREATE TABLE snapshot_fetch_batches (
   batch_id bigserial PRIMARY KEY,
   time_started timestamp with time zone,
-  time_completed timestamp with time zone
+  time_completed timestamp with time zone,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
 );
 
