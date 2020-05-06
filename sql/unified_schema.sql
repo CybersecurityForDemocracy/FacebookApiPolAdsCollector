@@ -179,6 +179,12 @@ CREATE TABLE snapshot_fetch_batches (
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
 );
 
+CREATE TABLE ad_ids (
+  ad_id bigint PRIMARY KEY,
+  archive_id bigint NOT NULL,
+  CONSTRAINT unique_ad_id_archive_id UNIQUE(ad_id, archive_id)
+);
+
 -- Triggers to automatatically update the last_modified_time on every update.
 CREATE EXTENSION IF NOT EXISTS moddatetime;
 
