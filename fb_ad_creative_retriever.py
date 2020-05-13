@@ -440,7 +440,7 @@ class FacebookAdCreativeRetriever:
             return None
 
         return FetchedAdCreativeData(
-            achive_id=archive_id,
+            archive_id=archive_id,
             creative_body=creative_body,
             creative_link_url=creative_link_url,
             creative_link_title=creative_link_title,
