@@ -66,7 +66,7 @@ MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
     SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
 
 CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
-CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_XPATH_TEMPLATE
+CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = CREATIVE_LINK_CONTAINER_XPATH
 
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
 
@@ -562,6 +562,7 @@ class FacebookAdCreativeRetriever:
         # If ad has carousel, it should not have multiple versions. Instead it will have multiple
         # images with different images and links.
         if self.ad_snapshot_has_carousel_navigation_element():
+            logging.info('%s appears to be a carousel style creative.', archive_id)
             fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
             if fetched_ad_creative_data_list:
                 return AdScreenshotAndCreatives(screenshot_binary_data=screenshot,
