@@ -471,6 +471,7 @@ class FacebookAdCreativeRetriever:
 
             # Attempt to bring next carousel element into view
             self.click_carousel_navigation_element()
+        logging.info('%s Carousel creative data:\n%s', archive_id, fetched_ad_creatives)
         return fetched_ad_creatives
 
 
