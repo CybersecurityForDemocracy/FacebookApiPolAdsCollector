@@ -69,7 +69,7 @@ CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSI
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
     CREATIVE_CONTAINER_XPATH + '//div[%d]//a[@class=\'_231w _231z _4yee\']')
 
-CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = ('//a/div[@class=\'_10sf _5x5_\']')
+CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = '//a[class=\'_32rk _32rh _1cy6\']'
 
 INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
     "the Graph API response.")
@@ -449,6 +449,14 @@ class FacebookAdCreativeRetriever:
             creative_link_description=None,
             image_url=image_url)
 
+    def click_carousel_navigation_element(self):
+        try:
+            elem = self.chromedriver.find_element_by_xpath(
+                    CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
+            elem.click()
+        except NoSuchElementException as e:
+            pass
+
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
@@ -459,6 +467,9 @@ class FacebookAdCreativeRetriever:
                 fetched_ad_creatives.append(fetched_ad_creative_data)
             else:
                 break
+
+            # Attempt to bring next carousel element into view
+            self.click_carousel_navigation_element()
         return fetched_ad_creatives
 
 
