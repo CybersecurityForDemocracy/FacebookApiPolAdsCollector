@@ -463,14 +463,16 @@ class FacebookAdCreativeRetriever:
         except NoSuchElementException as e:
             pass
 
-        return FetchedAdCreativeData(
-            archive_id=archive_id,
-            creative_body=creative_body,
-            creative_link_url=creative_link_url,
-            creative_link_title=creative_link_title,
-            creative_link_caption=None,
-            creative_link_description=None,
-            image_url=image_url)
+        if any([creative_link_container, creative_link_url, creative_link_title, image_url]):
+            return FetchedAdCreativeData(
+                archive_id=archive_id,
+                creative_body=creative_body,
+                creative_link_url=creative_link_url,
+                creative_link_title=creative_link_title,
+                creative_link_caption=None,
+                creative_link_description=None,
+                image_url=image_url)
+        return None
 
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
