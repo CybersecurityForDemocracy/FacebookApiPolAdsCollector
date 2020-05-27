@@ -17,7 +17,8 @@ from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
-    WebDriverException, ElementClickInterceptedException)
+                                        WebDriverException, ElementClickInterceptedException,
+                                        StaleElementReferenceException)
 import tenacity
 
 import config_utils
@@ -58,6 +59,8 @@ EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
 CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
                             '//img[@class=\'_7jys img\']')
+CAROUSEL_CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
+                            '//img[@class=\'_7jys _7jyt img\']')
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 # Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
@@ -65,10 +68,8 @@ MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
 MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
     SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
 
-CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
-    CREATIVE_CONTAINER_XPATH + '//div[%d]//a[@class=\'_231w _231z _4yee\']')
-
+    CREATIVE_CONTAINER_XPATH + '//div[@class=\'_a2e\']/div[%d]//div[@class=\'_7jy-\']')
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = '//a/div[@class=\'_10sf _5x5_\']'
 
 INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
@@ -387,9 +388,9 @@ class FacebookAdCreativeRetriever:
             creative_link_title=creative_link_title,
             creative_link_description=creative_link_description)
 
-    def ad_snapshot_has_carousel_navigation_element(self):
+    def ad_snapshot_has_carousel_style_image_class(self):
         try:
-            self.chromedriver.find_element_by_xpath(CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
+            self.chromedriver.find_element_by_xpath(CAROUSEL_CREATIVE_IMAGE_URL_XPATH)
         except NoSuchElementException:
             return False
 
@@ -400,7 +401,7 @@ class FacebookAdCreativeRetriever:
             elem = self.chromedriver.find_element_by_xpath(
                     CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
             elem.click()
-        except NoSuchElementException as e:
+        except (NoSuchElementException, StaleElementReferenceException):
             pass
 
 
@@ -438,31 +439,45 @@ class FacebookAdCreativeRetriever:
                      archive_id)
         return None
 
-    def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
+    def get_single_carousel_item_creative_data(self, carousel_index, archive_id, creative_body):
+        xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
+        creative_link_url = None
+        creative_link_title = None
+        image_url = None
+
+        # Some carousel type ads have only links, only images, or images with links. So we attempt
+        # to retrive link and image data separately, and return whatever we found.
         try:
-            xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
+            xpath = '%s//a' % xpath_prefix
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
-            xpath = '%s/img' % xpath
+        except NoSuchElementException as e:
+            pass
+
+        try:
+            xpath = '%s//img' % xpath_prefix
             image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
         except NoSuchElementException as e:
-            return None
+            pass
 
-        return FetchedAdCreativeData(
-            archive_id=archive_id,
-            creative_body=creative_body,
-            creative_link_url=creative_link_url,
-            creative_link_title=creative_link_title,
-            creative_link_caption=None,
-            creative_link_description=None,
-            image_url=image_url)
+        if any([creative_link_url, creative_link_title, image_url]):
+            return FetchedAdCreativeData(
+                archive_id=archive_id,
+                creative_body=creative_body,
+                creative_link_url=creative_link_url,
+                creative_link_title=creative_link_title,
+                creative_link_caption=None,
+                creative_link_description=None,
+                image_url=image_url)
+
+        return None
 
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
         for carousel_index in range(1, 10):
-            fetched_ad_creative_data = self.get_ad_creative_carousel_link_attributes(
+            fetched_ad_creative_data = self.get_single_carousel_item_creative_data(
                 carousel_index, archive_id, creative_body)
             if fetched_ad_creative_data:
                 fetched_ad_creatives.append(fetched_ad_creative_data)
@@ -572,9 +587,9 @@ class FacebookAdCreativeRetriever:
         self.raise_if_page_has_age_restriction_or_id_error()
         screenshot = self.get_ad_snapshot_screenshot(archive_id)
 
-        # If ad has carousel, it should not have multiple versions. Instead it will have multiple
-        # images with different images and links.
-        if self.ad_snapshot_has_carousel_navigation_element():
+        # If ad has carousel style image class, it should not have multiple versions. Instead it
+        # will have multiple images with different images and links.
+        if self.ad_snapshot_has_carousel_style_image_class():
             logging.info('%s appears to be a carousel style creative.', archive_id)
             fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
             if fetched_ad_creative_data_list:
@@ -582,7 +597,7 @@ class FacebookAdCreativeRetriever:
                                                 creatives=fetched_ad_creative_data_list)
 
 
-        # If ad does not have carousel navigation elements, or no ad creatives data was found when
+        # If ad does not have carousel style image class, or no ad creatives data was found when
         # parsed as a caroursel type, ad likely has one image/body per version.
         creatives = []
         for i in range(2, 11):
