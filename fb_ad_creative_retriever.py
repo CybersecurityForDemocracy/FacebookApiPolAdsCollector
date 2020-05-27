@@ -66,8 +66,10 @@ MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
     SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
 
 CAROUSEL_TYPE_LINK_AND_IMAGE_CONTAINER_XPATH_TEMPLATE = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE
+#  CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
+    #  CREATIVE_CONTAINER_XPATH + '//div[%d]//a[@class=\'_231w _231z _4yee\']')
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
-    CREATIVE_CONTAINER_XPATH + '//div[%d]//a[@class=\'_231w _231z _4yee\']')
+    CREATIVE_CONTAINER_XPATH + '//div[%d]//div[@class=\'_7jy-\']')
 
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = '//a/div[@class=\'_10sf _5x5_\']'
 
@@ -438,16 +440,28 @@ class FacebookAdCreativeRetriever:
                      archive_id)
         return None
 
-    def get_ad_creative_carousel_link_attributes(self, carousel_index, archive_id, creative_body):
+    def get_single_carousel_item_creative_data(self, carousel_index, archive_id, creative_body):
+        xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
+        creative_link_container = None
+        creative_link_url = None
+        creative_link_title = None
+        image_url = None
+
+        # Some carousel type ads have only links, only images, or images with links. So we attempt
+        # to retrive link and image data separately, and return whatever we found.
         try:
-            xpath = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
-            creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
+            xpath = '%s//a' % xpath_root
+            creative_link_container = self.chromedriver.find_element_by_xpath(xpath + '//a')
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
-            xpath = '%s/img' % xpath
+        except NoSuchElementException as e:
+            pass
+
+        try:
+            xpath = '%s//img' % xpath_root
             image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
         except NoSuchElementException as e:
-            return None
+            pass
 
         return FetchedAdCreativeData(
             archive_id=archive_id,
@@ -462,7 +476,7 @@ class FacebookAdCreativeRetriever:
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
         for carousel_index in range(1, 10):
-            fetched_ad_creative_data = self.get_ad_creative_carousel_link_attributes(
+            fetched_ad_creative_data = self.get_single_carousel_item_creative_data(
                 carousel_index, archive_id, creative_body)
             if fetched_ad_creative_data:
                 fetched_ad_creatives.append(fetched_ad_creative_data)
