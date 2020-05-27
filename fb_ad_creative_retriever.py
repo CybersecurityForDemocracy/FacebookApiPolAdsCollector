@@ -450,7 +450,7 @@ class FacebookAdCreativeRetriever:
         # Some carousel type ads have only links, only images, or images with links. So we attempt
         # to retrive link and image data separately, and return whatever we found.
         try:
-            xpath = '%s//a' % xpath_root
+            xpath = '%s//a' % xpath_prefix
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath + '//a')
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
@@ -458,7 +458,7 @@ class FacebookAdCreativeRetriever:
             pass
 
         try:
-            xpath = '%s//img' % xpath_root
+            xpath = '%s//img' % xpath_prefix
             image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
         except NoSuchElementException as e:
             pass
