@@ -449,7 +449,7 @@ class FacebookAdCreativeRetriever:
         # to retrive link and image data separately, and return whatever we found.
         try:
             xpath = '%s//a' % xpath_prefix
-            creative_link_container = self.chromedriver.find_element_by_xpath(xpath + '//a')
+            creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
         except NoSuchElementException as e:
