@@ -470,6 +470,7 @@ class FacebookAdCreativeRetriever:
                 creative_link_caption=None,
                 creative_link_description=None,
                 image_url=image_url)
+
         return None
 
     def get_carousel_ad_creative_data(self, archive_id):
