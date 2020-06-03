@@ -38,6 +38,7 @@ DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
 RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
 TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
+NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
 CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
@@ -279,12 +280,22 @@ class FacebookAdCreativeRetriever:
             (self.num_image_uploade_to_gcs_bucket or 1),
             self.current_batch_id)
 
+    def get_archive_id_batch_or_wait_until_available(self):
+        """Get batch of archive IDs to fetch. Block until results are available."""
+        while True:
+            batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
+            if batch_and_archive_ids:
+                return batch_and_archive_ids
+
+            logging.info('No work available right now. Sleeping %s seconds',
+                         NO_AVAILABLE_WORK_SLEEP_TIME)
+            time.sleep(NO_AVAILABLE_WORK_SLEEP_TIME)
 
     def retreive_and_store_ad_creatives(self):
         self.start_time = time.monotonic()
         try:
             num_snapshots_processed_since_chromedriver_reset = 0
-            batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
+            batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
             while batch_and_archive_ids:
                 self.current_batch_id = batch_and_archive_ids['batch_id']
                 archive_ids = batch_and_archive_ids['archive_ids']
@@ -303,7 +314,7 @@ class FacebookAdCreativeRetriever:
 
                 self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
                 self.db_connection.commit()
-                batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
+                batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
         finally:
             self.log_stats()
             self.chromedriver.quit()
