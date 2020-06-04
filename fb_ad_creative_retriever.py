@@ -255,6 +255,9 @@ class FacebookAdCreativeRetriever:
 
         return (time.monotonic() - self.start_time)
 
+    def reset_start_time(self):
+        self.start_time = time.monotonic()
+
     def reset_chromedriver(self):
         logging.info('Resetting chromedriver.')
         self.chromedriver.quit()
@@ -290,13 +293,13 @@ class FacebookAdCreativeRetriever:
             logging.info('No work available right now. Sleeping %s seconds',
                          NO_AVAILABLE_WORK_SLEEP_TIME)
             time.sleep(NO_AVAILABLE_WORK_SLEEP_TIME)
+            self.reset_start_time()
 
     def retreive_and_store_ad_creatives(self):
-        self.start_time = time.monotonic()
         try:
             num_snapshots_processed_since_chromedriver_reset = 0
-            batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
-            while batch_and_archive_ids:
+            while True:
+                batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
                 self.current_batch_id = batch_and_archive_ids['batch_id']
                 archive_ids = batch_and_archive_ids['archive_ids']
                 logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
@@ -314,7 +317,6 @@ class FacebookAdCreativeRetriever:
 
                 self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
                 self.db_connection.commit()
-                batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
         finally:
             self.log_stats()
             self.chromedriver.quit()
