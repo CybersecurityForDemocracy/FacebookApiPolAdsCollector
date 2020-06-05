@@ -181,6 +181,9 @@ class SearchRunner():
 
     def process_page(self, ad):
             if int(ad.page_id) not in self.existing_pages:
+                if not ad.page_name:
+                    logging.warning('Empty page name for ad: %s', ad)
+                    return
                 self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
                 self.existing_pages.add(int(ad.page_id))
 
