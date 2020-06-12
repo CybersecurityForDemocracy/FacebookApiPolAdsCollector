@@ -46,6 +46,8 @@ AdRecord = namedtuple(
         "publisher_platform",
         "spend__lower_bound",
         "spend__upper_bound",
+        "potential_reach__lower_bound",
+        "potential_reach__upper_bound",
     ],
 )
 PageRecord = namedtuple("PageRecord", ["id", "name"])
@@ -103,8 +105,7 @@ FIELDS_TO_REQUEST = [
     "publisher_platform",
     "region_distribution",
     "spend",
-    "potential_reach_min",
-    "potential_reach_max",
+    "potential_reach"
 ]
 
 class SearchRunner():
@@ -173,6 +174,10 @@ class SearchRunner():
             publisher_platform=result.get('publisher_platform', 'NotProvided'),
             spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
             spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
+            potential_reach__lower_bound=result.get(
+                'potential_reach', dict()).get('lower_bound', '0'),
+            potential_reach__upper_bound=result.get(
+                'potential_reach', dict()).get('upper_bound', '0')
         )
         return curr_ad
 
