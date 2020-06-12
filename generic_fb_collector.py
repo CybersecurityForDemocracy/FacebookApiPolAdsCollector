@@ -103,6 +103,8 @@ FIELDS_TO_REQUEST = [
     "publisher_platform",
     "region_distribution",
     "spend",
+    "potential_reach_min",
+    "potential_reach_max",
 ]
 
 class SearchRunner():
