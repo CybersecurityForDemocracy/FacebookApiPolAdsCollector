@@ -299,7 +299,7 @@ class DBInterface():
         insert_template = (
             "(%(archive_id)s, %(ad_status)s , %(spend__lower_bound)s, %(spend__upper_bound)s, "
             "%(impressions__lower_bound)s , %(impressions__upper_bound)s, "
-            "%(potential_reach__lower_bound)s %(potential_reach__upper_bound)s)")
+            "%(potential_reach__lower_bound)s, %(potential_reach__upper_bound)s)")
         new_impressions_list = ([
             impression._asdict() for impression in new_impressions
         ])
