@@ -290,7 +290,7 @@ class DBInterface():
         cursor = self.get_cursor()
         impressions_insert_query = (
             "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, min_impressions, "
-            "max_impressions, potential_reach_lower_bound, potential_reach_upper_bound) VALUES %s "
+            "max_impressions, potential_reach_min, potential_reach_max) VALUES %s "
             "on conflict (archive_id) do update set ad_status = EXCLUDED.ad_status, "
             "min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
             "min_impressions = EXCLUDED.min_impressions, "

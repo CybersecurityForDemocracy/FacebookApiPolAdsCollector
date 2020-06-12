@@ -53,6 +53,8 @@ CREATE TABLE impressions (
   max_spend decimal(10, 2),
   min_impressions integer,
   max_impressions integer,
+  potential_reach_min bigint,
+  potential_reach_max bigint,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
