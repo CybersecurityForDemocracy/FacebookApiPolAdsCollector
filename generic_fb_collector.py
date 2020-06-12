@@ -175,9 +175,9 @@ class SearchRunner():
             spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
             spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
             potential_reach__lower_bound=result.get(
-                'potential_reach', dict()).get('lower_bound', '0'),
+                'potential_reach', dict()).get('lower_bound', None),
             potential_reach__upper_bound=result.get(
-                'potential_reach', dict()).get('upper_bound', '0')
+                'potential_reach', dict()).get('upper_bound', None)
         )
         return curr_ad
 
