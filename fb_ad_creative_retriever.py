@@ -780,8 +780,8 @@ class FacebookAdCreativeRetriever:
                 try:
                     ad_creative_body_language = detect(creative.creative_body)
                 except LangDetectException as error:
-                    logging.info('Unable to determine language of %s ad creative body: %s',
-                                 creative.archive_id, creative.creative_body)
+                    logging.info('Unable to determine language of ad creative body from %s',
+                                 creative.archive_id)
                     ad_creative_body_language = None
 
             ad_creative_records.append(
