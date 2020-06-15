@@ -111,6 +111,7 @@ CREATE TABLE ad_creatives (
   ad_creative_id bigserial PRIMARY KEY,
   archive_id bigint NOT NULL,
   ad_creative_body character varying,
+  ad_creative_body_language character varying,
   ad_creative_link_url character varying,
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
