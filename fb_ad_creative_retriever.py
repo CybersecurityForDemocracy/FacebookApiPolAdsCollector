@@ -14,6 +14,7 @@ import dhash
 from google.cloud import storage
 from langdetect import detect
 from langdetect import DetectorFactory
+from langdetect.lang_detect_exception import LangDetectException
 import requests
 from PIL import Image
 from selenium import webdriver
@@ -778,7 +779,7 @@ class FacebookAdCreativeRetriever:
                     text, encoding='UTF-32')).hexdigest()
                 try:
                     ad_creative_body_language = detect(creative.creative_body)
-                except langdetect.lang_detect_exception.LangDetectException as error:
+                except LangDetectException as error:
                     logging.info('Unable to determine language of %s ad creative body: %s',
                                  creative.archive_id, creative.creative_body)
                     ad_creative_body_language = None
