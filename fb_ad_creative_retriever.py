@@ -12,6 +12,8 @@ import time
 
 import dhash
 from google.cloud import storage
+from langdetect import detect
+from langdetect import DetectorFactory
 import requests
 from PIL import Image
 from selenium import webdriver
@@ -108,6 +110,7 @@ AdScreenshotAndCreatives = collections.namedtuple('AdScreenshotAndCreatives', [
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'archive_id',
     'ad_creative_body',
+    'ad_creative_body_language',
     'ad_creative_link_url',
     'ad_creative_link_caption',
     'ad_creative_link_title',
@@ -765,6 +768,7 @@ class FacebookAdCreativeRetriever:
             text = None
             text_sim_hash = None
             text_sha256_hash = None
+            ad_creative_body_language = None
             if creative.creative_body:
                 text = creative.creative_body
                 # Get simhash as hex without leading '0x'
@@ -772,10 +776,12 @@ class FacebookAdCreativeRetriever:
                     text)
                 text_sha256_hash = hashlib.sha256(bytes(
                     text, encoding='UTF-32')).hexdigest()
+                ad_creative_body_language = detect(creative.creative_body)
 
             ad_creative_records.append(
                 AdCreativeRecord(
                     ad_creative_body=text,
+                    ad_creative_body_language=ad_creative_body_language,
                     ad_creative_link_url=creative.creative_link_url,
                     ad_creative_link_caption=creative.creative_link_caption,
                     ad_creative_link_title=creative.creative_link_title,
@@ -800,6 +806,9 @@ class FacebookAdCreativeRetriever:
 def main(argv):
     config = configparser.ConfigParser()
     config.read(argv[0])
+
+    # Force consistent langdetect results. https://pypi.org/project/langdetect/
+    DetectorFactory.seed = 0
 
     access_token = config_utils.get_facebook_access_token(config)
     commit_to_db_every_n_processed = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
