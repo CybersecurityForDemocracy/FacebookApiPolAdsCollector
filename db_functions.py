@@ -400,8 +400,8 @@ class DBInterface():
             'image_bucket_path, image_sim_hash, image_sha256_hash) VALUES %s ON CONFLICT '
             '(archive_id, text_sha256_hash, image_sha256_hash) DO NOTHING')
         insert_template = (
-            '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_link_url)s, '
-            '%(ad_creative_body_language)s, %(ad_creative_link_title)s, '
+            '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_body_language)s, '
+            '%(ad_creative_link_url)s, %(ad_creative_link_title)s, '
             '%(ad_creative_link_caption)s, %(ad_creative_link_description)s, %(text_sha256_hash)s, '
             '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
             '%(image_sim_hash)s, %(image_sha256_hash)s)')
