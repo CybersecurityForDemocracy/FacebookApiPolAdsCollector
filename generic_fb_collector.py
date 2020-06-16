@@ -46,6 +46,8 @@ AdRecord = namedtuple(
         "publisher_platform",
         "spend__lower_bound",
         "spend__upper_bound",
+        "potential_reach__lower_bound",
+        "potential_reach__upper_bound",
     ],
 )
 PageRecord = namedtuple("PageRecord", ["id", "name"])
@@ -103,6 +105,7 @@ FIELDS_TO_REQUEST = [
     "publisher_platform",
     "region_distribution",
     "spend",
+    "potential_reach"
 ]
 
 class SearchRunner():
@@ -167,10 +170,14 @@ class SearchRunner():
             impressions__lower_bound=result.get('impressions', dict()).get('lower_bound', '0'),
             impressions__upper_bound=result.get('impressions', dict()).get('upper_bound', '0'),
             page_id=result.get('page_id', None),
-            page_name=result.get('page_name', None),
+            page_name=result.get('page_name', '<NOT PROVIDED>'),
             publisher_platform=result.get('publisher_platform', 'NotProvided'),
             spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
             spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
+            potential_reach__lower_bound=result.get(
+                'potential_reach', dict()).get('lower_bound', None),
+            potential_reach__upper_bound=result.get(
+                'potential_reach', dict()).get('upper_bound', None)
         )
         return curr_ad
 
@@ -181,8 +188,6 @@ class SearchRunner():
 
     def process_page(self, ad):
             if int(ad.page_id) not in self.existing_pages:
-                if not ad.page_name:
-                    raise ValueError('Empty page name for ad: %s', ad)
                 self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
                 self.existing_pages.add(int(ad.page_id))
 
@@ -371,23 +376,7 @@ class SearchRunner():
                          'after': next_cursor}, result)
                 self.process_ad(curr_ad)
                 self.process_funding_entity(curr_ad)
-                try:
-                    self.process_page(curr_ad)
-                except ValueError as error:
-                    logging.error('%s error when processing GraphAPI response for archive_id %s:\n'
-                        'Args: %s\n'
-                        'Full api response:\n%s',
-                        error,
-                        curr_ad.archive_id,
-                        {'access_token': self.fb_access_token,
-                         'id': 'ads_archive',
-                         'ad_reached_countries': self.country_code,
-                         'ad_type': 'POLITICAL_AND_ISSUE_ADS',
-                         'ad_active_status': 'ALL',
-                         'limit': self.request_limit,
-                         'search_page_ids': page_id,
-                         'fields': ",".join(FIELDS_TO_REQUEST),
-                         'after': next_cursor}, result)
+                self.process_page(curr_ad)
                 self.process_impressions(curr_ad)
 
                 # Update impressions
