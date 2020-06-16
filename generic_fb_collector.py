@@ -170,7 +170,7 @@ class SearchRunner():
             impressions__lower_bound=result.get('impressions', dict()).get('lower_bound', '0'),
             impressions__upper_bound=result.get('impressions', dict()).get('upper_bound', '0'),
             page_id=result.get('page_id', None),
-            page_name=result.get('page_name', None),
+            page_name=result.get('page_name', '<NOT PROVIDED>'),
             publisher_platform=result.get('publisher_platform', 'NotProvided'),
             spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
             spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
