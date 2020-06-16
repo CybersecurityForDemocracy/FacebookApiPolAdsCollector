@@ -53,6 +53,8 @@ CREATE TABLE impressions (
   max_spend decimal(10, 2),
   min_impressions integer,
   max_impressions integer,
+  potential_reach_min bigint,
+  potential_reach_max bigint,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
@@ -109,6 +111,7 @@ CREATE TABLE ad_creatives (
   ad_creative_id bigserial PRIMARY KEY,
   archive_id bigint NOT NULL,
   ad_creative_body character varying,
+  ad_creative_body_language character varying,
   ad_creative_link_url character varying,
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
