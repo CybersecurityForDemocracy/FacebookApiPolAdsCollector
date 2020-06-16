@@ -294,7 +294,9 @@ class DBInterface():
             "on conflict (archive_id) do update set ad_status = EXCLUDED.ad_status, "
             "min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
             "min_impressions = EXCLUDED.min_impressions, "
-            "max_impressions = EXCLUDED.max_impressions;")
+            "max_impressions = EXCLUDED.max_impressions, "
+            "potential_reach_min = EXCLUDED.potential_reach_min, "
+            "potential_reach_max = EXCLUDED.potential_reach_max;")
 
         insert_template = (
             "(%(archive_id)s, %(ad_status)s , %(spend__lower_bound)s, %(spend__upper_bound)s, "
