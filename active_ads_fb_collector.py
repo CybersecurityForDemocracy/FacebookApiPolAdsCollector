@@ -125,7 +125,7 @@ class SearchRunner():
 
             for result in results['data']:
                 total_ad_count += 1
-                active_ad_id = resul.get('id', None)
+                active_ad_id = result.get('id', None)
                 if active_ad_id:
                     try:
                         self.active_ads.append(int(active_ad_id))
