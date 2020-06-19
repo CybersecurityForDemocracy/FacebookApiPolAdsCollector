@@ -7,15 +7,12 @@ from collections import defaultdict, namedtuple
 from time import sleep
 
 
-import facebook
 from OpenSSL import SSL
+import facebook
 
 from db_functions import DBInterface
 from slack_notifier import notify_slack
 import config_utils
-
-DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
-DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
 
 SearchRunnerParams = namedtuple(
         'SearchRunnerParams',
@@ -234,10 +231,7 @@ def main(config):
     connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
     db = DBInterface(connection)
-    search_runner = SearchRunner(
-                    connection,
-                    db,
-                    search_runner_params)
+    search_runner = SearchRunner(connection, db, search_runner_params)
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
     notify_slack(slack_url,
