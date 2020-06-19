@@ -50,7 +50,7 @@ class SearchRunner():
                 'Will cease execution after %d seconds.', soft_deadline)
 
 
-    def run_search(self, page_id=None, page_name=None):
+    def run_search(self):
         #get ads
         graph = facebook.GraphAPI(access_token=self.fb_access_token)
         has_next = True
@@ -159,7 +159,9 @@ class SearchRunner():
         #write new ads to our database
         num_active_ads = len(self.active_ads)
         logging.info("marking %d ads as active today", num_active_ads)
-        self.db.update_ad_last_active_date(self.active_ads)
+        # Last active date is yesterday because we rely on condition HAS_IMPRESSIONS_YESTERDAY
+        last_active_date = datetime.date.today() - datetime.timedelta(days=1)
+        self.db.update_ad_last_active_date(last_active_date, self.active_ads)
         self.total_ads_marked_active += num_active_ads
         self.active_ads = []
         self.connection.commit()
