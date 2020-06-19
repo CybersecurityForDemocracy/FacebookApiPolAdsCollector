@@ -806,9 +806,9 @@ class DBInterface():
     def update_ad_last_active_date(self, archive_ids):
         cursor = self.get_cursor()
         update_last_active_field_query = (
-             'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id = %s')
+            'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id = %s')
         # execute_batch requires an interable of iterables for arglist
-        archive_id_arg_list = [tuple(archive_id) for archive_id in archive_ids,
+        archive_id_arg_list = [tuple(archive_id) for archive_id in archive_ids]
         psycopg2.extras.execute_batch(cursor,
                                       archive_id_arg_list,
                                       update_last_active_field_query,
