@@ -806,8 +806,5 @@ class DBInterface():
     def update_ad_last_active_date(self, archive_ids):
         cursor = self.get_cursor()
         update_last_active_field_query = (
-             'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id = %s')
-        psycopg2.extras.execute_batch(cursor,
-                                      update_last_active_field_query,
-                                      archive_ids,
-                                      page_size=_DEFAULT_PAGE_SIZE)
+             'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id IN (%s)')
+        cursor.execute(update_last_active_field_query, archive_ids, page_size=_DEFAULT_PAGE_SIZE)
