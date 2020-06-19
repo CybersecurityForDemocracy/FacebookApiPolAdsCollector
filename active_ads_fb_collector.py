@@ -125,7 +125,13 @@ class SearchRunner():
 
             for result in results['data']:
                 total_ad_count += 1
-                self.active_ads.append(result.get('id', None))
+                active_ad_id = resul.get('id', None)
+                if active_ad_id:
+                    try:
+                        self.active_ads.append(int(active_ad_id))
+                    except ValueError as error:
+                        logging.warning('Unable to convert "id" from result %s to int. %s', result,
+                                        error)
 
 
             #we finished parsing all ads in the result
