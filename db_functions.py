@@ -810,6 +810,6 @@ class DBInterface():
         # execute_batch requires an interable of iterables for arglist
         archive_id_arg_list = [(archive_id, ) for archive_id in archive_ids]
         psycopg2.extras.execute_batch(cursor,
-                                      archive_id_arg_list,
                                       update_last_active_field_query,
+                                      archive_id_arg_list,
                                       page_size=_DEFAULT_PAGE_SIZE)
