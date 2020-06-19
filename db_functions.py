@@ -806,5 +806,6 @@ class DBInterface():
     def update_ad_last_active_date(self, archive_ids):
         cursor = self.get_cursor()
         update_last_active_field_query = (
-             'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id IN (%s)')
-        cursor.execute(update_last_active_field_query, archive_ids)
+             'UPDATE impressions set last_active_date = CURRENT_DATE WHERE archive_id IN '
+             '(%(archive_id_list)s)')
+        cursor.execute(update_last_active_field_query, {'archive_id_list': archive_ids})
