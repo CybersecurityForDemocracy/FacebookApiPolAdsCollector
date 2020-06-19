@@ -809,7 +809,7 @@ class DBInterface():
             'UPDATE impressions SET last_active_date = %(last_active_date)s WHERE archive_id = '
             '%(archive_id)s')
         # execute_batch requires an interable of iterables for arglist
-        archive_id_arg_list = [{'last_active_date': last_archive_date, 'archive_id': archive_id}
+        archive_id_arg_list = [{'last_active_date': last_active_date, 'archive_id': archive_id}
                                for archive_id in archive_ids]
         psycopg2.extras.execute_batch(cursor,
                                       update_last_active_field_query,
