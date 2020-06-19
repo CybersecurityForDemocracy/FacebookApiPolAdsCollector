@@ -1,17 +1,13 @@
-import csv
 import datetime
-import json
 import logging
 import operator
 import sys
 import time
 from collections import defaultdict, namedtuple
 from time import sleep
-from urllib.parse import parse_qs, urlparse
+
 
 import facebook
-import psycopg2
-import psycopg2.extras
 from OpenSSL import SSL
 
 from db_functions import DBInterface
@@ -192,7 +188,7 @@ class SearchRunner():
 
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
-        num_ads_marked_active, num_impressions_added, min_expected_active_ads,
+        num_ads_marked_active, min_expected_active_ads,
         graph_error_count_string):
     duration_minutes = (end_time - start_time).seconds / 60
     slack_msg_error_prefix = ''
@@ -219,10 +215,7 @@ def main(config):
 
     slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
 
-    if 'MINIMUM_EXPECTED_ACTIVE_ADS' in config['SEARCH']:
-        min_expected_active_ads = int(config['SEARCH']['MINIMUM_EXPECTED_ACTIVE_ADS'])
-    else:
-        min_expected_active_ads = DEFAULT_MINIMUM_EXPECTED_ACTIVE_ADS
+    min_expected_active_ads = int(config['SEARCH']['MINIMUM_EXPECTED_ACTIVE_ADS'])
     logging.info('Expecting minimum %d active ads.', min_expected_active_ads)
 
     search_runner_params = SearchRunnerParams(
@@ -260,7 +253,7 @@ def main(config):
         logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url, country_code_uppercase, completion_status, start_time,
-            end_time, num_ads_marked_active,min_expected_active_ads,
+            end_time, num_ads_marked_active, min_expected_active_ads,
             search_runner.get_formatted_graph_error_counts())
 
 if __name__ == '__main__':
