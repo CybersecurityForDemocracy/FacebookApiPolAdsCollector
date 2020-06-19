@@ -28,10 +28,6 @@ SearchRunnerParams = namedtuple(
          ])
 
 
-FIELDS_TO_REQUEST = [
-    "id"
-]
-
 class SearchRunner():
 
     def __init__(self, connection, db, search_runner_params):
@@ -78,7 +74,7 @@ class SearchRunner():
                     impression_condition='HAS_IMPRESSIONS_YESTERDAY',
                     limit=self.request_limit,
                     search_terms=page_name,
-                    fields=",".join(FIELDS_TO_REQUEST),
+                    fields="id",
                     after=next_cursor)
             except facebook.GraphAPIError as e:
                 logging.error("Graph Error")
@@ -203,7 +199,7 @@ def send_completion_slack_notification(
             ":rotating_light: :rotating_light: :rotating_light: ")
 
     completion_message = (
-        f"{slack_msg_error_prefix}Collection started at{start_time} for "
+        f"{slack_msg_error_prefix} Collection started at{start_time} for "
         f"{country_code} completed in {duration_minutes} minutes. Added "
         f" active {num_ads_marked_active} ads. "
         f"Completion status {completion_status}. {graph_error_count_string}")
