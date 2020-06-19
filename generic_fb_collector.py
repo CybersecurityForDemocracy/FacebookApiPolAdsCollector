@@ -159,7 +159,7 @@ class SearchRunner():
             ad_creative_link_description=result.get('ad_creative_link_description', None),
             ad_creative_link_title=result.get('ad_creative_link_title', None),
             ad_delivery_start_time=result.get('ad_delivery_start_time', None),
-            ad_delivery_stop_time=result.get('ad_delivery_stop_time', self.crawl_date),
+            ad_delivery_stop_time=result.get('ad_delivery_stop_time', None),
             ad_snapshot_url=result.get('ad_snapshot_url', None),
             ad_status=ad_status,
             archive_id=archive_id,

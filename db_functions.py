@@ -802,3 +802,13 @@ class DBInterface():
                                        ad_type_map,
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
+
+    def update_ad_last_active_date(self, archive_ids):
+        cursor = self.get_cursor()
+        update_last_active_field_query = (
+                'UPDATE impressions set last_active_date = CURRENT_DATE where archive_id in '
+                'WHERE archive_id = %(archive_id)s')
+        psycopg2.extras.execute_batch(cursor,
+                                      update_last_active_field_query,
+                                      archive_ids,
+                                      page_size=_DEFAULT_PAGE_SIZE)
