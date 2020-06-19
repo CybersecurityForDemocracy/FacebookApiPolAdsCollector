@@ -73,7 +73,7 @@ class SearchRunner():
                     ad_active_status='ALL',
                     impression_condition='HAS_IMPRESSIONS_YESTERDAY',
                     limit=self.request_limit,
-                    search_terms=page_name,
+                    search_terms='""',
                     fields="id",
                     after=next_cursor)
             except facebook.GraphAPIError as e:
