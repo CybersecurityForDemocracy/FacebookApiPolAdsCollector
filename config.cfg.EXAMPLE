@@ -8,6 +8,8 @@ MAX_REQUESTS=5
 MINIMUM_EXPECTED_NEW_ADS=250 
 # default 10000
 MINIMUM_EXPECTED_NEW_IMPRESSIONS=100 
+# Time of day to stop collector. Intended to prevent jobs on a daily cron from running over next execution time.
+#STOP_AT_CLOCK_TIME=23:55
 
 [POSTGRES]
 HOST=localhost
