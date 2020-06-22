@@ -83,7 +83,6 @@ SearchRunnerParams = namedtuple(
          'sleep_time',
          'request_limit',
          'max_requests',
-         'soft_max_runtime_in_seconds'
          'stop_at_datetime',
          ])
 
