@@ -493,7 +493,7 @@ class FacebookAdCreativeRetriever:
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
-        for carousel_index in range(1, 10):
+        for carousel_index in range(1, 21):
             fetched_ad_creative_data = self.get_single_carousel_item_creative_data(
                 carousel_index, archive_id, creative_body)
             if fetched_ad_creative_data:
@@ -617,7 +617,7 @@ class FacebookAdCreativeRetriever:
         # If ad does not have carousel style image class, or no ad creatives data was found when
         # parsed as a caroursel type, ad likely has one image/body per version.
         creatives = []
-        for i in range(2, 11):
+        for i in range(2, 21):
             fetched_ad_creative_data = self.get_displayed_ad_creative_data(
                 archive_id)
             if fetched_ad_creative_data:
