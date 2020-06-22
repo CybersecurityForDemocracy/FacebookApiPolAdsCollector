@@ -142,7 +142,7 @@ class SearchRunner():
         if self.stop_time is None:
             return True
 
-        if time.monotonic() >= self.stop_time:
+        if time.time() >= self.stop_time:
             logging.info('Allowed execution time has elapsed. quiting.')
             return False
 
