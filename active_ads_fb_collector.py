@@ -21,7 +21,7 @@ SearchRunnerParams = namedtuple(
          'sleep_time',
          'request_limit',
          'max_requests',
-         'soft_max_runtime_in_seconds'
+         'stop_at_datetime',
          ])
 
 
@@ -39,13 +39,10 @@ class SearchRunner():
         self.total_ads_marked_active = 0
         self.graph_error_counts = defaultdict(int)
         self.stop_time = None
-        if search_runner_params.soft_max_runtime_in_seconds:
-            start_time = time.monotonic()
-            soft_deadline = search_runner_params.soft_max_runtime_in_seconds
-            self.stop_time = start_time + soft_deadline
-            logging.info(
-                'Will cease execution after %d seconds.', soft_deadline)
-
+        if search_runner_params.stop_at_datetime:
+            self.stop_time = search_runner_params.stop_at_datetime.timestamp()
+            logging.info('Will cease execution at %s (timestamp: %s)',
+                         search_runner_params.stop_at_datetime, self.stop_time)
 
     def run_search(self):
         #get ads
@@ -210,6 +207,21 @@ def send_completion_slack_notification(
         f"Completion status {completion_status}. {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
 
+def get_stop_at_datetime(stop_at_time_str):
+    """Get datetime for today at the clock time in ISO format.
+
+    Args:
+        stop_at_time_str: str time to stop in ISO format. only hours, minutes, seconds used (all other
+            info ignored).
+    Returns:
+        datetime.datetime of today at the specified time.
+    """
+    stop_at_time = datetime.time.fromisoformat(stop_at_time_str)
+    today = datetime.date.today()
+    return datetime.datetime(year=today.year, month=today.month, day=today.day,
+                             hour=stop_at_time.hour, minute=stop_at_time.minute,
+                             second=stop_at_time.second)
+
 
 def main(config):
     logging.info("starting")
@@ -219,14 +231,16 @@ def main(config):
     min_expected_active_ads = int(config['SEARCH']['MINIMUM_EXPECTED_ACTIVE_ADS'])
     logging.info('Expecting minimum %d active ads.', min_expected_active_ads)
 
+    stop_at_datetime = get_stop_at_datetime(
+        config.get('SEARCH', 'STOP_AT_CLOCK_TIME', fallback='23:55'))
+
     search_runner_params = SearchRunnerParams(
         country_code=config['SEARCH']['COUNTRY_CODE'],
         facebook_access_token=config_utils.get_facebook_access_token(config),
         sleep_time=config.getint('SEARCH', 'SLEEP_TIME'),
         request_limit=config.getint('SEARCH', 'LIMIT'),
         max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
-        soft_max_runtime_in_seconds=config.getint('SEARCH', 'SOFT_MAX_RUNIME_IN_SECONDS',
-                                                  fallback=None))
+        stop_at_datetime=stop_at_datetime)
 
     connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
