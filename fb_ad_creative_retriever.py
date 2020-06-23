@@ -670,7 +670,7 @@ class FacebookAdCreativeRetriever:
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                     i)
                 self.chromedriver.find_element_by_xpath(xpath).click()
-            except ElementNotInteractableException, TimeoutException as elem_error:
+            except (ElementNotInteractableException, TimeoutException) as elem_error:
                 logging.warning(
                     'Element to select from multiple creatives appears to be present at xpath '
                     '\'%s\', but is not interactable after waiting %d seconds Archive ID: %s.\n'
