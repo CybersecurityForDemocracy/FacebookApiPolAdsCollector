@@ -60,9 +60,9 @@ CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 
 EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
                                            '/div/div[@class=\'_8jtf\']/div[%d]')
-EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
-EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
-EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 2
+EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 3
+EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 4
 
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
 CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
@@ -449,9 +449,9 @@ class FacebookAdCreativeRetriever:
             creative_body = creative_container_element.find_element_by_xpath(
                 CREATIVE_BODY_XPATH).text
         except NoSuchElementException as e:
-            logging.info(
+            logging.debug(
                 'Unable to find ad creative body section for Archive ID: %s, Ad appers to have NO '
-                'creative(s). \nError: %s', archive_id, e)
+                'creative body text. \nError: %s', archive_id, e)
 
         return creative_body
 
@@ -481,10 +481,18 @@ class FacebookAdCreativeRetriever:
             pass
 
         try:
-            xpath = '%s//img' % xpath_prefix
-            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
+            xpath = '%s//video' % xpath_prefix
+            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('poster')
+            logging.debug('Found <video> tag, assuming creative has video')
         except NoSuchElementException:
             pass
+
+        if not image_url:
+            try:
+                xpath = '%s//img' % xpath_prefix
+                image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
+            except NoSuchElementException:
+                pass
 
         if any([creative_link_url, creative_link_title, image_url]):
             return FetchedAdCreativeData(
