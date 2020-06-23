@@ -19,7 +19,6 @@ import requests
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
@@ -65,10 +64,8 @@ EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMP
 EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 4
 
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
-CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
-                            '//img[@class=\'_7jys img\']')
-CAROUSEL_CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
-                            '//img[@class=\'_7jys _7jyt img\']')
+CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']'
+CAROUSEL_CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys _7jyt img\']'
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 # Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
@@ -424,7 +421,7 @@ class FacebookAdCreativeRetriever:
     def click_carousel_navigation_element(self):
         try:
             elem = self.chromedriver.find_element_by_xpath(
-                    CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
+                CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
             elem.click()
         except (NoSuchElementException, StaleElementReferenceException):
             pass
@@ -604,23 +601,23 @@ class FacebookAdCreativeRetriever:
     def click_multiple_creative_overflow_navigation_arrow(self):
         try:
             navigation_elem = self.chromedriver.find_element_by_xpath(
-                    MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
+                MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
             navigation_elem.click()
         except NoSuchElementException:
             return False
         return True
 
     def click_multiple_creative_overflow_navigation_arrow_until_element_visible(self,
-                                                                              element,
-                                                                              max_tries=3):
-        for f in range(max_tries):
+                                                                                element,
+                                                                                max_tries=3):
+        for _ in range(max_tries):
             self.click_multiple_creative_overflow_navigation_arrow()
             try:
                 wait = WebDriverWait(self.chromedriver,
                                      NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
-                next_creative_version_selector = wait.until(EC.visibility_of(element))
+                wait.until(EC.visibility_of(element))
                 return True
-            except (ElementNotInteractableException, TimeoutException) as elem_error:
+            except (ElementNotInteractableException, TimeoutException):
                 pass
         return False
 
@@ -628,7 +625,7 @@ class FacebookAdCreativeRetriever:
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s', archive_id)
         logging.debug('Getting creatives data from archive ID: %s\nURL: %s',
-                     archive_id, snapshot_url)
+                      archive_id, snapshot_url)
         self.chromedriver.get(snapshot_url)
 
         self.raise_if_page_has_age_restriction_or_id_error()
@@ -678,8 +675,8 @@ class FacebookAdCreativeRetriever:
                 # selection element into a clickable position.
                 self.click_multiple_creative_overflow_navigation_arrow()
 
-                # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
-                # that occludes the multiple creative selection elements.
+                # Sometimes after chrome is reset FB ad snapshot UI will show an informational
+                # diaglog that occludes the multiple creative selection elements.
                 # First we click on the previous element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
@@ -754,8 +751,8 @@ class FacebookAdCreativeRetriever:
                 snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
             snapshot_metadata_records.append(AdSnapshotMetadataRecord(
-                    archive_id=archive_id, snapshot_fetch_time=fetch_time,
-                    snapshot_fetch_status=snapshot_fetch_status))
+                archive_id=archive_id, snapshot_fetch_time=fetch_time,
+                snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
 
         self.num_ad_creatives_found += len(creatives)
