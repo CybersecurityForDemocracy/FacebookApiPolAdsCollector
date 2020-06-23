@@ -73,8 +73,7 @@ MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 # Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
 # box. (ex: 411302822856762).
-MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
-    SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
+MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = '//a/div[@direction=\'forward\']'
 # Time to wait for expected condition to click next creative seletor element
 NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS = 5
 
@@ -603,6 +602,20 @@ class FacebookAdCreativeRetriever:
             return False
         return True
 
+    def click_multiple_creative_overflow_navigation_arrow_until_element_visible(self,
+                                                                              element,
+                                                                              max_tries=3):
+        for f in range(max_tries):
+            self.click_multiple_creative_overflow_navigation_arrow()
+            try:
+                wait = WebDriverWait(self.chromedriver,
+                                     NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
+                next_creative_version_selector = wait.until(EC.visibility_of(element))
+                return True
+            except (ElementNotInteractableException, TimeoutException) as elem_error:
+                pass
+        return False
+
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s', archive_id)
@@ -639,18 +652,16 @@ class FacebookAdCreativeRetriever:
                     archive_id, i - 1)
                 break
 
-            self.click_multiple_creative_overflow_navigation_arrow()
             # Attempt to select next ad creative version. If no such element, assume
             # only one creative version is available.
-            # TODO(macpd): Figure out why, and properly handle,
-            # ElementNotInteractableException in this context.
             xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                 i)
             try:
-                wait = WebDriverWait(self.chromedriver,
-                                     NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
-                next_creative_version_selector = wait.until(EC.element_to_be_clickable(
-                    (By.XPATH, xpath)))
+                next_creative_version_selector = self.chromedriver.find_element_by_xpath(xpath)
+                # If element exists, but is not visible, click next arrow until it is visible.
+                if not next_creative_version_selector.is_displayed():
+                    self.click_multiple_creative_overflow_navigation_arrow_until_element_visible(
+                        next_creative_version_selector)
                 next_creative_version_selector.click()
             except ElementClickInterceptedException:
                 # If there are more ad creatives than can fit in the multiple creative selection
