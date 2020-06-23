@@ -19,9 +19,11 @@ import requests
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
                                         WebDriverException, ElementClickInterceptedException,
-                                        StaleElementReferenceException)
+                                        StaleElementReferenceException, TimeoutException)
 import tenacity
 
 import config_utils
@@ -53,24 +55,24 @@ CREATIVE_LINK_XPATH_TEMPLATE = (
 CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
 CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 
 EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
                                            '/div/div[@class=\'_8jtf\']/div[%d]')
-EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
-EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
-EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 2
+EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 3
+EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 4
 
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
-CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
-                            '//img[@class=\'_7jys img\']')
-CAROUSEL_CREATIVE_IMAGE_URL_XPATH = (CREATIVE_CONTAINER_XPATH +
-                            '//img[@class=\'_7jys _7jyt img\']')
+CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']'
+CAROUSEL_CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys _7jyt img\']'
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 # Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
 # box. (ex: 411302822856762).
-MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
-    SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
+MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = '//a/div[@direction=\'forward\']'
+# Time to wait for expected condition to click next creative seletor element
+NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS = 5
 
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
     CREATIVE_CONTAINER_XPATH + '//div[@class=\'_a2e\']/div[%d]//div[@class=\'_7jy-\']')
@@ -373,7 +375,7 @@ class FacebookAdCreativeRetriever:
                 EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH).text
             creative_link_description = self.chromedriver.find_element_by_xpath(
                 EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             return AdCreativeLinkAttributes(creative_link_url=None,
                                             creative_link_caption=None,
                                             creative_link_title=None,
@@ -394,9 +396,12 @@ class FacebookAdCreativeRetriever:
                 CREATIVE_LINK_TITLE_XPATH).text
             creative_link_caption = self.chromedriver.find_element_by_xpath(
                 CREATIVE_LINK_CAPTION_XPATH).text
+            if not creative_link_caption:
+                creative_link_caption = self.chromedriver.find_element_by_xpath(
+                    CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH).text
             creative_link_description = self.chromedriver.find_element_by_xpath(
                 CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             return None
 
         return AdCreativeLinkAttributes(
@@ -416,7 +421,7 @@ class FacebookAdCreativeRetriever:
     def click_carousel_navigation_element(self):
         try:
             elem = self.chromedriver.find_element_by_xpath(
-                    CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
+                CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
             elem.click()
         except (NoSuchElementException, StaleElementReferenceException):
             pass
@@ -441,9 +446,9 @@ class FacebookAdCreativeRetriever:
             creative_body = creative_container_element.find_element_by_xpath(
                 CREATIVE_BODY_XPATH).text
         except NoSuchElementException as e:
-            logging.info(
+            logging.debug(
                 'Unable to find ad creative body section for Archive ID: %s, Ad appers to have NO '
-                'creative(s). \nError: %s', archive_id, e)
+                'creative body text. \nError: %s', archive_id, e)
 
         return creative_body
 
@@ -469,14 +474,22 @@ class FacebookAdCreativeRetriever:
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             pass
 
         try:
-            xpath = '%s//img' % xpath_prefix
-            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
-        except NoSuchElementException as e:
+            xpath = '%s//video' % xpath_prefix
+            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('poster')
+            logging.debug('Found <video> tag, assuming creative has video')
+        except NoSuchElementException:
             pass
+
+        if not image_url:
+            try:
+                xpath = '%s//img' % xpath_prefix
+                image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
+            except NoSuchElementException:
+                pass
 
         if any([creative_link_url, creative_link_title, image_url]):
             return FetchedAdCreativeData(
@@ -493,7 +506,7 @@ class FacebookAdCreativeRetriever:
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
-        for carousel_index in range(1, 21):
+        for carousel_index in range(1, 10):
             fetched_ad_creative_data = self.get_single_carousel_item_creative_data(
                 carousel_index, archive_id, creative_body)
             if fetched_ad_creative_data:
@@ -588,17 +601,31 @@ class FacebookAdCreativeRetriever:
     def click_multiple_creative_overflow_navigation_arrow(self):
         try:
             navigation_elem = self.chromedriver.find_element_by_xpath(
-                    MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
+                MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
             navigation_elem.click()
         except NoSuchElementException:
             return False
         return True
 
+    def click_multiple_creative_overflow_navigation_arrow_until_element_visible(self,
+                                                                                element,
+                                                                                max_tries=3):
+        for _ in range(max_tries):
+            self.click_multiple_creative_overflow_navigation_arrow()
+            try:
+                wait = WebDriverWait(self.chromedriver,
+                                     NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
+                wait.until(EC.visibility_of(element))
+                return True
+            except (ElementNotInteractableException, TimeoutException):
+                pass
+        return False
+
 
     def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
         logging.info('Getting creatives data from archive ID: %s', archive_id)
         logging.debug('Getting creatives data from archive ID: %s\nURL: %s',
-                     archive_id, snapshot_url)
+                      archive_id, snapshot_url)
         self.chromedriver.get(snapshot_url)
 
         self.raise_if_page_has_age_restriction_or_id_error()
@@ -632,12 +659,15 @@ class FacebookAdCreativeRetriever:
 
             # Attempt to select next ad creative version. If no such element, assume
             # only one creative version is available.
-            # TODO(macpd): Figure out why, and properly handle,
-            # ElementNotInteractableException in this context.
             xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                 i)
             try:
-                self.chromedriver.find_element_by_xpath(xpath).click()
+                next_creative_version_selector = self.chromedriver.find_element_by_xpath(xpath)
+                # If element exists, but is not visible, click next arrow until it is visible.
+                if not next_creative_version_selector.is_displayed():
+                    self.click_multiple_creative_overflow_navigation_arrow_until_element_visible(
+                        next_creative_version_selector)
+                next_creative_version_selector.click()
             except ElementClickInterceptedException:
                 # If there are more ad creatives than can fit in the multiple creative selection
                 # list the UI renders a navitation arrow over the last visible element. That arrow
@@ -645,8 +675,8 @@ class FacebookAdCreativeRetriever:
                 # selection element into a clickable position.
                 self.click_multiple_creative_overflow_navigation_arrow()
 
-                # Sometimes after chrome is reset FB ad snapshot UI will show an informational diaglog
-                # that occludes the multiple creative selection elements.
+                # Sometimes after chrome is reset FB ad snapshot UI will show an informational
+                # diaglog that occludes the multiple creative selection elements.
                 # First we click on the previous element in the multiple creative selector to move
                 # focus elsewhere and dismiss the diaglog
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
@@ -656,11 +686,12 @@ class FacebookAdCreativeRetriever:
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                     i)
                 self.chromedriver.find_element_by_xpath(xpath).click()
-            except ElementNotInteractableException as elem_error:
+            except (ElementNotInteractableException, TimeoutException) as elem_error:
                 logging.warning(
-                    'Element to select from multiple creatives appears to '
-                    'be present at xpath \'%s\', but is not interactable. '
-                    'Archive ID: %s.\nerror: %s', xpath, archive_id, elem_error)
+                    'Element to select from multiple creatives appears to be present at xpath '
+                    '\'%s\', but is not interactable after waiting %d seconds Archive ID: %s.\n'
+                    'error: %s', xpath, NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS,
+                    archive_id, elem_error)
                 break
             except NoSuchElementException:
                 break
@@ -720,8 +751,8 @@ class FacebookAdCreativeRetriever:
                 snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
             snapshot_metadata_records.append(AdSnapshotMetadataRecord(
-                    archive_id=archive_id, snapshot_fetch_time=fetch_time,
-                    snapshot_fetch_status=snapshot_fetch_status))
+                archive_id=archive_id, snapshot_fetch_time=fetch_time,
+                snapshot_fetch_status=snapshot_fetch_status))
             self.num_snapshots_processed += 1
 
         self.num_ad_creatives_found += len(creatives)
