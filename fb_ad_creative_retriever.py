@@ -19,9 +19,12 @@ import requests
 from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
                                         WebDriverException, ElementClickInterceptedException,
-                                        StaleElementReferenceException)
+                                        StaleElementReferenceException, TimeoutException)
 import tenacity
 
 import config_utils
@@ -53,6 +56,7 @@ CREATIVE_LINK_XPATH_TEMPLATE = (
 CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
 CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
+CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 
 EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
                                            '/div/div[@class=\'_8jtf\']/div[%d]')
@@ -71,6 +75,8 @@ MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
 # box. (ex: 411302822856762).
 MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = (
     SNAPSHOT_CONTENT_ROOT_XPATH + '/div/div[2]/div/div/div/div[2]/div[2]/div/a')
+# Time to wait for expected condition to click next creative seletor element
+NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS = 5
 
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
     CREATIVE_CONTAINER_XPATH + '//div[@class=\'_a2e\']/div[%d]//div[@class=\'_7jy-\']')
@@ -302,22 +308,25 @@ class FacebookAdCreativeRetriever:
     def retreive_and_store_ad_creatives(self):
         try:
             num_snapshots_processed_since_chromedriver_reset = 0
-            self.current_batch_id = 0
-            archive_ids = [2183396445255803, 641969969575574, 706105496825876, 3280514678672236, 290722451944204, 282111142974151, 3142605315791574, 953708491728492, 238370824248079, 871356216706212, 268776481163152, 548872265829605, 891000231375402, 2750718945157191, 2625386537733706, 247748406577257, 1064432723940459, 711731946265591]
-            logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
-                         self.current_batch_id, len(archive_ids),
-                         self.commit_to_db_every_n_processed)
-            self.process_archive_id_batch(archive_ids)
-            num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
-            if (num_snapshots_processed_since_chromedriver_reset >=
-                    RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS):
-                logging.info('Processed %d snapshots since last reset (limit: %d)',
-                             num_snapshots_processed_since_chromedriver_reset,
-                             RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS)
-                self.reset_chromedriver()
-                num_snapshots_processed_since_chromedriver_reset = 0
+            while True:
+                batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
+                self.current_batch_id = batch_and_archive_ids['batch_id']
+                archive_ids = batch_and_archive_ids['archive_ids']
+                logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
+                             self.current_batch_id, len(archive_ids),
+                             self.commit_to_db_every_n_processed)
+                self.process_archive_id_batch(archive_ids)
+                num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
+                if (num_snapshots_processed_since_chromedriver_reset >=
+                        RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS):
+                    logging.info('Processed %d snapshots since last reset (limit: %d)',
+                                 num_snapshots_processed_since_chromedriver_reset,
+                                 RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS)
+                    self.reset_chromedriver()
+                    num_snapshots_processed_since_chromedriver_reset = 0
 
-            self.db_connection.commit()
+                self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
+                self.db_connection.commit()
         finally:
             self.log_stats()
             self.chromedriver.quit()
@@ -370,7 +379,7 @@ class FacebookAdCreativeRetriever:
                 EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH).text
             creative_link_description = self.chromedriver.find_element_by_xpath(
                 EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             return AdCreativeLinkAttributes(creative_link_url=None,
                                             creative_link_caption=None,
                                             creative_link_title=None,
@@ -391,9 +400,12 @@ class FacebookAdCreativeRetriever:
                 CREATIVE_LINK_TITLE_XPATH).text
             creative_link_caption = self.chromedriver.find_element_by_xpath(
                 CREATIVE_LINK_CAPTION_XPATH).text
+            if not creative_link_caption:
+                creative_link_caption = self.chromedriver.find_element_by_xpath(
+                    CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH).text
             creative_link_description = self.chromedriver.find_element_by_xpath(
                 CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             return None
 
         return AdCreativeLinkAttributes(
@@ -466,13 +478,13 @@ class FacebookAdCreativeRetriever:
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             pass
 
         try:
             xpath = '%s//img' % xpath_prefix
             image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             pass
 
         if any([creative_link_url, creative_link_title, image_url]):
@@ -587,8 +599,7 @@ class FacebookAdCreativeRetriever:
             navigation_elem = self.chromedriver.find_element_by_xpath(
                     MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
             navigation_elem.click()
-        except NoSuchElementException as error:
-            print(error)
+        except NoSuchElementException:
             return False
         return True
 
@@ -615,8 +626,7 @@ class FacebookAdCreativeRetriever:
         # If ad does not have carousel style image class, or no ad creatives data was found when
         # parsed as a caroursel type, ad likely has one image/body per version.
         creatives = []
-        for i in range(2, 11):
-            print(i)
+        for i in range(2, 21):
             fetched_ad_creative_data = self.get_displayed_ad_creative_data(
                 archive_id)
             if fetched_ad_creative_data:
@@ -629,6 +639,7 @@ class FacebookAdCreativeRetriever:
                     archive_id, i - 1)
                 break
 
+            self.click_multiple_creative_overflow_navigation_arrow()
             # Attempt to select next ad creative version. If no such element, assume
             # only one creative version is available.
             # TODO(macpd): Figure out why, and properly handle,
@@ -636,9 +647,12 @@ class FacebookAdCreativeRetriever:
             xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                 i)
             try:
-                self.chromedriver.find_element_by_xpath(xpath).click()
-            except (ElementClickInterceptedException, ElementNotInteractableException) as error:
-                print('handling error:', error)
+                wait = WebDriverWait(self.chromedriver,
+                                     NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
+                next_creative_version_selector = wait.until(EC.element_to_be_clickable(
+                    (By.XPATH, xpath)))
+                next_creative_version_selector.click()
+            except ElementClickInterceptedException:
                 # If there are more ad creatives than can fit in the multiple creative selection
                 # list the UI renders a navitation arrow over the last visible element. That arrow
                 # element intercepts clicks. So we click the element to move the next ad creative
@@ -656,6 +670,13 @@ class FacebookAdCreativeRetriever:
                 xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
                     i)
                 self.chromedriver.find_element_by_xpath(xpath).click()
+            except ElementNotInteractableException, TimeoutException as elem_error:
+                logging.warning(
+                    'Element to select from multiple creatives appears to be present at xpath '
+                    '\'%s\', but is not interactable after waiting %d seconds Archive ID: %s.\n'
+                    'error: %s', xpath, NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS,
+                    archive_id, elem_error)
+                break
             except NoSuchElementException:
                 break
 
