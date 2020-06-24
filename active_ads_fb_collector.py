@@ -70,6 +70,7 @@ class SearchRunner():
                     search_terms='""',
                     fields="id",
                     after=next_cursor)
+                backoff_multiplier = 1
             except facebook.GraphAPIError as e:
                 logging.error("Graph Error")
                 logging.error(e.code)
