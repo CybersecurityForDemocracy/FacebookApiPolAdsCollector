@@ -652,7 +652,6 @@ class DBInterface():
         cursor.execute(
             'UPDATE snapshot_fetch_batches SET time_started = NULL, time_completed = NULL WHERE '
             'time_completed IS NULL AND batch_id = %s', (batch_id,))
-        logging.info('Released uncompleted batch_id %s.\n%s\n%s', cursor.query, cursor.statusmessage)
 
 
     def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
