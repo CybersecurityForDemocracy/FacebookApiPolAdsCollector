@@ -311,7 +311,14 @@ class FacebookAdCreativeRetriever:
                 logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
                              self.current_batch_id, len(archive_ids),
                              self.commit_to_db_every_n_processed)
-                self.process_archive_id_batch(archive_ids)
+                try:
+                    self.process_archive_id_batch(archive_ids)
+                except BaseException as error:
+                    logging.info('Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
+                                 '%s', self.current_batch_id, error)
+                    self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
+                    self.db_connection.commit()
+                    raise
                 num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
                 if (num_snapshots_processed_since_chromedriver_reset >=
                         RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS):

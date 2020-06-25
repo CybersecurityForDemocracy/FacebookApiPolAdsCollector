@@ -647,6 +647,13 @@ class DBInterface():
         cursor.execute('UPDATE snapshot_fetch_batches SET time_completed = CURRENT_TIMESTAMP WHERE '
                        'batch_id = %s', (batch_id,))
 
+    def release_uncompleted_fetch_batch(self, batch_id):
+        cursor = self.get_cursor()
+        cursor.execute(
+            'UPDATE snapshot_fetch_batches SET time_started = NULL, time_completed = NULL WHERE '
+            'time_completed IS NULL AND batch_id = %s', (batch_id,))
+
+
     def advertisers_age_and_sum_min_impressions(self, min_ad_creation_time):
         """Get age of pages with an ad created on or after the specified time."""
         advertiser_age_query = (
