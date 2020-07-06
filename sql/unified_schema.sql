@@ -127,6 +127,7 @@ CREATE TABLE ad_creatives (
   image_sha256_hash character varying,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  -- If this is changed make sure to add/remove fields from AdCreativeRecordUniqueConstraintAttributes accordingly
   CONSTRAINT unique_creative_per_archive_id UNIQUE(archive_id, text_sha256_hash, image_sha256_hash)
 );
 CREATE TABLE demo_impressions (
