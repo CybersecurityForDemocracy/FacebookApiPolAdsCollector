@@ -411,7 +411,10 @@ class DBInterface():
             'text_sim_hash = EXCLUDED.text_sim_hash, '
             'image_downloaded_url = EXCLUDED.image_downloaded_url, '
             'image_bucket_path = EXCLUDED.image_bucket_path, '
-            'image_sim_hash = EXCLUDED.image_sim_hash WHERE archive_id = EXCLUDED.archive_id')
+            'image_sim_hash = EXCLUDED.image_sim_hash '
+            'WHERE ad_creatives.archive_id = EXCLUDED.archive_id AND '
+            'ad_creatives.text_sha256_hash = EXCLUDED.text_sha256_hash AND '
+            'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash')
         insert_template = (
             '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_body_language)s, '
             '%(ad_creative_link_url)s, %(ad_creative_link_title)s, '

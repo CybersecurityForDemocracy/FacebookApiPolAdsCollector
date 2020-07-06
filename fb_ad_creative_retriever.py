@@ -66,7 +66,11 @@ EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE
 
 CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
 CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']'
-CAROUSEL_CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys _7jyt img\']'
+
+CAROUSEL_CREATIVE_LINK_CAPTION_XPATH_SUFFIX = (
+    '//div[@class=\'_7jyr\']/div/div[@class=\'_4ik4 _4ik5\']')
+CAROUSEL_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_23n-\']'
+
 MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
     '//div[@class=\'_a2e\']/div[%d]/div/a')
 # Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
@@ -472,9 +476,9 @@ class FacebookAdCreativeRetriever:
         return None
 
 
-    def ad_snapshot_has_carousel_style_image_class(self):
+    def ad_snapshot_has_carousel_style_xpath(self):
         try:
-            self.chromedriver.find_element_by_xpath(CAROUSEL_CREATIVE_IMAGE_URL_XPATH)
+            self.chromedriver.find_element_by_xpath(CAROUSEL_XPATH)
         except NoSuchElementException:
             return False
 
@@ -527,8 +531,9 @@ class FacebookAdCreativeRetriever:
         xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
         creative_link_url = None
         creative_link_title = None
+        creative_link_caption = None
         image_url = None
-        button_text = None
+        creative_link_button_text = None
 
         # Some carousel type ads have only links, only images, or images with links. So we attempt
         # to retrive link and image data separately, and return whatever we found.
@@ -538,6 +543,12 @@ class FacebookAdCreativeRetriever:
             creative_link_url = creative_link_container.get_attribute('href')
             creative_link_title = creative_link_container.text
         except NoSuchElementException:
+            pass
+
+        try:
+            creative_link_caption = self.chromedriver.find_element_by_xpath(
+                xpath_prefix + CAROUSEL_CREATIVE_LINK_CAPTION_XPATH_SUFFIX).text
+        except NoSuchElementException as error:
             pass
 
         try:
@@ -555,20 +566,21 @@ class FacebookAdCreativeRetriever:
                 pass
 
         try:
-            button_text = self.chromedriver.find_element_by_xpath(
+            creative_link_button_text = self.chromedriver.find_element_by_xpath(
                 xpath_prefix + CREATIVE_LINK_BUTTON_XPATH_SUFFIX).text
         except NoSuchElementException:
             pass
 
-        if any([creative_link_url, creative_link_title, image_url, button_text]):
+        if any([creative_link_url, creative_link_title, creative_link_caption,
+                creative_link_button_text, image_url]):
             return FetchedAdCreativeData(
                 archive_id=archive_id,
                 creative_body=creative_body,
                 creative_link_url=creative_link_url,
                 creative_link_title=creative_link_title,
-                creative_link_caption=None,
+                creative_link_caption=creative_link_caption,
                 creative_link_description=None,
-                creative_link_button_text=button_text,
+                creative_link_button_text=creative_link_button_text,
                 image_url=image_url)
 
         return None
@@ -709,9 +721,9 @@ class FacebookAdCreativeRetriever:
         self.raise_if_page_has_age_restriction_or_id_error()
         screenshot = self.get_ad_snapshot_screenshot(archive_id)
 
-        # If ad has carousel style image class, it should not have multiple versions. Instead it
-        # will have multiple images with different images and links.
-        if self.ad_snapshot_has_carousel_style_image_class():
+        # If ad has carousel style xpath, it should not have multiple versions. Instead it will have
+        # multiple images with different images and links.
+        if self.ad_snapshot_has_carousel_style_xpath():
             logging.info('%s appears to be a carousel style creative.', archive_id)
             fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
             if fetched_ad_creative_data_list:
