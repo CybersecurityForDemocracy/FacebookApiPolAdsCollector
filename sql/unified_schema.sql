@@ -117,6 +117,7 @@ CREATE TABLE ad_creatives (
   ad_creative_link_caption character varying,
   ad_creative_link_title character varying,
   ad_creative_link_description character varying,
+  ad_creative_link_button_text character varying,
   -- TODO(macpd): how to store/differentiate videos?
   text_sim_hash character varying,
   text_sha256_hash character varying,
