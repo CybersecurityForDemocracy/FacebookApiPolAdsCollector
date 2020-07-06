@@ -1,5 +1,5 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, Counter
 import logging
 
 import psycopg2
@@ -431,6 +431,10 @@ class DBInterface():
                                            page_size=_DEFAULT_PAGE_SIZE)
         except psycopg2.ProgrammingError as error:
             logging.error('%s\n%s\n', error, cursor.query)
+            logging.error('ad_creative_record_list(len %d): %s', len(ad_creative_record_list),
+                          ad_creative_record_list)
+            record_counter = Counter(ad_creative_records)
+            logging.error('ad_creative_records counts:\n%s', record_counter)
             archive_id_text_image_sha256_set = set()
             duplicate_archive_id_text_image_sha256_set = set()
             duplicate_records = []
