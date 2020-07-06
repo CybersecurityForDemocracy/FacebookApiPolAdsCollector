@@ -104,7 +104,7 @@ FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', [
     'creative_link_title',
     'creative_link_description',
     'creative_link_caption',
-    'creative_link_button_text'
+    'creative_link_button_text',
     'image_url',
 ])
 
