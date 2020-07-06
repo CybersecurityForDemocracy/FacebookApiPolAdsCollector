@@ -548,7 +548,7 @@ class FacebookAdCreativeRetriever:
         try:
             creative_link_caption = self.chromedriver.find_element_by_xpath(
                 xpath_prefix + CAROUSEL_CREATIVE_LINK_CAPTION_XPATH_SUFFIX).text
-        except NoSuchElementException as error:
+        except NoSuchElementException:
             pass
 
         try:
