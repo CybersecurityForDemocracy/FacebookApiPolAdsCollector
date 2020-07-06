@@ -134,6 +134,13 @@ AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'image_sim_hash',
 ])
 
+AdCreativeRecordUniqueConstraintAttributes = collections.namedtuple(
+    'AdCreativeRecordUniqueConstraintAttributes',
+    ['archive_id',
+     'text_sha256_hash',
+     'image_sha256_hash'
+])
+
 AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     'archive_id',
     'snapshot_fetch_time',
@@ -853,6 +860,9 @@ class FacebookAdCreativeRetriever:
             self.store_snapshot_screenshot(archive_id, archive_id_to_screenshot[archive_id])
 
         ad_creative_records = []
+        # Used to prevent sending multiple records for upsert in same batch that have duplicate
+        # attributes the database requires to be unique.
+        seen_unique_constraint_attrs = set()
         for creative in creatives:
             image_dhash = None
             image_sha256 = None
@@ -905,6 +915,16 @@ class FacebookAdCreativeRetriever:
                                  creative.archive_id)
                     ad_creative_body_language = None
 
+            unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
+                archive_id=creative.archive_id, text_sha256_hash=text_sha256_hash,
+                image_sha256_hash=image_sha256)
+
+            if unique_constraint_attrs in seen_unique_constraint_attrs:
+                logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
+                             unique_constraint_attrs)
+                continue
+
+            seen_unique_constraint_attrs.add(unique_constraint_attrs)
             ad_creative_records.append(
                 AdCreativeRecord(
                     ad_creative_body=text,
