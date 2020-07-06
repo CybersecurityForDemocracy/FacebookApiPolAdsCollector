@@ -1,5 +1,5 @@
 """Encapsulation of database read, write, and update logic."""
-from collections import defaultdict, namedtuple, Counter
+from collections import defaultdict, namedtuple
 import logging
 
 import psycopg2
@@ -423,35 +423,11 @@ class DBInterface():
             '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
             '%(image_sim_hash)s, %(image_sha256_hash)s)')
         ad_creative_record_list = [x._asdict() for x in ad_creative_records]
-        try:
-            psycopg2.extras.execute_values(cursor,
-                                           insert_query,
-                                           ad_creative_record_list,
-                                           template=insert_template,
-                                           page_size=_DEFAULT_PAGE_SIZE)
-        except psycopg2.ProgrammingError as error:
-            logging.error('%s\n%s\n', error, cursor.query)
-            logging.error('ad_creative_record_list(len %d): %s', len(ad_creative_record_list),
-                          ad_creative_record_list)
-            record_counter = Counter(ad_creative_records)
-            logging.error('ad_creative_records counts:\n%s', record_counter.most_common())
-            archive_id_text_image_sha256_set = set()
-            duplicate_archive_id_text_image_sha256_set = set()
-            archive_id_text_image_sha256_list = []
-            duplicate_records = []
-            for record in ad_creative_records:
-                t = (record.archive_id, record.text_sha256_hash, record.image_sha256_hash)
-                archive_id_text_image_sha256_list.append(t)
-                if t in archive_id_text_image_sha256_set:
-                    duplicate_records.append(record)
-                    duplicate_archive_id_text_image_sha256_set.add(t)
-
-                archive_id_text_image_sha256_set.add(t)
-            logging.info('Duplicate (archive_id, text_sha256_hash, image_sha256_hash):\n%s',
-                         duplicate_archive_id_text_image_sha256_set)
-            logging.info('Duplicate records:\n%s', duplicate_records)
-            logging.info('(archive_id, text_sha256_hash, image_sha256_hash) occurrences:\n%s',
-                         Counter(archive_id_text_image_sha256_list).most_common())
+        psycopg2.extras.execute_values(cursor,
+                                       insert_query,
+                                       ad_creative_record_list,
+                                       template=insert_template,
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
 
     def insert_or_update_ad_cluster_records(self, ad_cluster_records):
