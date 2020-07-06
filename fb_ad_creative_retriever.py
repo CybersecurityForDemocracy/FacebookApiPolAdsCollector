@@ -915,16 +915,16 @@ class FacebookAdCreativeRetriever:
                                  creative.archive_id)
                     ad_creative_body_language = None
 
-            unique_contraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
+            unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
                 archive_id=creative.archive_id, text_sha256_hash=text_sha256_hash,
-                image_sha256_hash=image_sha256_hash)
+                image_sha256_hash=image_sha256)
 
             if unique_constraint_attrs in seen_unique_constraint_attrs:
                 logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
                              unique_constraint_attrs)
                 continue
 
-            seen_unique_constraint_attrs.add(unique_contraint_attrs)
+            seen_unique_constraint_attrs.add(unique_constraint_attrs)
             ad_creative_records.append(
                 AdCreativeRecord(
                     ad_creative_body=text,
