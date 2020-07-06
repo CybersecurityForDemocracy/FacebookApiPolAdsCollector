@@ -852,7 +852,7 @@ class FacebookAdCreativeRetriever:
         for archive_id in archive_id_to_screenshot:
             self.store_snapshot_screenshot(archive_id, archive_id_to_screenshot[archive_id])
 
-        ad_creative_records = []
+        ad_creative_records = set()
         for creative in creatives:
             image_dhash = None
             image_sha256 = None
@@ -905,22 +905,27 @@ class FacebookAdCreativeRetriever:
                                  creative.archive_id)
                     ad_creative_body_language = None
 
-            ad_creative_records.append(
-                AdCreativeRecord(
-                    ad_creative_body=text,
-                    ad_creative_body_language=ad_creative_body_language,
-                    ad_creative_link_url=creative.creative_link_url,
-                    ad_creative_link_caption=creative.creative_link_caption,
-                    ad_creative_link_title=creative.creative_link_title,
-                    ad_creative_link_description=creative.creative_link_description,
-                    ad_creative_link_button_text=creative.creative_link_button_text,
-                    archive_id=creative.archive_id,
-                    text_sha256_hash=text_sha256_hash,
-                    text_sim_hash=text_sim_hash,
-                    image_downloaded_url=creative.image_url,
-                    image_bucket_path=bucket_path,
-                    image_sim_hash=image_dhash,
-                    image_sha256_hash=image_sha256))
+            #  ad_creative_records.append(
+            ad_creative_record = AdCreativeRecord(
+                ad_creative_body=text,
+                ad_creative_body_language=ad_creative_body_language,
+                ad_creative_link_url=creative.creative_link_url,
+                ad_creative_link_caption=creative.creative_link_caption,
+                ad_creative_link_title=creative.creative_link_title,
+                ad_creative_link_description=creative.creative_link_description,
+                ad_creative_link_button_text=creative.creative_link_button_text,
+                archive_id=creative.archive_id,
+                text_sha256_hash=text_sha256_hash,
+                text_sim_hash=text_sim_hash,
+                image_downloaded_url=creative.image_url,
+                image_bucket_path=bucket_path,
+                image_sim_hash=image_dhash,
+                image_sha256_hash=image_sha256)
+            if ad_creative_record in ad_creative_records:
+                logging.info('Dropping duplicate AdCreativeRecord: %s', ad_creative_record)
+                continue
+            ad_creative_records.add(ad_creative_record)
+
 
         logging.info('Inserting %d AdCreativeRecords to to DB.',
                      len(ad_creative_records))
