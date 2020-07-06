@@ -423,11 +423,27 @@ class DBInterface():
             '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
             '%(image_sim_hash)s, %(image_sha256_hash)s)')
         ad_creative_record_list = [x._asdict() for x in ad_creative_records]
-        psycopg2.extras.execute_values(cursor,
-                                       insert_query,
-                                       ad_creative_record_list,
-                                       template=insert_template,
-                                       page_size=_DEFAULT_PAGE_SIZE)
+        try:
+            psycopg2.extras.execute_values(cursor,
+                                           insert_query,
+                                           ad_creative_record_list,
+                                           template=insert_template,
+                                           page_size=_DEFAULT_PAGE_SIZE)
+        except psycopg2.ProgrammingError as error:
+            logging.error('%s\n%s\n', error, cursor.query)
+            archive_id_text_image_sha256_set = set()
+            duplicate_archive_id_text_image_sha256_set = set()
+            duplicate_records = []
+            for record in ad_creative_records:
+                t = (record.archive_id, record.text_sha256_hash, record.image_sha256_hash)
+                if t in archive_id_text_image_sha256_set:
+                    duplicate_records.append(record)
+                    duplicate_archive_id_text_image_sha256_set.add(t)
+
+                archive_id_text_image_sha256_set.add(t)
+            logging.info('Duplicate (archive_id, text_sha256_hash, image_sha256_hash):\n%s',
+                         duplicate_archive_id_text_image_sha256_set)
+            logging.info('Duplicate records:\n%s', duplicate_records)
 
 
     def insert_or_update_ad_cluster_records(self, ad_cluster_records):
