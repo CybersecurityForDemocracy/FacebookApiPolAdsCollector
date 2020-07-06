@@ -429,7 +429,6 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-
     def insert_or_update_ad_cluster_records(self, ad_cluster_records):
         cursor = self.get_cursor()
         insert_query = (
