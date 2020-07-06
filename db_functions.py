@@ -430,8 +430,8 @@ class DBInterface():
                                            template=insert_template,
                                            page_size=_DEFAULT_PAGE_SIZE)
         except psycopg2.ProgrammingError as error:
-            logging.error('%s\nattempting to insert ad records:\n%s', error,
-                          '\n'.join(map(str, ad_creative_record_list)))
+            logging.error('%s\n%s\nattempting to insert ad records:\n%s', error,
+                          cursor.query, '\n'.join(map(str, ad_creative_record_list)))
 
     def insert_or_update_ad_cluster_records(self, ad_cluster_records):
         cursor = self.get_cursor()
