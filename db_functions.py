@@ -290,7 +290,8 @@ class DBInterface():
         cursor = self.get_cursor()
         impressions_insert_query = (
             "INSERT INTO impressions(archive_id, ad_status, min_spend, max_spend, min_impressions, "
-            "max_impressions, potential_reach_min, potential_reach_max) VALUES %s "
+            "max_impressions, potential_reach_min, potential_reach_max, last_active_date) "
+            "VALUES %s "
             "on conflict (archive_id) do update set ad_status = EXCLUDED.ad_status, "
             "min_spend = EXCLUDED.min_spend, max_spend = EXCLUDED.max_spend, "
             "min_impressions = EXCLUDED.min_impressions, "
@@ -301,7 +302,7 @@ class DBInterface():
         insert_template = (
             "(%(archive_id)s, %(ad_status)s , %(spend__lower_bound)s, %(spend__upper_bound)s, "
             "%(impressions__lower_bound)s , %(impressions__upper_bound)s, "
-            "%(potential_reach__lower_bound)s, %(potential_reach__upper_bound)s)")
+            "%(potential_reach__lower_bound)s, %(potential_reach__upper_bound)s, current_date)")
         new_impressions_list = ([
             impression._asdict() for impression in new_impressions
         ])
