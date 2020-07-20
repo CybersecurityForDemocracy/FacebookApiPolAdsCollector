@@ -87,7 +87,8 @@ CREATE TABLE page_metadata (
   page_url character varying,
   page_type character varying,
   country_code_list character varying,
-  page_owner character varying,
+  -- Page owner is parent page_id
+  page_owner bigint,
   page_status character varying,
   advertiser_score decimal(8, 6),
   partisan_lean character varying,
