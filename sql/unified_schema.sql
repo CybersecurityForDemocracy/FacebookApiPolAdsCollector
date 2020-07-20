@@ -94,6 +94,8 @@ CREATE TABLE page_metadata (
   partisan_lean character varying,
   party character varying,
   fec_id character varying,
+  candidate_first_name character varying,
+  candidate_last_name character varying,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (page_id),
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
