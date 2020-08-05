@@ -122,11 +122,13 @@ class SearchRunner():
         self.new_ads = set()
         self.new_funding_entities = set()
         self.new_pages = set()
+        self.deprecated_page_name_records = set()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
-        self.existing_pages = set()
+        self.existing_page_id_to_page_name = dict()
+        self.existing_page_ids = set()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -185,9 +187,21 @@ class SearchRunner():
             self.new_funding_entities.add((ad.funding_entity,))
 
     def process_page(self, ad):
-            if int(ad.page_id) not in self.existing_pages:
-                self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
-                self.existing_pages.add(int(ad.page_id))
+        page_id = int(ad.page_id)
+        if page_id not in self.existing_page_ids:
+            self.new_pages.add(PageRecord(id=page_id, name=ad.page_name))
+            self.existing_page_ids.add(page_id)
+        # If page_id is known, but page_name is different. Store it to update the page name. Ignore
+        # "bad" page_id 0.
+        if (page_id != 0 and page_id in self.existing_page_id_to_page_name and
+                self.existing_page_id_to_page_name[page_id] != ad.page_name):
+            self.deprecated_page_name_records.add(
+                PageRecord(id=page_id, name=self.existing_page_id_to_page_name[page_id]))
+            # Store new name as a new page so that it is updated.
+            self.new_pages.add(PageRecord(id=page_id, name=ad.page_name))
+            logging.info(
+                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s',
+                page_id, self.existing_page_id_to_page_name[page_id], ad.page_name, ad.archive_id)
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
@@ -250,7 +264,8 @@ class SearchRunner():
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_pages = self.db.existing_pages()
+        self.existing_page_id_to_page_name = self.db.existing_pages()
+        self.existing_page_ids = set(self.existing_page_id_to_page_name.keys())
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
@@ -272,6 +287,7 @@ class SearchRunner():
             self.new_ad_sponsors = set()
             self.new_funding_entities = set()
             self.new_pages = set()
+            self.deprecated_page_name_records = set()
             self.new_regions = set()
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
@@ -407,7 +423,7 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages)
+        self.db.insert_pages(self.new_pages, self.deprecated_page_name_records)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
