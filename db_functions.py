@@ -243,7 +243,7 @@ class DBInterface():
 
         insert_deprecated_page_names_query = (
             "INSERT INTO deprecated_page_names (page_id, page_name, deprecated_on) VALUES %s;")
-        insert_deprecated_page_names_template = "(%(id)s, %(name)s, DEFAULT)"
+        insert_deprecated_page_names_template = "(%(id)s, %(name)s, CURRENT_DATE)"
         deprecated_page_names_list = [x._asdict() for x in deprecated_page_name_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_deprecated_page_names_query,
