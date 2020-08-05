@@ -44,10 +44,7 @@ class DBInterface():
         cursor = self.get_cursor()
         existing_pages_query = "select page_id, page_name from pages;"
         cursor.execute(existing_pages_query)
-        existing_pages = set()
-        for row in cursor:
-            existing_pages.add(row['page_id'])
-        return existing_pages
+        return {int(row['page_id']): row['page_name'] for row in cursor}
 
     def existing_funding_entities(self):
         cursor = self.get_cursor()
@@ -219,10 +216,11 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages):
+    def insert_pages(self, new_pages, deprecated_page_name_records):
         cursor = self.get_cursor()
-        insert_page_query = ("INSERT INTO pages(page_id, page_name) VALUES %s "
-                             "on conflict (page_id) do nothing;")
+        insert_page_query = (
+            "INSERT INTO pages(page_id, page_name) VALUES %s on conflict (page_id) "
+            "do update set page_id = EXCLUDED.page_id, page_name = EXCLUDED.page_name;")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
@@ -238,6 +236,16 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, insert_page_metadata_query, new_page_list,
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
+
+        insert_deprecated_page_names_query = (
+            "INSERT INTO deprecated_page_names (page_id, page_name, deprecated_on) VALUES %s;")
+        insert_deprecated_page_names_template = "(%(id)s, %(name)s, DEFAULT)"
+        deprecated_page_names_list = [x._asdict() for x in deprecated_page_name_records]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_deprecated_page_names_query,
+                                       deprecated_page_names_list,
+                                       template=insert_deprecated_page_names_template,
+                                       page_size=_DEFAULT_PAGE_SIZE)
 
 
     def insert_page_metadata(self, new_page_metadata):
