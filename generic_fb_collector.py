@@ -191,8 +191,9 @@ class SearchRunner():
         if page_id not in self.existing_page_ids:
             self.new_pages.add(PageRecord(id=page_id, name=ad.page_name))
             self.existing_page_ids.add(page_id)
-        # If page_id is known, but page_name is different. Store it to update the page name.
-        if (page_id in self.existing_page_id_to_page_name and
+        # If page_id is known, but page_name is different. Store it to update the page name. Ignore
+        # "bad" page_id 0.
+        if (page_id != 0 and page_id in self.existing_page_id_to_page_name and
                 self.existing_page_id_to_page_name[page_id] != ad.page_name):
             self.deprecated_page_name_records.add(
                 PageRecord(id=page_id, name=self.existing_page_id_to_page_name[page_id]))
