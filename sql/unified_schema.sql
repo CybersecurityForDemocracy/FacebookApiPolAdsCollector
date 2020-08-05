@@ -105,7 +105,8 @@ CREATE TABLE deprecated_page_names (
   page_name character varying NOT NULL,
   deprecated_on date DEFAULT CURRENT_DATE NOT NULL,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+  CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT unique_id_name_deprecated_on UNIQUE(page_id, page_name, deprecated_on)
 );
 CREATE TABLE ad_snapshot_metadata (
   archive_id bigint NOT NULL,
