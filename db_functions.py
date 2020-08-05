@@ -242,7 +242,8 @@ class DBInterface():
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
 
         insert_deprecated_page_names_query = (
-            "INSERT INTO deprecated_page_names (page_id, page_name, deprecated_on) VALUES %s;")
+            "INSERT INTO deprecated_page_names (page_id, page_name, deprecated_on) VALUES %s "
+            "ON CONFLICT (page_id, page_name, deprecated_on) DO NOTHING;")
         insert_deprecated_page_names_template = "(%(id)s, %(name)s, CURRENT_DATE)"
         deprecated_page_names_list = [x._asdict() for x in deprecated_page_name_records]
         psycopg2.extras.execute_values(cursor,
