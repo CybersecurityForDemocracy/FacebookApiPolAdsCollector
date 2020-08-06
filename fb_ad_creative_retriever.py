@@ -592,6 +592,14 @@ class FacebookAdCreativeRetriever:
 
         return None
 
+    def carousel_style_ad_has_ad_removed_message(self):
+        try:
+            elem = self.chromedriver.find_element_by_xpath(
+                CREATIVE_CONTAINER_XPATH + '//div[@class=\'_7jyq\']')
+            return elem.text ==  'Ad removed'
+        except NoSuchElementException:
+            return False
+
     def get_carousel_ad_creative_data(self, archive_id):
         fetched_ad_creatives = []
         creative_body = self.get_ad_creative_body(archive_id)
@@ -601,6 +609,9 @@ class FacebookAdCreativeRetriever:
             if fetched_ad_creative_data:
                 fetched_ad_creatives.append(fetched_ad_creative_data)
             else:
+                break
+
+            if self.carousel_style_ad_has_ad_removed_message():
                 break
 
             # Attempt to bring next carousel element into view
