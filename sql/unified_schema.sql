@@ -100,13 +100,6 @@ CREATE TABLE page_metadata (
   PRIMARY KEY (page_id),
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
-CREATE TABLE deprecated_page_names (
-  page_id bigint NOT NULL,
-  page_name character varying NOT NULL,
-  deprecated_on date DEFAULT CURRENT_DATE NOT NULL,
-  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
-);
 CREATE TABLE ad_snapshot_metadata (
   archive_id bigint NOT NULL,
   needs_scrape boolean DEFAULT TRUE,
@@ -237,11 +230,6 @@ EXECUTE PROCEDURE moddatetime(last_modified_time);
 
 CREATE TRIGGER page_metadata_moddatetime
 BEFORE UPDATE ON page_metadata
-FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
-
-CREATE TRIGGER deprecated_page_names_moddatetime
-BEFORE UPDATE ON deprecated_page_names
 FOR EACH ROW
 EXECUTE PROCEDURE moddatetime(last_modified_time);
 
