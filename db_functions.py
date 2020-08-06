@@ -10,6 +10,8 @@ PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
                                         ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
 PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
                                    ['page_id', 'snapshot_fetch_status', 'count'])
+PageRecord = namedtuple("PageRecord", ["id", "name"])
+DeprecatedPageNameRecord = namedtuple("DeprecatedPageNameRecord", ["id", "name", "deprecatd_on"])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -42,9 +44,22 @@ class DBInterface():
 
     def existing_pages(self):
         cursor = self.get_cursor()
-        existing_pages_query = "select page_id, page_name from pages;"
-        cursor.execute(existing_pages_query)
-        return {int(row['page_id']): row['page_name'] for row in cursor}
+        existing_page_ids_query = "select page_id, page_name from pages;"
+        cursor.execute(existing_page_ids_query)
+        return {row['page_id']: row['page_name'] for row in cursor}
+
+    def page_id_to_deprecated_page_names(self):
+        """Return dict of dicts page_id -> page_name -> deprecated_on list of dates."""
+        cursor = self.get_cursor()
+        deprecated_page_names_query = (
+            "SELECT page_id, page_name, max(deprecated_on) as "
+            "deprecated_on FROM deprecated_page_names;")
+        cursor.execute(deprecated_page_names_query)
+        page_id_to_deprecated_page_names = {}
+        for row in cursor:
+            page_id_to_deprecated_page_names[row['page_id']][row['page_name']] = (
+                row['deprecated_on'])
+        return page_id_to_deprecated_page_names
 
     def existing_funding_entities(self):
         cursor = self.get_cursor()

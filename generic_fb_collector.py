@@ -14,7 +14,7 @@ import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
 
-from db_functions import DBInterface
+import db_functions
 from slack_notifier import notify_slack
 import config_utils
 
@@ -50,7 +50,6 @@ AdRecord = namedtuple(
         "potential_reach__upper_bound",
     ],
 )
-PageRecord = namedtuple("PageRecord", ["id", "name"])
 SnapshotRegionRecord = namedtuple(
     "SnapshotRegionRecord",
     [
@@ -129,6 +128,7 @@ class SearchRunner():
         self.new_ad_demo_impressions = list()
         self.existing_page_id_to_page_name = dict()
         self.existing_page_ids = set()
+        self.page_id_to_deprecated_page_names_to_deprecated_on_dates = dict()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -188,19 +188,37 @@ class SearchRunner():
 
     def process_page(self, ad):
         page_id = int(ad.page_id)
+        page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
         if page_id not in self.existing_page_ids:
-            self.new_pages.add(PageRecord(id=page_id, name=ad.page_name))
+            self.new_pages.add(page_record)
             self.existing_page_ids.add(page_id)
-        # If page_id is known, but page_name is different. Store it to update the page name. Ignore
-        # "bad" page_id 0.
-        if (page_id != 0 and page_id in self.existing_page_id_to_page_name and
-                self.existing_page_id_to_page_name[page_id] != ad.page_name):
+        # If page_id is known and not a new page for this cycle, but page_name is different. Store
+        # it to update the page name. Ignore "bad" page_id 0.
+        elif (page_id != 0 and page_record not in self.new_pages and
+              page_id in self.existing_page_id_to_page_name and
+              self.existing_page_id_to_page_name[page_id] != ad.page_name):
+            try:
+                ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
+                                                              '%Y-%m-%dT%H:%M:%S%z')
+            except ValueError as err:
+                logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
+                return
+            page_name_deprecated_on = (
+                self.page_id_to_deprecated_page_names_to_deprecated_on_dates.get(
+                    page_id, {}).get(ad.page_name, datetime.datetime.min))
+            # If ad that has depreacted page name is older than deprecated_on date there's nothing
+            # to do.
+            if page_name_deprecated_on > ad_creation_time:
+                return
+
             self.deprecated_page_name_records.add(
-                PageRecord(id=page_id, name=self.existing_page_id_to_page_name[page_id]))
+                db_functions.DeprecatedPageNameRecord(
+                    id=page_id, name=self.existing_page_id_to_page_name[page_id],
+                    deprecated_on=ad_creation_time))
             # Store new name as a new page so that it is updated.
-            self.new_pages.add(PageRecord(id=page_id, name=ad.page_name))
+            self.new_pages.add(page_record)
             logging.info(
-                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s',
+                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s)',
                 page_id, self.existing_page_id_to_page_name[page_id], ad.page_name, ad.archive_id)
 
     def process_ad(self, ad):
@@ -266,6 +284,7 @@ class SearchRunner():
         self.existing_ads_to_end_time_map = self.db.existing_ads()
         self.existing_page_id_to_page_name = self.db.existing_pages()
         self.existing_page_ids = set(self.existing_page_id_to_page_name.keys())
+        self.page_id_to_deprecated_page_names_to_deprecated_on_dates = self.db.page_id_to_deprecated_page_names()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
@@ -577,7 +596,7 @@ def main(config):
 
     connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
-    db = DBInterface(connection)
+    db = db_functions.DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),
         connection,
