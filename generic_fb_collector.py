@@ -128,7 +128,7 @@ class SearchRunner():
         self.new_ad_demo_impressions = list()
         self.existing_page_id_to_page_name = dict()
         self.existing_page_ids = set()
-        self.page_id_to_deprecated_page_names_to_deprecated_on_dates = dict()
+        self.deprecate_page_record_to_deprecated_on_date = dict()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -204,8 +204,8 @@ class SearchRunner():
                 logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
                 return
             page_name_deprecated_on = (
-                self.page_id_to_deprecated_page_names_to_deprecated_on_dates.get(
-                    page_id, {}).get(ad.page_name, datetime.datetime.min))
+                self.deprecate_page_record_to_deprecated_on_date.get(page_record,
+                                                                     datetime.datetime.min)
             # If ad that has depreacted page name is older than deprecated_on date there's nothing
             # to do.
             if page_name_deprecated_on > ad_creation_time:
@@ -284,7 +284,8 @@ class SearchRunner():
         self.existing_ads_to_end_time_map = self.db.existing_ads()
         self.existing_page_id_to_page_name = self.db.existing_pages()
         self.existing_page_ids = set(self.existing_page_id_to_page_name.keys())
-        self.page_id_to_deprecated_page_names_to_deprecated_on_dates = self.db.page_id_to_deprecated_page_names()
+        self.deprecate_page_record_to_deprecated_on_date = (
+                self.db.deprecated_page_records_to_deprecated_on_date())
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads

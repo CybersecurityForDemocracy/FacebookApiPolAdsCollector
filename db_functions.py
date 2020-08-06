@@ -48,18 +48,15 @@ class DBInterface():
         cursor.execute(existing_page_ids_query)
         return {row['page_id']: row['page_name'] for row in cursor}
 
-    def page_id_to_deprecated_page_names(self):
-        """Return dict of dicts page_id -> page_name -> deprecated_on list of dates."""
+    def deprecated_page_records_to_deprecated_on_date(self):
+        """Return dict of PageRecord -> deprecated_on date."""
         cursor = self.get_cursor()
         deprecated_page_names_query = (
             "SELECT page_id, page_name, max(deprecated_on) as "
             "deprecated_on FROM deprecated_page_names GROUP BY page_id, page_name;")
         cursor.execute(deprecated_page_names_query)
-        page_id_to_deprecated_page_names = defaultdict(dict)
-        for row in cursor:
-            page_id_to_deprecated_page_names[row['page_id']][row['page_name']] = (
-                row['deprecated_on'])
-        return page_id_to_deprecated_page_names
+        return = {PageRecord(id=row['page_id'], name=row['page_name']: row['deprecated_on']
+                  for row in cursor}
 
     def existing_funding_entities(self):
         cursor = self.get_cursor()
