@@ -55,7 +55,7 @@ class DBInterface():
             "SELECT page_id, page_name, max(deprecated_on) as "
             "deprecated_on FROM deprecated_page_names GROUP BY page_id, page_name;")
         cursor.execute(deprecated_page_names_query)
-        page_id_to_deprecated_page_names = {}
+        page_id_to_deprecated_page_names = defaultdict(dict)
         for row in cursor:
             page_id_to_deprecated_page_names[row['page_id']][row['page_name']] = (
                 row['deprecated_on'])
