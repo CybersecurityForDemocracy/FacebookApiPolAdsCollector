@@ -596,7 +596,7 @@ class FacebookAdCreativeRetriever:
         try:
             elem = self.chromedriver.find_element_by_xpath(
                 CREATIVE_CONTAINER_XPATH + '//div[@class=\'_7jyq\']')
-            return elem.text ==  'Ad removed'
+            return elem.text == 'Ad removed'
         except NoSuchElementException:
             return False
 
