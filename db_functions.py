@@ -53,7 +53,7 @@ class DBInterface():
         cursor = self.get_cursor()
         deprecated_page_names_query = (
             "SELECT page_id, page_name, max(deprecated_on) as "
-            "deprecated_on FROM deprecated_page_names;")
+            "deprecated_on FROM deprecated_page_names GROUP BY page_id, page_name;")
         cursor.execute(deprecated_page_names_query)
         page_id_to_deprecated_page_names = {}
         for row in cursor:
