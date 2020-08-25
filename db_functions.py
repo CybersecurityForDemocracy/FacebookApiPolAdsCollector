@@ -11,7 +11,6 @@ PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
 PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
                                    ['page_id', 'snapshot_fetch_status', 'count'])
 PageRecord = namedtuple("PageRecord", ["id", "name"])
-DeprecatedPageNameRecord = namedtuple("DeprecatedPageNameRecord", ["id", "name", "deprecatd_on"])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -48,15 +47,15 @@ class DBInterface():
         cursor.execute(existing_page_ids_query)
         return {row['page_id']: row['page_name'] for row in cursor}
 
-    def deprecated_page_records_to_deprecated_on_date(self):
-        """Return dict of PageRecord -> deprecated_on date."""
+    def page_records_to_last_seen_date(self):
+        """Return dict of PageRecord -> last_seen date."""
         cursor = self.get_cursor()
-        deprecated_page_names_query = (
-            "SELECT page_id, page_name, max(deprecated_on) as "
-            "deprecated_on FROM deprecated_page_names GROUP BY page_id, page_name;")
-        cursor.execute(deprecated_page_names_query)
-        return = {PageRecord(id=row['page_id'], name=row['page_name']: row['deprecated_on']
-                  for row in cursor}
+        page_name_history_query = (
+            "SELECT page_id, page_name, max(last_seen) as "
+            "last_seen FROM page_name_history GROUP BY page_id, page_name;")
+        cursor.execute(page_name_history_query)
+        return {PageRecord(id=row['page_id'], name=row['page_name']): row['last_seen']
+                for row in cursor}
 
     def existing_funding_entities(self):
         cursor = self.get_cursor()
@@ -228,10 +227,11 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages):
+    def insert_pages(self, new_pages, page_records_to_last_seen_date):
         cursor = self.get_cursor()
-        insert_page_query = ("INSERT INTO pages(page_id, page_name) VALUES %s "
-                             "on conflict (page_id) do nothing;")
+        insert_page_query = (
+            "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) "
+            "DO UPDATE SET page_id = EXCLUDED.page_id, page_name = EXCLUDED.page_name;")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
@@ -248,15 +248,19 @@ class DBInterface():
             cursor, insert_page_metadata_query, new_page_list,
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
 
-        insert_deprecated_page_names_query = (
-            "INSERT INTO deprecated_page_names (page_id, page_name, deprecated_on) VALUES %s "
-            "ON CONFLICT (page_id, page_name, deprecated_on) DO NOTHING;")
-        insert_deprecated_page_names_template = "(%(id)s, %(name)s, CURRENT_DATE)"
-        deprecated_page_names_list = [x._asdict() for x in deprecated_page_name_records]
+        insert_page_name_history_query = (
+            "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
+            "ON CONFLICT (page_id, page_name, last_seen) DO UPDATE SET page_id = EXCLUDED.page_id, "
+            "page_name = EXCLUDED.page_name, last_seen = EXCLUDED.last_seen WHERE last_seen < "
+            "EXCLUDED.last_seen;")
+        insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
+        page_name_history_records_list = [
+            {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
+            page_records_to_last_seen_date.items()]
         psycopg2.extras.execute_values(cursor,
-                                       insert_deprecated_page_names_query,
-                                       deprecated_page_names_list,
-                                       template=insert_deprecated_page_names_template,
+                                       insert_page_name_history_query,
+                                       page_name_history_records_list,
+                                       template=insert_page_name_history_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
 

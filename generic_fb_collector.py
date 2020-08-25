@@ -121,13 +121,14 @@ class SearchRunner():
         self.new_ads = set()
         self.new_funding_entities = set()
         self.new_pages = set()
+        self.new_page_records_to_last_seen_date = dict()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
         self.existing_page_id_to_page_name = dict()
         self.existing_page_ids = set()
-        self.deprecate_page_record_to_deprecated_on_date = dict()
+        self.page_record_to_last_seen_date = dict()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -202,18 +203,20 @@ class SearchRunner():
             except ValueError as err:
                 logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
                 return
-            page_name_deprecated_on = (
-                self.deprecate_page_record_to_deprecated_on_date.get(page_record,
-                                                                     datetime.datetime.min)
-            # If ad that has depreacted page name is older than deprecated_on date there's nothing
-            # to do.
-            if page_name_deprecated_on > ad_creation_time:
+            page_name_last_seen = self.page_record_to_last_seen_date.get(page_record,
+                                                                         datetime.datetime.min)
+            # If ad that has changed page name is older than last_seen date for that (page_id,
+            # page_name) there's nothing to do.
+            if page_name_last_seen > ad_creation_time:
                 return
 
-            self.deprecated_page_name_records.add(
-                db_functions.DeprecatedPageNameRecord(
-                    id=page_id, name=self.existing_page_id_to_page_name[page_id],
-                    deprecated_on=ad_creation_time))
+            # If ad that has changed page name is older than previously seen ad with changed
+            # page_name we keep the new record.
+            if (ad_creation_time <= self.new_page_records_to_last_seen_date.get(
+                    page_record, datetime.datetime.min)):
+                return
+
+            self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
             # Store new name as a new page so that it is updated.
             self.new_pages.add(page_record)
             logging.info(
@@ -283,8 +286,7 @@ class SearchRunner():
         self.existing_ads_to_end_time_map = self.db.existing_ads()
         self.existing_page_id_to_page_name = self.db.existing_pages()
         self.existing_page_ids = set(self.existing_page_id_to_page_name.keys())
-        self.deprecate_page_record_to_deprecated_on_date = (
-                self.db.deprecated_page_records_to_deprecated_on_date())
+        self.page_record_to_last_seen_date = self.db.page_records_to_last_seen_date()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
@@ -310,6 +312,7 @@ class SearchRunner():
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
             self.new_ad_demo_impressions = list()
+            self.new_page_records_to_last_seen_date = dict()
             request_count += 1
             total_ad_count = 0
             try:
@@ -441,7 +444,7 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages)
+        self.db.insert_pages(self.new_pages, self.new_page_records_to_last_seen_date)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
