@@ -212,7 +212,7 @@ class SearchRunner():
 
             # If ad that has changed page name is older than previously seen ad with changed
             # page_name we keep the new record.
-            if (page_record IN self.new_page_records_to_last_seen_date and ad_creation_time <=
+            if (page_record in self.new_page_records_to_last_seen_date and ad_creation_time <=
                 self.new_page_records_to_last_seen_date[page_record]):
                 return
 
