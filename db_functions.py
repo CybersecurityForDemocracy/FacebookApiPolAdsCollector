@@ -227,13 +227,13 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages, page_records_to_last_seen_date):
+    def insert_pages(self, page_records_to_last_seen_date):
         cursor = self.get_cursor()
         insert_page_query = (
             "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) "
             "DO UPDATE SET page_id = EXCLUDED.page_id, page_name = EXCLUDED.page_name;")
         insert_template = "(%(id)s, %(name)s)"
-        new_page_list = [x._asdict() for x in new_pages]
+        new_page_list = [x._asdict() for x in page_records_to_last_seen_date]
 
         psycopg2.extras.execute_values(cursor,
                                        insert_page_query,
@@ -250,7 +250,7 @@ class DBInterface():
 
         insert_page_name_history_query = (
             "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
-            "ON CONFLICT (page_id, page_name, last_seen) DO UPDATE SET page_id = EXCLUDED.page_id, "
+            "ON CONFLICT (page_id, page_name) DO UPDATE SET page_id = EXCLUDED.page_id, "
             "page_name = EXCLUDED.page_name, last_seen = EXCLUDED.last_seen WHERE "
             "page_name_history.last_seen < EXCLUDED.last_seen;")
         insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"

@@ -106,7 +106,7 @@ CREATE TABLE page_name_history (
   last_seen timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT page_id_fk FOREIGN KEY (page_id) REFERENCES pages (page_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
-  CONSTRAINT unique_id_name_last_seen UNIQUE(page_id, page_name, last_seen)
+  CONSTRAINT unique_id_and_name UNIQUE(page_id, page_name)
 );
 CREATE TABLE ad_snapshot_metadata (
   archive_id bigint NOT NULL,

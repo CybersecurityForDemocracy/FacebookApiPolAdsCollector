@@ -189,20 +189,29 @@ class SearchRunner():
     def process_page(self, ad):
         page_id = int(ad.page_id)
         page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
+        try:
+            ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
+                                                          '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError as err:
+            logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
+            return
+
         if page_id not in self.existing_page_ids:
-            self.new_pages.add(page_record)
             self.existing_page_ids.add(page_id)
+            if ((page_record not in self.new_page_records_to_last_seen_date) or
+                self.new_page_records_to_last_seen_date[page_record] < ad_creation_time):
+                self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
+            #  self.new_pages.add(page_record)
         # If page_id is known and not a new page for this cycle, but page_name is different. Store
         # it to update the page name. Ignore "bad" page_id 0.
-        elif (page_id != 0 and page_record not in self.new_pages and
-              page_id in self.existing_page_id_to_page_name and
-              self.existing_page_id_to_page_name[page_id] != ad.page_name):
-            try:
-                ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
-                                                              '%Y-%m-%dT%H:%M:%S%z')
-            except ValueError as err:
-                logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
-                return
+        #  elif (page_id != 0 and page_record not in self.new_pages and
+        elif (page_id != 0 and self.existing_page_id_to_page_name.get(page_id, '') != ad.page_name):
+            #  try:
+                #  ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
+                                                              #  '%Y-%m-%dT%H:%M:%S%z')
+            #  except ValueError as err:
+                #  logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
+                #  return
 
             # If ad that has changed page name is older than last_seen date for that (page_id,
             # page_name) there's nothing to do.
@@ -218,7 +227,7 @@ class SearchRunner():
 
             self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
             # Store new name as a new page so that it is updated.
-            self.new_pages.add(page_record)
+            #  self.new_pages.add(page_record)
             logging.info(
                 'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s)',
                 page_id, self.existing_page_id_to_page_name[page_id], ad.page_name, ad.archive_id)
@@ -444,7 +453,8 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages, self.new_page_records_to_last_seen_date)
+        #  self.db.insert_pages(self.new_pages, self.new_page_records_to_last_seen_date)
+        self.db.insert_pages(self.new_page_records_to_last_seen_date)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
