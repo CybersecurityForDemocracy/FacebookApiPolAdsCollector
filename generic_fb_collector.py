@@ -223,9 +223,9 @@ class SearchRunner():
             self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
             logging.info(
                 'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s, '
-                'ad_creaton_time: %s)', page_id,
+                'ad_creaton_time: %s, old page name last_seen: %s)', page_id,
                 self.existing_page_id_to_latest_page_name.get(page_id), ad.page_name, ad.archive_id,
-                ad_creation_time)
+                ad_creation_time, self.page_record_to_last_seen_date.get(page_record))
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
