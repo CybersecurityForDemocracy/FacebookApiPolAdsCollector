@@ -20,6 +20,7 @@ import config_utils
 
 DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
 DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
+BAD_PAGE_ID = 0
 
 #data structures to hold new ads
 AdRecord = namedtuple(
@@ -120,13 +121,12 @@ class SearchRunner():
         self.max_requests = search_runner_params.max_requests
         self.new_ads = set()
         self.new_funding_entities = set()
-        self.new_pages = set()
         self.new_page_records_to_last_seen_date = dict()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
-        self.existing_page_id_to_page_name = dict()
+        self.existing_page_id_to_latest_page_name = dict()
         self.existing_page_ids = set()
         self.page_record_to_last_seen_date = dict()
         self.existing_funding_entities = set()
@@ -188,7 +188,9 @@ class SearchRunner():
 
     def process_page(self, ad):
         page_id = int(ad.page_id)
-        page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
+        if page_id == BAD_PAGE_ID:
+            return
+
         try:
             ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
                                                           '%Y-%m-%dT%H:%M:%S%z')
@@ -196,23 +198,16 @@ class SearchRunner():
             logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
             return
 
+        page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
+
         if page_id not in self.existing_page_ids:
             self.existing_page_ids.add(page_id)
             if ((page_record not in self.new_page_records_to_last_seen_date) or
                 self.new_page_records_to_last_seen_date[page_record] < ad_creation_time):
                 self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
-            #  self.new_pages.add(page_record)
-        # If page_id is known and not a new page for this cycle, but page_name is different. Store
-        # it to update the page name. Ignore "bad" page_id 0.
-        #  elif (page_id != 0 and page_record not in self.new_pages and
-        elif (page_id != 0 and self.existing_page_id_to_page_name.get(page_id, '') != ad.page_name):
-            #  try:
-                #  ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
-                                                              #  '%Y-%m-%dT%H:%M:%S%z')
-            #  except ValueError as err:
-                #  logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
-                #  return
-
+        # If page_id is known, but page_name is different. Store it and the max ad_creation_time for
+        # that page_name to update the page name.
+        elif self.existing_page_id_to_latest_page_name.get(page_id, '') != ad.page_name:
             # If ad that has changed page name is older than last_seen date for that (page_id,
             # page_name) there's nothing to do.
             if (page_record in self.page_record_to_last_seen_date and
@@ -226,12 +221,11 @@ class SearchRunner():
                 return
 
             self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
-            # Store new name as a new page so that it is updated.
-            #  self.new_pages.add(page_record)
             logging.info(
-                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s)',
-                page_id, self.existing_page_id_to_page_name.get(page_id), ad.page_name,
-                ad.archive_id)
+                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s, '
+                'ad_creaton_time: %s)', page_id,
+                self.existing_page_id_to_latest_page_name.get(page_id), ad.page_name, ad.archive_id,
+                ad_creation_time)
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
@@ -294,8 +288,8 @@ class SearchRunner():
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_page_id_to_page_name = self.db.existing_pages()
-        self.existing_page_ids = set(self.existing_page_id_to_page_name.keys())
+        self.existing_page_id_to_latest_page_name = self.db.existing_pages_latest_names()
+        self.existing_page_ids = set(self.existing_page_id_to_latest_page_name.keys())
         self.page_record_to_last_seen_date = self.db.page_records_to_last_seen_date()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
@@ -317,7 +311,6 @@ class SearchRunner():
             self.new_ads = set()
             self.new_ad_sponsors = set()
             self.new_funding_entities = set()
-            self.new_pages = set()
             self.new_regions = set()
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
@@ -437,7 +430,6 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        #  self.db.insert_pages(self.new_pages, self.new_page_records_to_last_seen_date)
         self.db.insert_pages(self.new_page_records_to_last_seen_date)
 
         #write new ads to our database

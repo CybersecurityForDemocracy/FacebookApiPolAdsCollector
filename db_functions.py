@@ -41,9 +41,15 @@ class DBInterface():
         cursor.execute(existing_ad_query)
         return {row['archive_id'] for row in cursor}
 
-    def existing_pages(self):
+    def existing_pages_latest_names(self):
         cursor = self.get_cursor()
-        existing_page_ids_query = "select page_id, page_name from pages;"
+        existing_page_ids_query = (
+            '''SELECT COALESCE(latest_page_name_history.page_name, pages.page_name) AS page_name,
+            COALESCE(latest_page_name_history.page_id, pages.page_id) AS page_id FROM pages LEFT
+            OUTER JOIN (
+                SELECT DISTINCT ON (page_id) page_id, page_name, last_seen FROM page_name_history
+                ORDER BY page_id, last_seen DESC) AS latest_page_name_history
+            USING(page_id)''')
         cursor.execute(existing_page_ids_query)
         return {row['page_id']: row['page_name'] for row in cursor}
 
