@@ -230,7 +230,8 @@ class SearchRunner():
             #  self.new_pages.add(page_record)
             logging.info(
                 'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s)',
-                page_id, self.existing_page_id_to_page_name[page_id], ad.page_name, ad.archive_id)
+                page_id, self.existing_page_id_to_page_name.get(page_id), ad.page_name,
+                ad.archive_id)
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
