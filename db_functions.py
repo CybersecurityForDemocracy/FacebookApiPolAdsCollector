@@ -251,8 +251,8 @@ class DBInterface():
         insert_page_name_history_query = (
             "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
             "ON CONFLICT (page_id, page_name, last_seen) DO UPDATE SET page_id = EXCLUDED.page_id, "
-            "page_name = EXCLUDED.page_name, last_seen = EXCLUDED.last_seen WHERE last_seen < "
-            "EXCLUDED.last_seen;")
+            "page_name = EXCLUDED.page_name, last_seen = EXCLUDED.last_seen WHERE "
+            "page_name_history.last_seen < EXCLUDED.last_seen;")
         insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
         page_name_history_records_list = [
             {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
