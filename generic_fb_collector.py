@@ -121,7 +121,6 @@ class SearchRunner():
         self.new_ads = set()
         self.new_funding_entities = set()
         self.new_pages = set()
-        self.deprecated_page_name_records = set()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
@@ -307,7 +306,6 @@ class SearchRunner():
             self.new_ad_sponsors = set()
             self.new_funding_entities = set()
             self.new_pages = set()
-            self.deprecated_page_name_records = set()
             self.new_regions = set()
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
@@ -443,7 +441,7 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages, self.deprecated_page_name_records)
+        self.db.insert_pages(self.new_pages)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)

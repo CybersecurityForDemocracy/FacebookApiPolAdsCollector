@@ -228,23 +228,18 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages, deprecated_page_name_records):
+    def insert_pages(self, new_pages):
         cursor = self.get_cursor()
-        insert_page_query = (
-            "INSERT INTO pages(page_id, page_name) VALUES %s on conflict (page_id) "
-            "do update set page_id = EXCLUDED.page_id, page_name = EXCLUDED.page_name;")
+        insert_page_query = ("INSERT INTO pages(page_id, page_name) VALUES %s "
+                             "on conflict (page_id) do nothing;")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
-        try:
-            psycopg2.extras.execute_values(cursor,
-                                           insert_page_query,
-                                           new_page_list,
-                                           template=insert_template,
-                                           page_size=_DEFAULT_PAGE_SIZE)
-        except psycopg2.errors.CardinalityViolation as error:
-            logging.warning('%s\n%s\n%s', error, cursor.query.decode(), new_pages)
-
+        psycopg2.extras.execute_values(cursor,
+                                       insert_page_query,
+                                       new_page_list,
+                                       template=insert_template,
+                                       page_size=_DEFAULT_PAGE_SIZE)
         insert_page_metadata_query = (
             "INSERT INTO page_metadata(page_id, page_owner) VALUES %s "
             "on conflict (page_id) do nothing;")

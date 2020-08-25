@@ -241,11 +241,6 @@ BEFORE UPDATE ON page_metadata
 FOR EACH ROW
 EXECUTE PROCEDURE moddatetime(last_modified_time);
 
-CREATE TRIGGER deprecated_page_names_moddatetime
-BEFORE UPDATE ON deprecated_page_names
-FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
-
 CREATE TRIGGER ad_snapshot_metadata_moddatetime
 BEFORE UPDATE ON ad_snapshot_metadata
 FOR EACH ROW
