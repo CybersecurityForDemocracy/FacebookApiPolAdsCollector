@@ -203,17 +203,17 @@ class SearchRunner():
             except ValueError as err:
                 logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
                 return
-            page_name_last_seen = self.page_record_to_last_seen_date.get(page_record,
-                                                                         datetime.datetime.min)
+
             # If ad that has changed page name is older than last_seen date for that (page_id,
             # page_name) there's nothing to do.
-            if page_name_last_seen > ad_creation_time:
+            if (page_record in self.page_record_to_last_seen_date and
+                self.page_record_to_last_seen_date[page_record] > ad_creation_time):
                 return
 
             # If ad that has changed page name is older than previously seen ad with changed
             # page_name we keep the new record.
-            if (ad_creation_time <= self.new_page_records_to_last_seen_date.get(
-                    page_record, datetime.datetime.min)):
+            if (page_record IN self.new_page_records_to_last_seen_date and ad_creation_time <=
+                self.new_page_records_to_last_seen_date[page_record]):
                 return
 
             self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
