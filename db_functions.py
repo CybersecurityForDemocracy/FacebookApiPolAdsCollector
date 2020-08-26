@@ -235,6 +235,12 @@ class DBInterface():
             "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) DO NOTHING")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
+        psycopg2.extras.execute_values(
+            cursor,
+            insert_page_query,
+            new_page_list,
+            template=insert_template,
+            page_size=_DEFAULT_PAGE_SIZE)
 
         insert_page_metadata_query = (
             "INSERT INTO page_metadata(page_id, page_owner) VALUES %s "
