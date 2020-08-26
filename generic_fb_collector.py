@@ -231,8 +231,8 @@ class SearchRunner():
                 'previously last_seen: %s)', page_record, ad.archive_id, ad_creation_time,
                 previous_page_name_last_seen)
         else:
-            logging.info(
-                'New page name for %s (from ad ID: %s, ad_creaton_time: %s)', page_record,
+            logging.debug(
+                'New page name history for %s (from ad ID: %s, ad_creaton_time: %s)', page_record,
                 ad.archive_id, ad_creation_time)
 
 
