@@ -21,6 +21,7 @@ import config_utils
 DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
 DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
 BAD_PAGE_ID = 0
+DATETIME_MIN_UTC = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
 #data structures to hold new ads
 AdRecord = namedtuple(
@@ -121,14 +122,15 @@ class SearchRunner():
         self.max_requests = search_runner_params.max_requests
         self.new_ads = set()
         self.new_funding_entities = set()
-        self.new_page_records_to_last_seen_date = dict()
+        self.new_pages = set()
+        self.new_page_record_to_max_last_seen_time = dict()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
         self.existing_page_id_to_latest_page_name = dict()
         self.existing_page_ids = set()
-        self.page_record_to_last_seen_date = dict()
+        self.existing_page_record_to_max_last_seen_time = dict()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -202,30 +204,35 @@ class SearchRunner():
 
         if page_id not in self.existing_page_ids:
             self.existing_page_ids.add(page_id)
-            if ((page_record not in self.new_page_records_to_last_seen_date) or
-                self.new_page_records_to_last_seen_date[page_record] < ad_creation_time):
-                self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
+            self.new_pages.add(page_record)
+            previous_max_ad_creation_time = self.new_page_record_to_max_last_seen_time.get(
+                page_record, DATETIME_MIN_UTC)
+            self.new_page_record_to_max_last_seen_time[page_record] = (
+                    max(ad_creation_time, previous_max_ad_creation_time))
+            self.existing_page_record_to_max_last_seen_time[page_record] = (
+                    self.new_page_record_to_max_last_seen_time[page_record])
         # If page_id is known, but page_name is different. Store it and the max ad_creation_time for
         # that page_name to update the page name.
         elif self.existing_page_id_to_latest_page_name.get(page_id, '') != ad.page_name:
-            # If ad that has changed page name is older than last_seen date for that (page_id,
-            # page_name) there's nothing to do.
-            if (page_record in self.page_record_to_last_seen_date and
-                self.page_record_to_last_seen_date[page_record] > ad_creation_time):
+            # If ad that has changed page name is older than last_seen date for the existing
+            # (page_id, page_name) there's nothing to do.
+            if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+                ad_creation_time):
                 return
 
             # If ad that has changed page name is older than previously seen ad with changed
             # page_name we keep the new record.
-            if (page_record in self.new_page_records_to_last_seen_date and ad_creation_time <=
-                self.new_page_records_to_last_seen_date[page_record]):
+            if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+                ad_creation_time):
                 return
 
-            self.new_page_records_to_last_seen_date[page_record] = ad_creation_time
+            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+            self.existing_page_record_to_max_last_seen_time[page_record] = ad_creation_time
             logging.info(
                 'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s, '
                 'ad_creaton_time: %s, old page name last_seen: %s)', page_id,
                 self.existing_page_id_to_latest_page_name.get(page_id), ad.page_name, ad.archive_id,
-                ad_creation_time, self.page_record_to_last_seen_date.get(page_record))
+                ad_creation_time, self.existing_page_record_to_max_last_seen_time.get(page_record))
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
@@ -290,7 +297,7 @@ class SearchRunner():
         self.existing_ads_to_end_time_map = self.db.existing_ads()
         self.existing_page_id_to_latest_page_name = self.db.existing_pages_latest_names()
         self.existing_page_ids = set(self.existing_page_id_to_latest_page_name.keys())
-        self.page_record_to_last_seen_date = self.db.page_records_to_last_seen_date()
+        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
@@ -315,7 +322,8 @@ class SearchRunner():
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
             self.new_ad_demo_impressions = list()
-            self.new_page_records_to_last_seen_date = dict()
+            self.new_pages = set()
+            self.new_page_record_to_max_last_seen_time = dict()
             request_count += 1
             total_ad_count = 0
             try:
@@ -430,7 +438,7 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_page_records_to_last_seen_date)
+        self.db.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
@@ -454,6 +462,9 @@ class SearchRunner():
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
         self.existing_funding_entities = self.db.existing_funding_entities()
+        self.existing_page_id_to_latest_page_name = self.db.existing_pages_latest_names()
+        self.existing_page_ids = set(self.existing_page_id_to_latest_page_name.keys())
+        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.connection.commit()
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):

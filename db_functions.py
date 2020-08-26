@@ -53,8 +53,8 @@ class DBInterface():
         cursor.execute(existing_page_ids_query)
         return {row['page_id']: row['page_name'] for row in cursor}
 
-    def page_records_to_last_seen_date(self):
-        """Return dict of PageRecord -> last_seen date."""
+    def page_records_to_max_last_seen(self):
+        """Return dict of PageRecord -> max last_seen time for that PageRecord."""
         cursor = self.get_cursor()
         page_name_history_query = (
             "SELECT page_id, page_name, max(last_seen) as "
@@ -233,13 +233,13 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, page_records_to_last_seen_date):
+    def insert_pages(self, new_pages, page_records_to_last_seen_date):
         cursor = self.get_cursor()
         insert_page_query = (
             "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) "
-            "DO UPDATE SET page_id = EXCLUDED.page_id, page_name = EXCLUDED.page_name;")
+            "DO UPDATE NOTHING")
         insert_template = "(%(id)s, %(name)s)"
-        new_page_list = [x._asdict() for x in page_records_to_last_seen_date]
+        new_page_list = [x._asdict() for x in new_pages]
 
         try:
             psycopg2.extras.execute_values(cursor,
@@ -262,10 +262,11 @@ class DBInterface():
 
         insert_page_name_history_query = (
             "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
-            "ON CONFLICT (page_id, page_name) DO UPDATE SET page_id = EXCLUDED.page_id, "
-            "page_name = EXCLUDED.page_name, last_seen = EXCLUDED.last_seen WHERE "
+            "ON CONFLICT (page_id, page_name) DO UPDATE SET last_seen = EXCLUDED.last_seen WHERE "
+            "page_name_histoy.page_id = EXCLUDED.page_id AND "
+            "page_name_history.page_name = EXCLUDED.page_name AND "
             "page_name_history.last_seen < EXCLUDED.last_seen;")
-        insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
+            insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
         page_name_history_records_list = [
             {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
             page_records_to_last_seen_date.items()]
