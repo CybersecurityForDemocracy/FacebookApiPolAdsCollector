@@ -236,17 +236,6 @@ class DBInterface():
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
-        try:
-            psycopg2.extras.execute_values(cursor,
-                                           insert_page_query,
-                                           new_page_list,
-                                           template=insert_template,
-                                           page_size=_DEFAULT_PAGE_SIZE)
-        except psycopg2.errors.CardinalityViolation as error:
-            logging.info('%s tyring to insert values:\n%s\nquery: %s', error, new_page_list,
-                         cursor.query.decode())
-            raise
-
         insert_page_metadata_query = (
             "INSERT INTO page_metadata(page_id, page_owner) VALUES %s "
             "on conflict (page_id) do nothing;")
