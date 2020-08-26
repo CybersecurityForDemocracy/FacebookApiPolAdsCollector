@@ -220,13 +220,6 @@ class SearchRunner():
             ad_creation_time):
             return
 
-        logging.info('existing_page_record_to_max_last_seen_time.get(%s): %s\n'
-                     'new_page_record_to_max_last_seen_time.get(%s): %s\nad_creation_time: %s, '
-                     'ad.page_name: %s',
-                     page_record, self.existing_page_record_to_max_last_seen_time.get(page_record),
-                     page_record, self.new_page_record_to_max_last_seen_time.get(page_record),
-                     ad_creation_time, ad.page_name)
-
         previous_page_name_last_seen = max(
                 self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
                 self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
