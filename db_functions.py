@@ -260,13 +260,14 @@ class DBInterface():
             cursor, insert_page_metadata_query, new_page_list,
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
 
+        logging.info('page_records_to_last_seen_date: %s', page_records_to_last_seen_date)
         insert_page_name_history_query = (
             "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
             "ON CONFLICT (page_id, page_name) DO UPDATE SET last_seen = EXCLUDED.last_seen WHERE "
             "page_name_histoy.page_id = EXCLUDED.page_id AND "
             "page_name_history.page_name = EXCLUDED.page_name AND "
             "page_name_history.last_seen < EXCLUDED.last_seen;")
-            insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
+        insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
         page_name_history_records_list = [
             {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
             page_records_to_last_seen_date.items()]

@@ -205,34 +205,43 @@ class SearchRunner():
         if page_id not in self.existing_page_ids:
             self.existing_page_ids.add(page_id)
             self.new_pages.add(page_record)
-            previous_max_ad_creation_time = self.new_page_record_to_max_last_seen_time.get(
-                page_record, DATETIME_MIN_UTC)
-            self.new_page_record_to_max_last_seen_time[page_record] = (
-                    max(ad_creation_time, previous_max_ad_creation_time))
-            self.existing_page_record_to_max_last_seen_time[page_record] = (
-                    self.new_page_record_to_max_last_seen_time[page_record])
-        # If page_id is known, but page_name is different. Store it and the max ad_creation_time for
-        # that page_name to update the page name.
-        elif self.existing_page_id_to_latest_page_name.get(page_id, '') != ad.page_name:
-            # If ad that has changed page name is older than last_seen date for the existing
-            # (page_id, page_name) there's nothing to do.
-            if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
-                ad_creation_time):
-                return
+            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time)
+            return
+        # If ad that has changed page name is older than last_seen date for the existing
+        # (page_id, page_name) there's nothing to do.
+        if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+            ad_creation_time):
+            return
 
-            # If ad that has changed page name is older than previously seen ad with changed
-            # page_name we keep the new record.
-            if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
-                ad_creation_time):
-                return
+        # If ad that has changed page name is older than previously seen ad with changed
+        # page_name we keep the new record.
+        if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+            ad_creation_time):
+            return
 
-            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
-            self.existing_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+        logging.info('existing_page_record_to_max_last_seen_time.get(%s): %s\n'
+                     'new_page_record_to_max_last_seen_time.get(%s): %s\nad_creation_time: %s, '
+                     'ad.page_name: %s',
+                     self.existing_page_record_to_max_last_seen_time.get(page_record), page_record,
+                     self.new_page_record_to_max_last_seen_time.get(page_record), page_record,
+                     ad_creation_time, ad.page_name)
+
+
+        previous_page_name_last_seen = max(
+                self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
+                self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
+
+        self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+        if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
             logging.info(
-                'Page name for page_id %d changned. Old: \'%s\' new: \'%s\' (from ad ID: %s, '
-                'ad_creaton_time: %s, old page name last_seen: %s)', page_id,
-                self.existing_page_id_to_latest_page_name.get(page_id), ad.page_name, ad.archive_id,
-                ad_creation_time, self.existing_page_record_to_max_last_seen_time.get(page_record))
+                'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name'
+                'previously last_seen: %s)', page_id, page_record, ad.archive_id, ad_creation_time,
+                previous_page_name_last_seen)
+        else:
+            logging.info(
+                'New page name for %s (from ad ID: %s, ad_creaton_time: %s)', page_record,
+                ad.archive_id, ad_creation_time)
+
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
