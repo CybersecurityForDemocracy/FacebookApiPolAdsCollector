@@ -41,7 +41,7 @@ class DBInterface():
         cursor.execute(existing_ad_query)
         return {row['archive_id'] for row in cursor}
 
-    def existing_pagess(self):
+    def existing_pages(self):
         cursor = self.get_cursor()
         existing_pages_query = "select page_id from pages;"
         cursor.execute(existing_pages_query)

@@ -297,7 +297,7 @@ class SearchRunner():
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_page_ids = self.db.existing_pagess()
+        self.existing_page_ids = self.db.existing_pages()
         self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
@@ -463,7 +463,7 @@ class SearchRunner():
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
         self.existing_funding_entities = self.db.existing_funding_entities()
-        self.existing_page_ids = self.db.existing_pagess()
+        self.existing_page_ids = self.db.existing_pages()
         self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.connection.commit()
 
