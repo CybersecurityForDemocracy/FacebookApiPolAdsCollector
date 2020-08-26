@@ -128,7 +128,6 @@ class SearchRunner():
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
-        self.existing_page_id_to_latest_page_name = dict()
         self.existing_page_ids = set()
         self.existing_page_record_to_max_last_seen_time = dict()
         self.existing_funding_entities = set()
@@ -205,7 +204,9 @@ class SearchRunner():
         if page_id not in self.existing_page_ids:
             self.existing_page_ids.add(page_id)
             self.new_pages.add(page_record)
-            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+            self.new_page_record_to_max_last_seen_time[page_record] = max(
+                    ad_creation_time,
+                    self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
             return
         # If ad that has changed page name is older than last_seen date for the existing
         # (page_id, page_name) there's nothing to do.
@@ -222,16 +223,15 @@ class SearchRunner():
         logging.info('existing_page_record_to_max_last_seen_time.get(%s): %s\n'
                      'new_page_record_to_max_last_seen_time.get(%s): %s\nad_creation_time: %s, '
                      'ad.page_name: %s',
-                     self.existing_page_record_to_max_last_seen_time.get(page_record), page_record,
-                     self.new_page_record_to_max_last_seen_time.get(page_record), page_record,
+                     page_record, self.existing_page_record_to_max_last_seen_time.get(page_record),
+                     page_record, self.new_page_record_to_max_last_seen_time.get(page_record),
                      ad_creation_time, ad.page_name)
-
 
         previous_page_name_last_seen = max(
                 self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
                 self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
-
         self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+
         if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
             logging.info(
                 'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name '
@@ -304,8 +304,7 @@ class SearchRunner():
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_page_id_to_latest_page_name = self.db.existing_pages_latest_names()
-        self.existing_page_ids = set(self.existing_page_id_to_latest_page_name.keys())
+        self.existing_page_ids = self.db.existing_pagess()
         self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
@@ -471,8 +470,7 @@ class SearchRunner():
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
         self.existing_funding_entities = self.db.existing_funding_entities()
-        self.existing_page_id_to_latest_page_name = self.db.existing_pages_latest_names()
-        self.existing_page_ids = set(self.existing_page_id_to_latest_page_name.keys())
+        self.existing_page_ids = self.db.existing_pagess()
         self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.connection.commit()
 

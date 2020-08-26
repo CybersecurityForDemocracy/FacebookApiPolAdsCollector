@@ -41,17 +41,13 @@ class DBInterface():
         cursor.execute(existing_ad_query)
         return {row['archive_id'] for row in cursor}
 
-    def existing_pages_latest_names(self):
+    def existing_pagess(self):
         cursor = self.get_cursor()
-        existing_page_ids_query = (
-            '''SELECT COALESCE(latest_page_name_history.page_name, pages.page_name) AS page_name,
-            COALESCE(latest_page_name_history.page_id, pages.page_id) AS page_id FROM pages LEFT
-            OUTER JOIN (
-                SELECT DISTINCT ON (page_id) page_id, page_name, last_seen FROM page_name_history
-                ORDER BY page_id, last_seen DESC) AS latest_page_name_history
-            USING(page_id)''')
-        cursor.execute(existing_page_ids_query)
-        return {row['page_id']: row['page_name'] for row in cursor}
+        existing_pages_query = "select page_id from pages;"
+        cursor.execute(existing_pages_query)
+        existing_pages = {row['page_id'] for row in cursor}
+        return existing_pages
+
 
     def page_records_to_max_last_seen(self):
         """Return dict of PageRecord -> max last_seen time for that PageRecord."""
@@ -233,7 +229,7 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages, page_records_to_last_seen_date):
+    def insert_pages(self, new_pages, new_page_name_history_records):
         cursor = self.get_cursor()
         insert_page_query = (
             "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) DO NOTHING")
@@ -259,7 +255,6 @@ class DBInterface():
             cursor, insert_page_metadata_query, new_page_list,
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
 
-        logging.info('page_records_to_last_seen_date: %s', page_records_to_last_seen_date)
         insert_page_name_history_query = (
             "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
             "ON CONFLICT (page_id, page_name) DO UPDATE SET last_seen = EXCLUDED.last_seen WHERE "
@@ -269,7 +264,7 @@ class DBInterface():
         insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
         page_name_history_records_list = [
             {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
-            page_records_to_last_seen_date.items()]
+            new_page_name_history_records.items()]
         psycopg2.extras.execute_values(cursor,
                                        insert_page_name_history_query,
                                        page_name_history_records_list,
