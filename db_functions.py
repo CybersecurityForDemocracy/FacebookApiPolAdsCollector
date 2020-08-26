@@ -250,6 +250,8 @@ class DBInterface():
         except psycopg2.errors.CardinalityViolation as error:
             logging.info('%s tyring to insert values:\n%s\nquery: %s', error, new_page_list,
                          cursor.query.decode())
+            raise
+
         insert_page_metadata_query = (
             "INSERT INTO page_metadata(page_id, page_owner) VALUES %s "
             "on conflict (page_id) do nothing;")
