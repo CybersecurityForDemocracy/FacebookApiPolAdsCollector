@@ -209,13 +209,13 @@ class SearchRunner():
             return
         # If ad that has changed page name is older than last_seen date for the existing
         # (page_id, page_name) there's nothing to do.
-        if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+        if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
             ad_creation_time):
             return
 
         # If ad that has changed page name is older than previously seen ad with changed
         # page_name we keep the new record.
-        if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >
+        if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
             ad_creation_time):
             return
 
@@ -234,7 +234,7 @@ class SearchRunner():
         self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
         if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
             logging.info(
-                'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name'
+                'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name '
                 'previously last_seen: %s)', page_record, ad.archive_id, ad_creation_time,
                 previous_page_name_last_seen)
         else:
