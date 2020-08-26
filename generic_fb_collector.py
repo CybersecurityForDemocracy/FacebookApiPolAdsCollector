@@ -205,7 +205,7 @@ class SearchRunner():
         if page_id not in self.existing_page_ids:
             self.existing_page_ids.add(page_id)
             self.new_pages.add(page_record)
-            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time)
+            self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
             return
         # If ad that has changed page name is older than last_seen date for the existing
         # (page_id, page_name) there's nothing to do.
