@@ -14,12 +14,14 @@ import psycopg2
 import psycopg2.extras
 from OpenSSL import SSL
 
-from db_functions import DBInterface
+import db_functions
 from slack_notifier import notify_slack
 import config_utils
 
 DEFAULT_MINIMUM_EXPECTED_NEW_ADS = 10000
 DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS = 10000
+BAD_PAGE_ID = 0
+DATETIME_MIN_UTC = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
 
 #data structures to hold new ads
 AdRecord = namedtuple(
@@ -50,7 +52,6 @@ AdRecord = namedtuple(
         "potential_reach__upper_bound",
     ],
 )
-PageRecord = namedtuple("PageRecord", ["id", "name"])
 SnapshotRegionRecord = namedtuple(
     "SnapshotRegionRecord",
     [
@@ -122,11 +123,13 @@ class SearchRunner():
         self.new_ads = set()
         self.new_funding_entities = set()
         self.new_pages = set()
+        self.new_page_record_to_max_last_seen_time = dict()
         self.new_regions = set()
         self.new_impressions = set()
         self.new_ad_region_impressions = list()
         self.new_ad_demo_impressions = list()
-        self.existing_pages = set()
+        self.existing_page_ids = set()
+        self.existing_page_record_to_max_last_seen_time = dict()
         self.existing_funding_entities = set()
         self.existing_ads_to_end_time_map = dict()
         self.total_ads_added_to_db = 0
@@ -185,9 +188,53 @@ class SearchRunner():
             self.new_funding_entities.add((ad.funding_entity,))
 
     def process_page(self, ad):
-            if int(ad.page_id) not in self.existing_pages:
-                self.new_pages.add(PageRecord(ad.page_id, ad.page_name))
-                self.existing_pages.add(int(ad.page_id))
+        page_id = int(ad.page_id)
+        if page_id == BAD_PAGE_ID:
+            return
+
+        try:
+            ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
+                                                          '%Y-%m-%dT%H:%M:%S%z')
+        except ValueError as err:
+            logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
+            return
+
+        page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
+
+        if page_id not in self.existing_page_ids:
+            self.existing_page_ids.add(page_id)
+            self.new_pages.add(page_record)
+            self.new_page_record_to_max_last_seen_time[page_record] = max(
+                    ad_creation_time,
+                    self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
+            return
+        # If ad that has changed page name is older than last_seen date for the existing
+        # (page_id, page_name) there's nothing to do.
+        if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
+            ad_creation_time):
+            return
+
+        # If ad that has changed page name is older than previously seen ad with changed
+        # page_name we keep the new record.
+        if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
+            ad_creation_time):
+            return
+
+        previous_page_name_last_seen = max(
+                self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
+                self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
+        self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
+
+        if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
+            logging.info(
+                'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name '
+                'previously last_seen: %s)', page_record, ad.archive_id, ad_creation_time,
+                previous_page_name_last_seen)
+        else:
+            logging.debug(
+                'New page name history for %s (from ad ID: %s, ad_creaton_time: %s)', page_record,
+                ad.archive_id, ad_creation_time)
+
 
     def process_ad(self, ad):
         if ad.archive_id not in self.existing_ads_to_end_time_map:
@@ -250,7 +297,8 @@ class SearchRunner():
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
         self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_pages = self.db.existing_pages()
+        self.existing_page_ids = self.db.existing_pages()
+        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
@@ -271,11 +319,12 @@ class SearchRunner():
             self.new_ads = set()
             self.new_ad_sponsors = set()
             self.new_funding_entities = set()
-            self.new_pages = set()
             self.new_regions = set()
             self.new_impressions = set()
             self.new_ad_region_impressions = list()
             self.new_ad_demo_impressions = list()
+            self.new_pages = set()
+            self.new_page_record_to_max_last_seen_time = dict()
             request_count += 1
             total_ad_count = 0
             try:
@@ -390,7 +439,7 @@ class SearchRunner():
     def write_results(self):
         #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
         self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages)
+        self.db.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
@@ -414,6 +463,8 @@ class SearchRunner():
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
         self.existing_funding_entities = self.db.existing_funding_entities()
+        self.existing_page_ids = self.db.existing_pages()
+        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.connection.commit()
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
@@ -544,7 +595,7 @@ def main(config):
 
     connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
-    db = DBInterface(connection)
+    db = db_functions.DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),
         connection,

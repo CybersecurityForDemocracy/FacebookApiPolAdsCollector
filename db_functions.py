@@ -10,6 +10,7 @@ PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
                                         ['page_id', 'oldest_ad_date', 'min_impressions_sum'])
 PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
                                    ['page_id', 'snapshot_fetch_status', 'count'])
+PageRecord = namedtuple("PageRecord", ["id", "name"])
 
 _DEFAULT_PAGE_SIZE = 250
 
@@ -42,12 +43,21 @@ class DBInterface():
 
     def existing_pages(self):
         cursor = self.get_cursor()
-        existing_pages_query = "select page_id, page_name from pages;"
+        existing_pages_query = "select page_id from pages;"
         cursor.execute(existing_pages_query)
-        existing_pages = set()
-        for row in cursor:
-            existing_pages.add(row['page_id'])
+        existing_pages = {row['page_id'] for row in cursor}
         return existing_pages
+
+
+    def page_records_to_max_last_seen(self):
+        """Return dict of PageRecord -> max last_seen time for that PageRecord."""
+        cursor = self.get_cursor()
+        page_name_history_query = (
+            "SELECT page_id, page_name, max(last_seen) as "
+            "last_seen FROM page_name_history GROUP BY page_id, page_name;")
+        cursor.execute(page_name_history_query)
+        return {PageRecord(id=row['page_id'], name=row['page_name']): row['last_seen']
+                for row in cursor}
 
     def existing_funding_entities(self):
         cursor = self.get_cursor()
@@ -219,18 +229,13 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def insert_pages(self, new_pages):
+    def insert_pages(self, new_pages, new_page_name_history_records):
         cursor = self.get_cursor()
-        insert_page_query = ("INSERT INTO pages(page_id, page_name) VALUES %s "
-                             "on conflict (page_id) do nothing;")
+        insert_page_query = (
+            "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) DO NOTHING")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
-        psycopg2.extras.execute_values(cursor,
-                                       insert_page_query,
-                                       new_page_list,
-                                       template=insert_template,
-                                       page_size=_DEFAULT_PAGE_SIZE)
         insert_page_metadata_query = (
             "INSERT INTO page_metadata(page_id, page_owner) VALUES %s "
             "on conflict (page_id) do nothing;")
@@ -238,6 +243,29 @@ class DBInterface():
         psycopg2.extras.execute_values(
             cursor, insert_page_metadata_query, new_page_list,
             template=insert_page_metadata_template, page_size=_DEFAULT_PAGE_SIZE)
+
+        insert_page_name_history_query = (
+            "INSERT INTO page_name_history (page_id, page_name, last_seen) VALUES %s "
+            "ON CONFLICT (page_id, page_name) DO UPDATE SET last_seen = EXCLUDED.last_seen WHERE "
+            "page_name_history.page_id = EXCLUDED.page_id AND "
+            "page_name_history.page_name = EXCLUDED.page_name AND "
+            "page_name_history.last_seen < EXCLUDED.last_seen;")
+        insert_page_name_history_template = "(%(page_id)s, %(page_name)s, %(last_seen)s)"
+        page_name_history_records_list = [
+            {'page_id': k.id, 'page_name': k.name, 'last_seen': v} for k, v in
+            new_page_name_history_records.items()]
+        psycopg2.extras.execute_values(cursor,
+                                       insert_page_name_history_query,
+                                       page_name_history_records_list,
+                                       template=insert_page_name_history_template,
+                                       page_size=_DEFAULT_PAGE_SIZE)
+
+        update_pages_page_name_to_latest = (
+            '''UPDATE pages SET page_name = latest_page_names.page_name FROM (
+                SELECT DISTINCT ON (page_id) page_id, page_name FROM page_name_history ORDER BY
+                page_id, last_seen DESC) AS latest_page_names
+            WHERE pages.page_id = latest_page_names.page_id;''')
+        cursor.execute(update_pages_page_name_to_latest)
 
 
     def insert_page_metadata(self, new_page_metadata):
