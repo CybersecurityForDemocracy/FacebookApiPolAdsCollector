@@ -235,7 +235,7 @@ class SearchRunner():
         if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
             logging.info(
                 'New last_seen time for %s (from ad ID: %s, ad_creaton_time: %s, page name'
-                'previously last_seen: %s)', page_id, page_record, ad.archive_id, ad_creation_time,
+                'previously last_seen: %s)', page_record, ad.archive_id, ad_creation_time,
                 previous_page_name_last_seen)
         else:
             logging.info(
