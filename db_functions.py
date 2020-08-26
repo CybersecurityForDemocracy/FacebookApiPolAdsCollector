@@ -236,8 +236,7 @@ class DBInterface():
     def insert_pages(self, new_pages, page_records_to_last_seen_date):
         cursor = self.get_cursor()
         insert_page_query = (
-            "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) "
-            "DO UPDATE NOTHING")
+            "INSERT INTO pages(page_id, page_name) VALUES %s ON CONFLICT (page_id) DO NOTHING")
         insert_template = "(%(id)s, %(name)s)"
         new_page_list = [x._asdict() for x in new_pages]
 
