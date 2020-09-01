@@ -128,8 +128,7 @@ def parse_api_result_datetime(datetime_str):
     try:
         parsed_datetime = datetime.datetime.strptime(datetime_str, '%Y-%m-%d')
         # Assign timezone so that it can be compared with timezone-aware datetimes
-        parsed_datetime.replace(tzinfo=datetime.timezone.utc)
-        return parsed_datetime
+        return parsed_datetime.replace(tzinfo=datetime.timezone.utc)
     except ValueError as err:
         logging.warning('%s unable to parse API result datetime %s as datetime OR date. '
                         'Asssigning min datetime %s', err, datetime_str, DATETIME_MIN_UTC)
