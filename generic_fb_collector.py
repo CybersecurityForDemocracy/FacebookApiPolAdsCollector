@@ -444,6 +444,8 @@ class SearchRunner():
             else:
                 has_next = False
 
+        self.perfrom_post_collection_actions()
+
 
     def allowed_execution_time_remaining(self):
         # No deadline configured.
@@ -487,6 +489,13 @@ class SearchRunner():
         self.existing_page_ids = self.db.existing_pages()
         self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
         self.connection.commit()
+
+    def perfrom_post_collection_actions(self):
+        """Do actions after collection loop has terminated. eg cleanup or DB updates that should
+        happen after all information collected.
+        """
+        self.db.update_page_name_to_latest_seen()
+
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
         """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
