@@ -496,7 +496,6 @@ class SearchRunner():
         """
         self.db.update_page_name_to_latest_seen()
 
-
     def get_formatted_graph_error_counts(self, delimiter='\n'):
         """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
 
