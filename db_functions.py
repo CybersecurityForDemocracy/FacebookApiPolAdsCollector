@@ -273,7 +273,7 @@ class DBInterface():
                 SELECT DISTINCT ON (page_id) page_id, page_name FROM page_name_history ORDER BY
                 page_id, last_seen DESC) AS latest_page_names
             WHERE pages.page_id = latest_page_names.page_id AND
-            pages.page_name != latest_pages_names.page_name;''')
+            pages.page_name != latest_page_names.page_name;''')
         cursor.execute(update_pages_page_name_to_latest)
 
 
