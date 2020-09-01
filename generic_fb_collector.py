@@ -109,6 +109,33 @@ FIELDS_TO_REQUEST = [
     "potential_reach"
 ]
 
+def parse_api_result_datetime(datetime_str):
+    """Parse datetime from API result field. Attempts to parse first as datetime, then date. If
+    parsing fails returns datetime.datetime.min with timezon UTC.
+
+    Args:
+        datetime_str: str to be parsed as datetime or date.
+    Returns:
+        datetime.datetime parsed from arg. If parsing fails returns datetime.datetime.min with
+        timezon UTC.
+    """
+    try:
+        parsed_datetime = datetime.datetime.strptime(datetime_str, '%Y-%m-%dT%H:%M:%S%z')
+        return parsed_datetime
+    except ValueError:
+        pass
+
+    try:
+        parsed_datetime = datetime.datetime.strptime(datetime_str, '%Y-%m-%d')
+        # Assign timezone so that it can be compared with timezone-aware datetimes
+        parsed_datetime.replace(tzinfo=datetime.timezone.utc)
+        return parsed_datetime
+    except ValueError as err:
+        logging.warning('%s unable to parse API result datetime %s as datetime OR date. '
+                        'Asssigning min datetime %s', err, datetime_str, DATETIME_MIN_UTC)
+
+    return DATETIME_MIN_UTC
+
 class SearchRunner():
 
     def __init__(self, crawl_date, connection, db, search_runner_params):
@@ -192,12 +219,7 @@ class SearchRunner():
         if page_id == BAD_PAGE_ID:
             return
 
-        try:
-            ad_creation_time = datetime.datetime.strptime(ad.ad_creation_time,
-                                                          '%Y-%m-%dT%H:%M:%S%z')
-        except ValueError as err:
-            logging.warning('%s unable to parse ad_creation_time %s', err, ad.ad_creation_time)
-            return
+        ad_creation_time = parse_api_result_datetime(ad.ad_creation_time)
 
         page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
 
@@ -205,24 +227,24 @@ class SearchRunner():
             self.existing_page_ids.add(page_id)
             self.new_pages.add(page_record)
             self.new_page_record_to_max_last_seen_time[page_record] = max(
-                    ad_creation_time,
-                    self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
+                ad_creation_time,
+                self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
             return
         # If ad that has changed page name is older than last_seen date for the existing
         # (page_id, page_name) there's nothing to do.
         if (self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
-            ad_creation_time):
+                ad_creation_time):
             return
 
         # If ad that has changed page name is older than previously seen ad with changed
         # page_name we keep the new record.
         if (self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC) >=
-            ad_creation_time):
+                ad_creation_time):
             return
 
         previous_page_name_last_seen = max(
-                self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
-                self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
+            self.existing_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC),
+            self.new_page_record_to_max_last_seen_time.get(page_record, DATETIME_MIN_UTC))
         self.new_page_record_to_max_last_seen_time[page_record] = ad_creation_time
 
         if previous_page_name_last_seen and previous_page_name_last_seen != DATETIME_MIN_UTC:
