@@ -266,11 +266,14 @@ class DBInterface():
                                        template=insert_page_name_history_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
+    def update_page_name_to_latest_seen(self):
+        cursor = self.get_cursor()
         update_pages_page_name_to_latest = (
             '''UPDATE pages SET page_name = latest_page_names.page_name FROM (
                 SELECT DISTINCT ON (page_id) page_id, page_name FROM page_name_history ORDER BY
                 page_id, last_seen DESC) AS latest_page_names
-            WHERE pages.page_id = latest_page_names.page_id;''')
+            WHERE pages.page_id = latest_page_names.page_id AND
+            pages.page_name != latest_page_names.page_name;''')
         cursor.execute(update_pages_page_name_to_latest)
 
 
