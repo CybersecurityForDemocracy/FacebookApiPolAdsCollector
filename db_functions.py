@@ -462,7 +462,7 @@ class DBInterface():
             'image_bucket_path = EXCLUDED.image_bucket_path, '
             'image_sim_hash = EXCLUDED.image_sim_hash, '
             'video_downloaded_url = EXCLUDED.video_downloaded_url, '
-            'video_bucket_path = EXCLUDED.video_bucket_path, '
+            'video_bucket_path = EXCLUDED.video_bucket_path '
             'WHERE ad_creatives.archive_id = EXCLUDED.archive_id AND '
             'ad_creatives.text_sha256_hash = EXCLUDED.text_sha256_hash AND '
             'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash AND'
