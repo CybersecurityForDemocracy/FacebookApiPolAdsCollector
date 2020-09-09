@@ -466,7 +466,9 @@ class DBInterface():
             'WHERE ad_creatives.archive_id = EXCLUDED.archive_id AND '
             'ad_creatives.text_sha256_hash = EXCLUDED.text_sha256_hash AND '
             'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash AND '
-            'ad_creatives.video_sha256_hash = EXCLUDED.video_sha256_hash')
+            # This updates creatives where video might previous have been missing
+            '((ad_creatives.video_sha256_hash IS NULL AND EXCLUDED.video_sha256_hash IS NOT NULL) '
+            'OR ad_creatives.video_sha256_hash = EXCLUDED.video_sha256_hash)')
         insert_template = (
             '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_body_language)s, '
             '%(ad_creative_link_url)s, %(ad_creative_link_title)s, '
