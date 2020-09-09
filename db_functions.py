@@ -447,8 +447,9 @@ class DBInterface():
             'ad_creative_link_url, ad_creative_link_title, ad_creative_link_caption, '
             'ad_creative_link_description, ad_creative_link_button_text, text_sha256_hash, '
             'text_sim_hash, image_downloaded_url, image_bucket_path, image_sim_hash, '
-            'image_sha256_hash) VALUES %s ON CONFLICT '
-            '(archive_id, text_sha256_hash, image_sha256_hash) DO UPDATE SET '
+            'image_sha256_hash, video_downloaded_url, video_bucket_path, video_sha256_hash) '
+            'VALUES %s ON CONFLICT '
+            '(archive_id, text_sha256_hash, image_sha256_hash, video_sha256_hash) DO UPDATE SET '
             'ad_creative_body = EXCLUDED.ad_creative_body, '
             'ad_creative_body_language = EXCLUDED.ad_creative_body_language, '
             'ad_creative_link_url = EXCLUDED.ad_creative_link_url, '
@@ -459,17 +460,23 @@ class DBInterface():
             'text_sim_hash = EXCLUDED.text_sim_hash, '
             'image_downloaded_url = EXCLUDED.image_downloaded_url, '
             'image_bucket_path = EXCLUDED.image_bucket_path, '
-            'image_sim_hash = EXCLUDED.image_sim_hash '
+            'image_sim_hash = EXCLUDED.image_sim_hash, '
+            'video_downloaded_url = EXCLUDED.video_downloaded_url, '
+            'video_bucket_path = EXCLUDED.video_bucket_path '
             'WHERE ad_creatives.archive_id = EXCLUDED.archive_id AND '
             'ad_creatives.text_sha256_hash = EXCLUDED.text_sha256_hash AND '
-            'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash')
+            'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash AND '
+            # This updates creatives where video might previous have been missing
+            '((ad_creatives.video_sha256_hash IS NULL AND EXCLUDED.video_sha256_hash IS NOT NULL) '
+            'OR ad_creatives.video_sha256_hash = EXCLUDED.video_sha256_hash)')
         insert_template = (
             '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_body_language)s, '
             '%(ad_creative_link_url)s, %(ad_creative_link_title)s, '
             '%(ad_creative_link_caption)s, %(ad_creative_link_description)s, '
             '%(ad_creative_link_button_text)s, %(text_sha256_hash)s, '
             '%(text_sim_hash)s, %(image_downloaded_url)s, %(image_bucket_path)s, '
-            '%(image_sim_hash)s, %(image_sha256_hash)s)')
+            '%(image_sim_hash)s, %(image_sha256_hash)s, %(video_downloaded_url)s, '
+            '%(video_bucket_path)s, %(video_sha256_hash)s)')
         ad_creative_record_list = [x._asdict() for x in ad_creative_records]
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
