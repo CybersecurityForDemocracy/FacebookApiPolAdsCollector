@@ -36,8 +36,10 @@ LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
 CHROME_BROWSER_PATH = '/usr/bin/chromium-browser'
 AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
+AD_CREATIVE_VIDEOS_BUCKET = 'facebook_ad_videos'
 ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
+VIDEO_HASH_PATH_DIR_NAME_LENGTH = 4
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
@@ -110,6 +112,7 @@ FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', [
     'creative_link_caption',
     'creative_link_button_text',
     'image_url',
+    'video_url',
 ])
 
 AdScreenshotAndCreatives = collections.namedtuple('AdScreenshotAndCreatives', [
@@ -132,14 +135,18 @@ AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'image_bucket_path',
     'text_sim_hash',
     'image_sim_hash',
+    'video_sha256_hash',
+    'video_downloaded_url',
+    'video_bucket_path',
 ])
 
 AdCreativeRecordUniqueConstraintAttributes = collections.namedtuple(
     'AdCreativeRecordUniqueConstraintAttributes',
     ['archive_id',
      'text_sha256_hash',
-     'image_sha256_hash'
-])
+     'image_sha256_hash',
+     'video_sha256_hash'
+    ])
 
 AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     'archive_id',
@@ -229,6 +236,13 @@ def make_image_hash_file_path(image_hash):
                         image_hash[12:16], image_hash[16:20], image_hash[20:24],
                         image_hash[24:28], base_file_name)
 
+def make_video_sha256_hash_file_path(video_sha256_hash):
+    base_file_name = '%s.mp4' % video_sha256_hash
+    dirs = [video_sha256_hash[x:x + VIDEO_HASH_PATH_DIR_NAME_LENGTH]
+            for x in range(0, len(video_sha256_hash) - VIDEO_HASH_PATH_DIR_NAME_LENGTH,
+                           VIDEO_HASH_PATH_DIR_NAME_LENGTH)]
+    return os.path.join(*dirs, base_file_name)
+
 
 def get_image_dhash(image_bytes):
     image_file = io.BytesIO(image_bytes)
@@ -250,9 +264,10 @@ def upload_blob(bucket_client, blob_path, blob_data):
 class FacebookAdCreativeRetriever:
 
     def __init__(self, db_connection, ad_creative_images_bucket_client,
-                 archive_screenshots_bucket_client, access_token, commit_to_db_every_n_processed,
-                 slack_url):
+                 ad_creative_videos_bucket_client, archive_screenshots_bucket_client, access_token,
+                 commit_to_db_every_n_processed, slack_url):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
+        self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
         self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
@@ -261,6 +276,9 @@ class FacebookAdCreativeRetriever:
         self.num_image_download_success = 0
         self.num_image_download_failure = 0
         self.num_image_uploade_to_gcs_bucket = 0
+        self.num_video_download_success = 0
+        self.num_video_download_failure = 0
+        self.num_video_uploade_to_gcs_bucket = 0
         self.current_batch_id = None
         self.db_connection = db_connection
         self.db_interface = db_functions.DBInterface(db_connection)
@@ -294,14 +312,21 @@ class FacebookAdCreativeRetriever:
             'Images downloads successful: %d\n'
             'Images downloads failed: %d\n'
             'Images uploaded to GCS bucket: %d\n'
+            'Videos downloads successful: %d\n'
+            'Videos downloads failed: %d\n'
+            'Videos uploaded to GCS bucket: %d\n'
             'Average time spent per ad creative: %f seconds\n'
             'Current batch ID: %s',
             self.num_snapshots_processed, seconds_elapsed_procesing,
             self.num_snapshots_fetch_failed, self.num_ad_creatives_found,
             self.num_snapshots_without_creative_found,
-            self.num_image_download_success, self.num_image_download_failure,
-            self.num_image_uploade_to_gcs_bucket, seconds_elapsed_procesing /
-            (self.num_image_uploade_to_gcs_bucket or 1),
+            self.num_image_download_success,
+            self.num_image_download_failure,
+            self.num_image_uploade_to_gcs_bucket,
+            self.num_video_download_success,
+            self.num_video_download_failure,
+            self.num_video_uploade_to_gcs_bucket,
+            seconds_elapsed_procesing / (self.num_ad_creatives_found or 1),
             self.current_batch_id)
 
     def get_archive_id_batch_or_wait_until_available(self):
@@ -366,6 +391,13 @@ class FacebookAdCreativeRetriever:
         self.num_image_uploade_to_gcs_bucket += 1
         logging.debug('Image dhash: %s; uploaded to: %s', image_dhash, blob_id)
         return image_bucket_path
+
+    def store_video_in_google_bucket(self, video_sha256_hash, video_bytes):
+        video_bucket_path = make_video_sha256_hash_file_path(video_sha256_hash)
+        blob_id = upload_blob(self.ad_creative_videos_bucket_client, video_bucket_path, video_bytes)
+        self.num_video_uploade_to_gcs_bucket += 1
+        logging.debug('Video sha256_hash: %s; uploaded to: %s', video_sha256_hash, blob_id)
+        return video_bucket_path
 
     def store_snapshot_screenshot(self, archive_id, screenshot_binary_data):
         bucket_path = '%d.png' % archive_id
@@ -540,6 +572,7 @@ class FacebookAdCreativeRetriever:
         creative_link_title = None
         creative_link_caption = None
         image_url = None
+        video_url = None
         creative_link_button_text = None
 
         # Some carousel type ads have only links, only images, or images with links. So we attempt
@@ -560,7 +593,9 @@ class FacebookAdCreativeRetriever:
 
         try:
             xpath = '%s//video' % xpath_prefix
-            image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('poster')
+            video_element = self.chromedriver.find_element_by_xpath(xpath)
+            image_url = video_element.get_attribute('poster')
+            video_url = video_element.get_attribute('src')
             logging.debug('Found <video> tag, assuming creative has video')
         except NoSuchElementException:
             pass
@@ -588,7 +623,8 @@ class FacebookAdCreativeRetriever:
                 creative_link_caption=creative_link_caption,
                 creative_link_description=None,
                 creative_link_button_text=creative_link_button_text,
-                image_url=image_url)
+                image_url=image_url,
+                video_url=video_url)
 
         return None
 
@@ -652,9 +688,12 @@ class FacebookAdCreativeRetriever:
             link_attrs.creative_link_description)
 
         # TODO(macpd): handle image carousels, and "invalid IDs"
+        video_url = None
+        image_url = None
         video_element = self.get_video_element_from_creative_container()
         if video_element:
             image_url = video_element.get_attribute('poster')
+            video_url = video_element.get_attribute('src')
             logging.debug('Found <video> tag, assuming creative has video')
         else:
             image_url = self.get_image_url_from_creative_container()
@@ -673,7 +712,8 @@ class FacebookAdCreativeRetriever:
             creative_link_description=link_attrs.creative_link_description,
             creative_link_caption=link_attrs.creative_link_caption,
             creative_link_button_text=link_attrs.creative_link_button_text,
-            image_url=image_url)
+            image_url=image_url,
+            video_url=video_url)
 
     def raise_if_page_has_age_restriction_or_id_error(self):
         error_text = None
@@ -877,7 +917,9 @@ class FacebookAdCreativeRetriever:
         for creative in creatives:
             image_dhash = None
             image_sha256 = None
-            bucket_path = None
+            image_bucket_path = None
+            video_sha256 = None
+            video_bucket_path = None
             fetch_time = datetime.datetime.now()
             if creative.image_url:
                 try:
@@ -905,8 +947,27 @@ class FacebookAdCreativeRetriever:
 
                 self.num_image_download_success += 1
                 image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-                bucket_path = self.store_image_in_google_bucket(
+                image_bucket_path = self.store_image_in_google_bucket(
                     image_dhash, image_bytes)
+            if creative.video_url:
+                try:
+                    video_request = requests.get(creative.video_url, timeout=30)
+                    # TODO(macpd): handle this more gracefully
+                    # TODO(macpd): check encoding
+                    video_request.raise_for_status()
+                except requests.RequestException as request_exception:
+                    logging.info('Exception %s when requesting video_url: %s',
+                                 request_exception, creative.video_url)
+                    self.num_video_download_failure += 1
+                    # TODO(macpd): handle all error types
+                    continue
+
+                video_bytes = video_request.content
+
+                self.num_video_download_success += 1
+                video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                video_bucket_path = self.store_video_in_google_bucket(
+                    video_sha256, video_bytes)
 
             text = None
             text_sim_hash = None
@@ -928,7 +989,7 @@ class FacebookAdCreativeRetriever:
 
             unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
                 archive_id=creative.archive_id, text_sha256_hash=text_sha256_hash,
-                image_sha256_hash=image_sha256)
+                image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
 
             if unique_constraint_attrs in seen_unique_constraint_attrs:
                 logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
@@ -949,9 +1010,12 @@ class FacebookAdCreativeRetriever:
                     text_sha256_hash=text_sha256_hash,
                     text_sim_hash=text_sim_hash,
                     image_downloaded_url=creative.image_url,
-                    image_bucket_path=bucket_path,
+                    image_bucket_path=image_bucket_path,
                     image_sim_hash=image_dhash,
-                    image_sha256_hash=image_sha256))
+                    image_sha256_hash=image_sha256,
+                    video_downloaded_url=creative.video_url,
+                    video_bucket_path=video_bucket_path,
+                    video_sha256_hash=video_sha256))
 
         logging.info('Inserting %d AdCreativeRecords to to DB.',
                      len(ad_creative_records))
@@ -979,11 +1043,14 @@ def main(argv):
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         ad_creative_images_bucket_client = make_gcs_bucket_client(AD_CREATIVE_IMAGES_BUCKET,
                                                                   GCS_CREDENTIALS_FILE)
+        ad_creative_video_bucket_client = make_gcs_bucket_client(AD_CREATIVE_VIDEOS_BUCKET,
+                                                                 GCS_CREDENTIALS_FILE)
         archive_screenshots_bucket_client = make_gcs_bucket_client(ARCHIVE_SCREENSHOTS_BUCKET,
-                                                                  GCS_CREDENTIALS_FILE)
+                                                                   GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, ad_creative_images_bucket_client, archive_screenshots_bucket_client,
-            access_token, commit_to_db_every_n_processed, slack_url)
+            db_connection, ad_creative_images_bucket_client, ad_creative_video_bucket_client,
+            archive_screenshots_bucket_client, access_token, commit_to_db_every_n_processed,
+            slack_url)
         image_retriever.retreive_and_store_ad_creatives()
 
 
