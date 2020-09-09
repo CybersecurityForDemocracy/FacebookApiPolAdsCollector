@@ -465,7 +465,7 @@ class DBInterface():
             'video_bucket_path = EXCLUDED.video_bucket_path '
             'WHERE ad_creatives.archive_id = EXCLUDED.archive_id AND '
             'ad_creatives.text_sha256_hash = EXCLUDED.text_sha256_hash AND '
-            'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash AND'
+            'ad_creatives.image_sha256_hash = EXCLUDED.image_sha256_hash AND '
             'ad_creatives.video_sha256_hash = EXCLUDED.video_sha256_hash')
         insert_template = (
             '(%(archive_id)s, %(ad_creative_body)s, %(ad_creative_body_language)s, '
