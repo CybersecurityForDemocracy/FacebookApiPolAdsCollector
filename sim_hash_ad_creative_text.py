@@ -5,6 +5,9 @@ import simhash
 
 _WIDTH = 3
 
+# IF YOU CHANGE THIS FUNCTION MAKE SURE TO ALSO CHANGE
+# FacebookAdsAnalysis/sim_hash_ad_creative_text.py AND REGENERATE ALL ad_creatives.text_sim_hash
+# VALUES
 def _get_features(src):
     src = src.lower()
     src = re.sub(r'[^\w]+', '', src)
