@@ -283,3 +283,6 @@ CREATE TRIGGER snapshot_fetch_batches_moddatetime
 BEFORE UPDATE ON snapshot_fetch_batches
 FOR EACH ROW
 EXECUTE PROCEDURE moddatetime(last_modified_time);
+
+CREATE INDEX ads_page_id_idx ON public.ads USING btree (page_id);
+CREATE INDEX ads_page_id_ad_delivery_start_time_idx ON public.ads USING btree (page_id, ad_delivery_start_time ASC);
