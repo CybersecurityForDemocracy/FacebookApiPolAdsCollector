@@ -135,6 +135,24 @@ def parse_api_result_datetime(datetime_str):
 
     return DATETIME_MIN_UTC
 
+def parse_api_result_datetime_with_fallback_to_input(datetime_str):
+    """Parse datetime from API result field. Attempts to parse first as datetime, then date. If
+    parsing fails returns original str input.
+
+    Args:
+        datetime_str: str to be parsed as datetime or date.
+    Returns:
+        datetime.datetime parsed from arg. If parsing fails returns input arg.
+    """
+    if not datetime_str:
+        return datetime_str
+
+    parsed_result = parse_api_result_datetime(datetime_str)
+    if parsed_result == DATETIME_MIN_UTC:
+        return datetime_str
+
+    return parsed_result
+
 class SearchRunner():
 
     def __init__(self, crawl_date, connection, db, search_runner_params):
@@ -180,13 +198,16 @@ class SearchRunner():
         if  'ad_delivery_stop_time' in result:
             ad_status = 0
         curr_ad = AdRecord(
-            ad_creation_time=result.get('ad_creation_time', None),
+            ad_creation_time=parse_api_result_datetime_with_fallback_to_input(
+                result.get('ad_creation_time', None)),
             ad_creative_body=result.get('ad_creative_body', None),
             ad_creative_link_caption=result.get('ad_creative_link_caption', None),
             ad_creative_link_description=result.get('ad_creative_link_description', None),
             ad_creative_link_title=result.get('ad_creative_link_title', None),
-            ad_delivery_start_time=result.get('ad_delivery_start_time', None),
-            ad_delivery_stop_time=result.get('ad_delivery_stop_time', None),
+            ad_delivery_start_time=parse_api_result_datetime_with_fallback_to_input(
+                result.get('ad_delivery_start_time', None)),
+            ad_delivery_stop_time=parse_api_result_datetime_with_fallback_to_input(
+                result.get('ad_delivery_stop_time', None)),
             ad_snapshot_url=result.get('ad_snapshot_url', None),
             ad_status=ad_status,
             archive_id=archive_id,
@@ -218,7 +239,8 @@ class SearchRunner():
         if page_id == BAD_PAGE_ID:
             return
 
-        ad_creation_time = parse_api_result_datetime(ad.ad_creation_time)
+        # if we were unable to pare ad_creation_time use unix epoch
+        ad_creation_time = ad.ad_creation_time or DATETIME_MIN_UTC
 
         page_record = db_functions.PageRecord(id=page_id, name=ad.page_name)
 
