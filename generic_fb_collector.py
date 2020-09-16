@@ -227,9 +227,13 @@ class SearchRunner():
             potential_reach__upper_bound=result.get(
                 'potential_reach', dict()).get('upper_bound', None)
         )
-        logging.info('archive_id %s, API ad_creation_time: %s, parsed ad_creation_time: %s',
-                     curr_ad.archive_id, result.get('ad_creation_time', None),
-                     curr_ad.ad_creation_time)
+        logging.info('archive_id %s, API ad_creation_time: %s, parsed ad_creation_time: %s '
+                     'API ad_delivery_start_time: %s, parsed ad_delivery_start_time: %s',
+                     curr_ad.archive_id,
+                     result.get('ad_creation_time', None),
+                     curr_ad.ad_creation_time,
+                     result.get('ad_delivery_start_time', None),
+                     curr_ad.ad_delivery_start_time)
         return curr_ad
 
     def process_funding_entity(self, ad):
