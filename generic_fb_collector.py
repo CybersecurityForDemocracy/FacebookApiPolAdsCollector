@@ -345,7 +345,7 @@ class SearchRunner():
         self.existing_funding_entities = self.db.existing_funding_entities()
 
         #get ads
-        graph = facebook.GraphAPI(access_token=self.fb_access_token)
+        graph = facebook.GraphAPI(access_token=self.fb_access_token, version='7.0')
         has_next = True
         next_cursor = ""
         backoff_multiplier = 1
