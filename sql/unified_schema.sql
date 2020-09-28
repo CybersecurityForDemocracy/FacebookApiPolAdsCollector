@@ -148,7 +148,7 @@ CREATE TABLE demo_impressions (
   archive_id bigint,
   age_group character varying,
   gender character varying,
-  spend_percentage decimal(5, 2),
+  spend_percentage decimal(7, 6),
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT spend_is_percentage check (
@@ -160,7 +160,7 @@ CREATE TABLE demo_impressions (
 CREATE TABLE region_impressions (
   archive_id bigint,
   region character varying,
-  spend_percentage decimal(5, 2),
+  spend_percentage decimal(7, 6),
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT spend_is_percentage check (
