@@ -46,7 +46,7 @@ class SearchRunner():
 
     def run_search(self):
         #get ads
-        graph = facebook.GraphAPI(access_token=self.fb_access_token, version="7.0")
+        graph = facebook.GraphAPI(access_token=self.fb_access_token, version='7.0')
         has_next = True
         next_cursor = ""
         backoff_multiplier = 1
