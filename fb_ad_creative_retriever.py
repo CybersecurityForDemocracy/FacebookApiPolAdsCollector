@@ -48,7 +48,7 @@ TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
-CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
+CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi _9giw\']'
 CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
                                  '//a[@class=\'_231w _231z _4yee\']')
 CREATIVE_LINK_XPATH_TEMPLATE = (
