@@ -665,8 +665,6 @@ class FacebookAdCreativeRetriever:
             logging.info(
                 'Unable to find ad creative link section for Archive ID: %s. '
                 '\nError: %s', archive_id, e)
-            logging.info('URL:%s\nHTML:\n%s', self.chromedriver.current_url,
-            self.chromedriver.find_element_by_tag_name('html').text)
 
 
         link_attrs = self.get_ad_creative_link_attributes()
