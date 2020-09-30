@@ -47,7 +47,6 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             db_connection=None, ad_creative_images_bucket_client=None,
             ad_creative_videos_bucket_client=None, archive_screenshots_bucket_client=None,
             access_token=self.access_token, commit_to_db_every_n_processed=None, slack_url=None)
-        #  self.addTypeEqualityFunc(FetchedAdCreativeData, self.assertFetchedAdCreativeDataEqual)
 
     def tearDown(self):
         self.retriever.chromedriver.quit()
