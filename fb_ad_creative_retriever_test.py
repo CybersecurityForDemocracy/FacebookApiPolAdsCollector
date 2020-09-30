@@ -47,7 +47,7 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             db_connection=None, ad_creative_images_bucket_client=None,
             ad_creative_videos_bucket_client=None, archive_screenshots_bucket_client=None,
             access_token=self.access_token, commit_to_db_every_n_processed=None, slack_url=None)
-        self.addTypeEqualityFunc(FetchedAdCreativeData, self.assertFetchedAdCreativeDataEqual)
+        #  self.addTypeEqualityFunc(FetchedAdCreativeData, self.assertFetchedAdCreativeDataEqual)
 
     def tearDown(self):
         self.retriever.chromedriver.quit()
@@ -94,13 +94,17 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
                          creative_data_b.creative_link_button_text,
                          msg='Creative link button text from creative {}'.format(creative_index))
         if creative_data_a.image_url:
-            self.assertTrue(creative_data_b.image_url)
+            self.assertTrue(creative_data_b.image_url,
+                         msg='Creative image URL present vs not present from creative {}'.format(creative_index))
         else:
-            self.assertFalse(creative_data_b.image_url)
+            self.assertFalse(creative_data_b.image_url,
+                         msg='Creative image URL not present vs present from creative {}'.format(creative_index))
         if creative_data_a.video_url:
-            self.assertTrue(creative_data_b.video_url)
+            self.assertTrue(creative_data_b.video_url,
+                         msg='Creative video URL present vs not present from creative {}'.format(creative_index))
         else:
-            self.assertFalse(creative_data_b.video_url)
+            self.assertFalse(creative_data_b.video_url,
+                         msg='Creative video URL not present vs present from creative {}'.format(creative_index))
 
 
     def testSingleCreativeTextOnly(self):
@@ -109,7 +113,6 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
                 archive_id, self.make_snapshot_url(archive_id)))
         self.assertIsNotNone(retrieved_data.screenshot_binary_data)
-        creative = retrieved_data.creatives[0]
         expected_creative_body='These Liberal Media types should be wiped from the face of television.'
         self.assertAdCreativeListEqual(
             retrieved_data.creatives,
@@ -342,6 +345,102 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
         self.assertAdCreativeListEqual(
             retrieved_data.creatives,
             expected_creatives)
+
+    def testCarouselStyleAdTextAndImage(self):
+        archive_id = 2853013434745967
+        retrieved_data = (
+            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                archive_id, self.make_snapshot_url(archive_id)))
+        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        expected_creative_body = ('Proud to join our firefighters and friends at the dedication of '
+                                  'this new truck for the Fort Hill fire station.')
+        expected_creatives = []
+        for i in range(3):
+            expected_creatives.append(
+                make_fetched_ad_creative_data(archive_id=archive_id,
+                                              creative_body=expected_creative_body, image_url=True))
+        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+
+    def testCarouselStyleAdTextImageAndButtonNoLink(self):
+        archive_id = 289864105344773
+        retrieved_data = (
+            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                archive_id, self.make_snapshot_url(archive_id)))
+        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        expected_creative_body = ('Giving is always better than receiving. Thank you to all the '
+                                  'essential workers. We appreciate you!! A special thanks to '
+                                  'Royalton Police Department for allowing us to show our support.')
+
+        expected_creatives = []
+        for i in range(3):
+            expected_creatives.append(
+                make_fetched_ad_creative_data(archive_id=archive_id,
+                                              creative_body=expected_creative_body,
+                                              image_url=True,
+                                              creative_link_description='Wes Sherrod - SCC',
+                                              creative_link_caption='Auto Body Shop',
+                                              creative_link_button_text='Send Message'
+                                              ))
+        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+
+    def testCarouselStyleAdTextVideoAndButtonOnEachCarouselItem(self):
+        archive_id = 238370824248079
+        retrieved_data = (
+            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                archive_id, self.make_snapshot_url(archive_id)))
+        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        expected_creative_body = (
+            'Looking for a place to livestream and earn money at the same time? Look no further!')
+
+        expected_creatives = []
+        for i in range(3):
+            expected_creatives.append(
+                make_fetched_ad_creative_data(
+                    archive_id=archive_id, creative_body=expected_creative_body,
+                    image_url=True,
+                    video_url=True,
+                    creative_link_url='https://l.facebook.com/l.php?u=http%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.asiainno.uplive',
+                    creative_link_description=None,
+                    creative_link_title='Install Now',
+                    creative_link_caption=None,
+                    creative_link_button_text='Install Now'))
+        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+
+    def testCarouselStyleAdTextImageAndLinkNoButton(self):
+        archive_id = 842440562832839
+        retrieved_data = (
+            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
+                archive_id, self.make_snapshot_url(archive_id)))
+        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        expected_creative_body = (
+             'Thank you to all our supporters! We are working hard to get all our students on-line '
+             'so they can do their homework and get tutoring remotely. Please donate and/or share, '
+             'if you can, to get the word out. Stay safe and well!')
+        expected_creative_link_title = (
+            'I\'M RAISING MONEY FOR SEAL INC. DUE TO THE COVID 19 PANDEMIC OUR STUDENTS ARE HAVING '
+            'TO LEARN REMOTELY. THE ONES THAT HAVE TECHNOLOGY AT HOME ARE DOING A FABULOUS JOB '
+            'WITH THE VIRTUAL LEARNING. UNFORTUNATELY, MANY OF THEM DO NOT HAVE CHROME BOOKS, WIFI '
+            'OR GOOD READING BOOKS AT HOME. YOUR CONTRIBUTION WILL MAKE A HUGE IMPACT, AND WE WILL '
+            'BE ABLE TO TUTOR AND MENTOR MORE STUDENTS REMOTELY DURING THIS TOUGH, STAY AT HOME '
+            'ORDER. WHETHER YOU DONATE $5 OR $500, EVERY LITTLE BIT HELPS! THANK YOU FOR YOUR '
+            'SUPPORT. STAY SAFE AND WELL. SEAL INC. MISSION STEEMENT- SEA LITERACY UPLIFTS THE '
+            'LIVES OF REFUGEE STUDENTS IN GREATER MILWAUKEE BY EMPOWERING THEM TO BECOME ENGAGED '
+            'MEMBERS OF THIS DIVERSE, DYNAMIC COMMUNITY. OUR GOAL IS TO FOSTER SOCIAL AND '
+            'EDUCATIONAL DEVELOPMENT, THUS CREATING COMMUNITY LEADERS AND INSPIRING FUTURE '
+            'GENERATIONS. WE ARE ALSO COMMITTED TO PROVIDING THE PEOPLE OF MILWAUKEE AND THE '
+            'SURROUNDING SUBURBS THE OPPORTUNITY TO REACH OUT TO THEIR NEIGHBORS AND STRENGTHEN '
+            'THE HARMONY IN OUR CITY!')
+
+        expected_creatives = []
+        for i in range(2):
+            expected_creatives.append(
+                make_fetched_ad_creative_data(
+                    archive_id=archive_id,
+                    creative_body=expected_creative_body,
+                    image_url=True,
+                    creative_link_title=expected_creative_link_title,
+                    creative_link_description='Technology and Book fundraiser'))
+        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
 
 
 if __name__ == '__main__':
