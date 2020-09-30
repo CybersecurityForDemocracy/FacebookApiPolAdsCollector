@@ -6,6 +6,7 @@ import hashlib
 import logging
 import io
 import os.path
+from operator import attrgetter
 import socket
 import sys
 import time
@@ -59,6 +60,7 @@ CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
 CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
 CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
 CREATIVE_LINK_BUTTON_XPATH_SUFFIX = '//button//div[@class=\'_43rm\']'
+#  CREATIVE_LINK_BUTTON_XPATH_SUFFIX = '//button'
 
 EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
                                            '/div/div[@class=\'_8jtf\']/div[%d]')
@@ -83,7 +85,28 @@ NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS = 5
 
 CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
     CREATIVE_CONTAINER_XPATH + '//div[@class=\'_a2e\']/div[%d]//div[@class=\'_7jy-\']')
+CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH = (
+    CREATIVE_CONTAINER_XPATH + '//div[@class=\' _8jg- _8jg_\']')
+CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE = (
+    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH +
+    '//div/div[%d]/div/div[@class=\'_4ik4 _4ik5\']')
+CAROUSEL_TYPE_CREATIVE_NO_LINK_TITLE_XPATH = (
+    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 1)
+CAROUSEL_TYPE_CREATIVE_NO_LINK_DESCRIPTION_XPATH = (
+    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 2)
+CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH = (
+    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 4)
+CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_ALTERNATIVE_XPATH = (
+    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 3)
+CAROUSEL_TYPE_CREATIVE_NO_LINK_BUTTON_XPATH_SUFFIX = '//button//div[@class=\'_43rm\']'
 CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = '//a/div[@class=\'_10sf _5x5_\']'
+
+CREATIVE_CAPTION_SECTION_FIELD_NAMES = [
+    'creative_link_url',
+    'creative_link_title',
+    'creative_link_caption',
+    'creative_link_description',
+    'creative_link_button_text']
 
 INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
     "the Graph API response.")
@@ -259,6 +282,37 @@ def upload_blob(bucket_client, blob_path, blob_data):
     blob = bucket_client.blob(blob_path)
     blob.upload_from_string(blob_data)
     return blob.id
+
+def get_element_text_or_inner_html_if_contains_no_tags(webdriver_element):
+    """Returns webdriver_element .text attribute. If .text is falsey pulls element innerHTML and
+    returns that if does not contain '<' or '>'.
+    """
+    text = webdriver_element.text
+    # Sometimes .text does not return the text from a element even when the text there. So
+    # we pull the innerHTML, and use it for the button text if it does not contain '<' or
+    # '>'
+    if not text:
+        inner_html = webdriver_element.get_attribute('innerHTML')
+        if '<' not in inner_html and '>' not in inner_html:
+            text = inner_html
+    return text
+
+def fetched_ad_creatives_caption_section_fields_empty(fetched_ad_creatives):
+    caption_values = []
+    for caption_field_name in CREATIVE_CAPTION_SECTION_FIELD_NAMES:
+        caption_values.extend(map(attrgetter(caption_field_name), fetched_ad_creatives))
+    return not any(caption_values)
+
+def replace_empty_caption_section_fields(source_fetched_ad_creative,
+                                         fetched_ad_creative_list_to_transform):
+    new_fetched_ad_creatives = []
+    for creative in fetched_ad_creative_list_to_transform:
+        replacement_values = {}
+        for field_name in CREATIVE_CAPTION_SECTION_FIELD_NAMES:
+            if not getattr(creative, field_name):
+                replacement_values[field_name] = getattr(source_fetched_ad_creative, field_name)
+        new_fetched_ad_creatives.append(creative._replace(**replacement_values))
+    return new_fetched_ad_creatives
 
 
 class FacebookAdCreativeRetriever:
@@ -499,8 +553,10 @@ class FacebookAdCreativeRetriever:
             pass
 
         try:
-            creative_link_button_text = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CONTAINER_XPATH + CREATIVE_LINK_BUTTON_XPATH_SUFFIX).text
+            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
+                CREATIVE_LINK_CONTAINER_XPATH + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
+            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
+                creative_link_button_elem)
         except NoSuchElementException:
             pass
 
@@ -566,6 +622,85 @@ class FacebookAdCreativeRetriever:
                      archive_id)
         return None
 
+    def get_carousel_carousel_wide_caption_data(self, archive_id):
+        xpath = CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH
+        creative_link_url = None
+        creative_link_title = None
+        creative_link_caption = None
+        creative_link_description = None
+        image_url = None
+        video_url = None
+        creative_link_button_text = None
+
+        try:
+            creative_link_container = self.chromedriver.find_element_by_xpath(
+                    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH)
+            creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
+                creative_link_container)
+        except NoSuchElementException:
+            pass
+
+        try:
+            creative_link_caption = self.chromedriver.find_element_by_xpath(
+                CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH).text
+            if not creative_link_caption:
+                creative_link_caption = None
+        except NoSuchElementException:
+            pass
+
+        if not creative_link_caption:
+            try:
+                creative_link_caption = self.chromedriver.find_element_by_xpath(
+                    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_ALTERNATIVE_XPATH).text
+                if not creative_link_caption:
+                    creative_link_caption = None
+            except NoSuchElementException:
+                pass
+
+        try:
+            creative_link_title = self.chromedriver.find_element_by_xpath(
+                CAROUSEL_TYPE_CREATIVE_NO_LINK_TITLE_XPATH).text
+            if not creative_link_title:
+                creative_link_title = None
+        except NoSuchElementException:
+            pass
+
+        try:
+            creative_link_description = self.chromedriver.find_element_by_xpath(
+                CAROUSEL_TYPE_CREATIVE_NO_LINK_DESCRIPTION_XPATH).text
+            if not creative_link_description:
+                creative_link_description = None
+        except NoSuchElementException:
+            pass
+
+        try:
+            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
+                CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH +
+                CAROUSEL_TYPE_CREATIVE_NO_LINK_BUTTON_XPATH_SUFFIX)
+
+            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
+                    creative_link_button_elem)
+            if not creative_link_button_text:
+                creative_link_button_text = None
+        except NoSuchElementException:
+            pass
+
+        if any([creative_link_url, creative_link_title, creative_link_caption,
+                creative_link_description,
+                creative_link_button_text, image_url]):
+            return FetchedAdCreativeData(
+                archive_id=archive_id,
+                creative_body=None,
+                creative_link_url=creative_link_url,
+                creative_link_title=creative_link_title,
+                creative_link_caption=creative_link_caption,
+                creative_link_description=creative_link_description,
+                creative_link_button_text=creative_link_button_text,
+                image_url=image_url,
+                video_url=video_url)
+
+        return None
+
     def get_single_carousel_item_creative_data(self, carousel_index, archive_id, creative_body):
         xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
         creative_link_url = None
@@ -575,14 +710,27 @@ class FacebookAdCreativeRetriever:
         video_url = None
         creative_link_button_text = None
 
+        xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
+
         # Some carousel type ads have only links, only images, or images with links. So we attempt
         # to retrive link and image data separately, and return whatever we found.
         try:
             xpath = '%s//a' % xpath_prefix
             creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
             creative_link_url = creative_link_container.get_attribute('href')
-            creative_link_title = creative_link_container.text
-        except NoSuchElementException:
+            creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
+                creative_link_container)
+
+            # Sometimes we are unable to get the text of the last creative's title. So we try to get
+            # the button text.
+            if not creative_link_title:
+                self.click_carousel_navigation_element()
+                creative_link_button_elem = self.chromedriver.find_element_by_xpath(
+                    xpath + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
+
+                creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
+                        creative_link_button_elem)
+        except NoSuchElementException as err:
             pass
 
         try:
@@ -608,8 +756,11 @@ class FacebookAdCreativeRetriever:
                 pass
 
         try:
-            creative_link_button_text = self.chromedriver.find_element_by_xpath(
-                xpath_prefix + CREATIVE_LINK_BUTTON_XPATH_SUFFIX).text
+            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
+                xpath_prefix + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
+
+            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
+                    creative_link_button_elem)
         except NoSuchElementException:
             pass
 
@@ -652,8 +803,18 @@ class FacebookAdCreativeRetriever:
 
             # Attempt to bring next carousel element into view
             self.click_carousel_navigation_element()
+        # Some Carousel type ads have only one link area for all creatives instead a link per
+        # creative. If no link info was found we try to get that data from that structure and then
+        # replace those values for all creatives.
+        if fetched_ad_creatives_caption_section_fields_empty(fetched_ad_creatives):
+            logging.info(
+                'No caption values found for carousel style ad %s. Assuming has a single caption.',
+                archive_id)
+            carousel_wide_caption_data = self.get_carousel_carousel_wide_caption_data(archive_id)
+            if carousel_wide_caption_data:
+                fetched_ad_creatives = replace_empty_caption_section_fields(
+                    carousel_wide_caption_data, fetched_ad_creatives)
         return fetched_ad_creatives
-
 
     def get_displayed_ad_creative_data(self, archive_id):
         creative_body = self.get_ad_creative_body(archive_id)
