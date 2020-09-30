@@ -623,7 +623,6 @@ class FacebookAdCreativeRetriever:
         return None
 
     def get_carousel_carousel_wide_caption_data(self, archive_id):
-        xpath = CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH
         creative_link_url = None
         creative_link_title = None
         creative_link_caption = None
@@ -730,7 +729,7 @@ class FacebookAdCreativeRetriever:
 
                 creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
                         creative_link_button_elem)
-        except NoSuchElementException as err:
+        except NoSuchElementException:
             pass
 
         try:
