@@ -49,10 +49,7 @@ TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
-# Old class based container xpath. Facebook changed this twice in a 48 hour period. So I'm going
-# with index based xpath for now.
-#  CREATIVE_CONTAINER_XPATH = '//div[@class=\'_7jyg _7jyi\']'
-CREATIVE_CONTAINER_XPATH = '//*[@id="content"]/div/div[2]/div/div/div/div'
+CREATIVE_CONTAINER_XPATH = '//div[contains(@class, \'_7jyg _7jyi\')]'
 CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
                                  '//a[@class=\'_231w _231z _4yee\']')
 CREATIVE_LINK_XPATH_TEMPLATE = (
