@@ -19,8 +19,9 @@ Ad type cases tested:
 """
 
 from collections import namedtuple
-import hashlib
+import logging
 import os
+import sys
 import unittest
 
 from fb_ad_creative_retriever import FetchedAdCreativeData
@@ -28,6 +29,11 @@ import fb_ad_creative_retriever
 import snapshot_url_util
 
 ACCESS_TOKEN = os.environ['FB_ACCESS_TOKEN']
+
+# uncomment these lines to get log output to stdout when tests execute
+# logger = logging.getLogger()
+# logger.addHandler(logging.StreamHandler(sys.stdout))
+# logger.setLevel(logging.INFO)
 
 
 def make_fetched_ad_creative_data(archive_id, creative_body=None, creative_link_url=None,
