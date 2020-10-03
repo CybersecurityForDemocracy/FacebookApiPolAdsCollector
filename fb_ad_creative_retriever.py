@@ -49,7 +49,9 @@ TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
 
 SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
-CREATIVE_CONTAINER_XPATH = '//div[contains(@class, \'_7jyg _7jyi\')]'
+# recently _9giw is often (also) present in the below element class
+CREATIVE_CONTAINER_XPATH = ("//div[contains(concat(' ', @class, ' '), ' _7jyg ') and "
+                                   "contains(concat(' ', @class, ' '), ' _7jyi ')]")
 CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
                                  '//a[@class=\'_231w _231z _4yee\']')
 CREATIVE_LINK_XPATH_TEMPLATE = (
