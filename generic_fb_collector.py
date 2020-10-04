@@ -109,6 +109,18 @@ FIELDS_TO_REQUEST = [
     "potential_reach"
 ]
 
+def get_int_with_default(val, default):
+    """Atempts to comvert input to an int. Returns default if input is None or unable to convert to
+    an int.
+    """
+    if val is None:
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        pass
+    return default
+
 def parse_api_result_datetime(datetime_str):
     """Parse datetime from API result field. Attempts to parse first as datetime, then date. If
     parsing fails returns datetime.datetime.min with timezon UTC.
@@ -197,6 +209,20 @@ class SearchRunner():
         ad_status = 1
         if  'ad_delivery_stop_time' in result:
             ad_status = 0
+
+        impressions__lower_bound = get_int_with_default(
+            result.get('impressions', dict()).get('lower_bound'), default=0)
+        impressions__upper_bound = get_int_with_default(
+            result.get('impressions', dict()).get('upper_bound'), default=impressions__lower_bound)
+        spend__lower_bound = get_int_with_default(
+            result.get('spend', dict()).get('lower_bound'), default=0)
+        spend__upper_bound = get_int_with_default(
+            result.get('spend', dict()).get('upper_bound'), default=spend__lower_bound)
+        potential_reach__lower_bound = get_int_with_default(
+            result.get('potential_reach', dict()).get('lower_bound'), default=None)
+        potential_reach__upper_bound = get_int_with_default(
+            result.get('potential_reach', dict()).get('upper_bound'),
+            default=potential_reach__lower_bound)
         curr_ad = AdRecord(
             ad_creation_time=parse_api_result_datetime_with_fallback_to_input(
                 result.get('ad_creation_time', None)),
@@ -215,17 +241,15 @@ class SearchRunner():
             currency=result.get('currency', None),
             first_crawl_time=self.crawl_date,
             funding_entity=result.get('funding_entity', None),
-            impressions__lower_bound=result.get('impressions', dict()).get('lower_bound', '0'),
-            impressions__upper_bound=result.get('impressions', dict()).get('upper_bound', '0'),
+            impressions__lower_bound=impressions__lower_bound,
+            impressions__upper_bound=impressions__upper_bound,
             page_id=result.get('page_id', None),
             page_name=result.get('page_name', '<NOT PROVIDED>'),
             publisher_platform=result.get('publisher_platform', 'NotProvided'),
-            spend__lower_bound=result.get('spend', dict()).get('lower_bound', '0'),
-            spend__upper_bound=result.get('spend', dict()).get('upper_bound', '0'),
-            potential_reach__lower_bound=result.get(
-                'potential_reach', dict()).get('lower_bound', None),
-            potential_reach__upper_bound=result.get(
-                'potential_reach', dict()).get('upper_bound', None)
+            spend__lower_bound=spend__lower_bound,
+            spend__upper_bound=spend__upper_bound,
+            potential_reach__lower_bound=potential_reach__lower_bound,
+            potential_reach__upper_bound=potential_reach__upper_bound
         )
         return curr_ad
 
