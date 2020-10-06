@@ -25,8 +25,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
                                         WebDriverException, ElementClickInterceptedException,
                                         StaleElementReferenceException, TimeoutException)
-#  from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-#  from selenium.webdriver.remote.webdriver import WebDriver
 import tenacity
 
 import config_utils
@@ -35,9 +33,9 @@ import sim_hash_ad_creative_text
 import slack_notifier
 import snapshot_url_util
 
-from facebook_ad_scraper.fbactiveads.adsnapshots import ad_creative_retriever
-from facebook_ad_scraper.fbactiveads.adsnapshots import browser_context
-from facebook_ad_scraper.fbactiveads.common import config as fbactiveads_config
+from fbactiveads.adsnapshots import ad_creative_retriever
+from fbactiveads.adsnapshots import browser_context
+from fbactiveads.common import config as fbactiveads_config
 
 LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
