@@ -45,16 +45,9 @@ GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 VIDEO_HASH_PATH_DIR_NAME_LENGTH = 4
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
-DEFAULT_BACKOFF_IN_SECONDS = 60
 RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
 TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
-
-TOO_MANY_REQUESTS_ERROR_TEXT = (
-    'You have been temporarily blocked from searching or viewing the Ad Library due to too many '
-    'requests. Please try again later.').lower()
-
-
 
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'archive_id',
@@ -93,26 +86,6 @@ AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
 
 class Error(Exception):
     """Generic error type for this module."""
-
-
-class MaybeBackoffMoreException(Error):
-    """Exception to be raised when the retriever probably needs to backoff before resuming."""
-
-class TooManyRequestsException(Error):
-    """Exception to be raised when the retriever is told it has made too many requests too quickly.
-    """
-
-
-class SnapshotNoContentFoundError(Error):
-    """Raised if unable to find content in fetched snapshot."""
-
-
-class SnapshotInvalidIdError(Error):
-    """Raised if fetched snapshot has Invalid ID error message."""
-
-
-class SnapshotAgeRestrictionError(Error):
-    """Raised if fetched Snapshot has age restriction error message."""
 
 
 @enum.unique
@@ -331,14 +304,14 @@ class FacebookAdCreativeRetriever:
                     logging.info(
                         'Unable to find ad creative(s) for archive_id: %s', archive_id)
 
-            except TooManyRequestsException as error:
+            except ad_creative_retriever.TooManyRequestsError as error:
                 slack_msg = (
                     ':rotating_light: :rotating_light: :rotating_light: '
-                    'fb_ad_creative_retriever.py thread raised with TooManyRequestsException on '
+                    'fb_ad_creative_retriever.py thread raised with TooManyRequestsError on '
                     'host %s. Sleeping %d seconds! :rotating_light: :rotating_light: '
                     ':rotating_light:' % (socket.getfqdn(), TOO_MANY_REQUESTS_SLEEP_TIME))
                 slack_notifier.notify_slack(self.slack_url, slack_msg)
-                logging.error('TooManyRequestsException raised. Sleeping %d seconds.',
+                logging.error('TooManyRequestsError raised. Sleeping %d seconds.',
                               TOO_MANY_REQUESTS_SLEEP_TIME)
                 time.sleep(TOO_MANY_REQUESTS_SLEEP_TIME)
 
@@ -348,12 +321,12 @@ class FacebookAdCreativeRetriever:
                     archive_id, request_exception)
                 self.num_snapshots_fetch_failed += 1
                 # TODO(macpd): decide how to count the errors below
-            except SnapshotNoContentFoundError as error:
+            except ad_creative_retriever.SnapshotNoContentFoundError as error:
                 logging.info('No content found for archive_id %d', archive_id)
                 snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
-            except SnapshotAgeRestrictionError as error:
+            except ad_creative_retriever.SnapshotAgeRestrictionError as error:
                 snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
-            except SnapshotInvalidIdError as error:
+            except ad_creative_retriever.SnapshotInvalidIdError as error:
                 snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
             # TODO(macpd): use ad_creative_retriever errors and exceptions
