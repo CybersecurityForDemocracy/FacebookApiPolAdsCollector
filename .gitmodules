@@ -1,3 +1,0 @@
-[submodule "facebook_ad_scraper"]
-	path = facebook_ad_scraper
-	url = git@github.com:OnlinePoliticalTransparency/facebook-ad-scraper.git
