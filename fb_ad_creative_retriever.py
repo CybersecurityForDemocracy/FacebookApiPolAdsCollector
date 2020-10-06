@@ -1,3 +1,12 @@
+"""Module to coordinate retrieval, processing, and storage of Facebook ad creatives dta.
+
+**Unfortunately this requires access to a private repo**
+
+1. Clone project facebook-ad-scraper
+2. Build python package fbactiveads (instructions in setup.py)
+3. Install package built in previous step with pip (pip install path/to/package)
+4. Install package's dependencies (pip install -r path/to/fbactiveads/requirements.txt)
+"""
 import collections
 import datetime
 import enum
