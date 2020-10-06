@@ -1027,17 +1027,9 @@ class FacebookAdCreativeRetriever:
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
                 fetch_time = datetime.datetime.now()
-                #  screenshot_and_creatives = (
-                    #  self.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                        #  archive_id, snapshot_url))
-                # TODO(macpd): use new creative retreiver here
                 screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
                 archive_id_to_fetched_data[archive_id] = screenshot_and_creatives
-                #  screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
-                print('screenshot_and_creatives:\n', screenshot_and_creatives)
-                #  if screenshot_and_creatives.screenshot_binary_data:
-                    #  archive_id_to_screenshot[archive_id] = (
-                        #  screenshot_and_creatives.screenshot_binary_data)
+                print(archive_id, 'creatives:\n', screenshot_and_creatives.creatives)
                 if screenshot_and_creatives.creatives:
                     creatives.extend(screenshot_and_creatives.creatives)
                     snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
@@ -1073,6 +1065,7 @@ class FacebookAdCreativeRetriever:
             except SnapshotInvalidIdError as error:
                 snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
+            # TODO(macpd): use ad_creative_retriever errors and exceptions
             snapshot_metadata_records.append(AdSnapshotMetadataRecord(
                 archive_id=archive_id, snapshot_fetch_time=fetch_time,
                 snapshot_fetch_status=snapshot_fetch_status))
@@ -1082,8 +1075,7 @@ class FacebookAdCreativeRetriever:
         self.num_snapshots_without_creative_found += len(
             archive_ids_without_creative_found)
 
-        for archive_id in archive_id_to_fetched_data:
-            fetched_data = archive_id_to_fetched_data[archive_id]
+        for archive_id, fetched_data in archive_id_to_fetched_data.items():
             if fetched_data.screenshot_binary_data:
                 self.store_snapshot_screenshot(archive_id, fetched_data.screenshot_binary_data)
 
@@ -1102,18 +1094,6 @@ class FacebookAdCreativeRetriever:
                 video_bucket_path = None
                 fetch_time = datetime.datetime.now()
                 if creative.image:
-                    #  try:
-                        #  image_request = requests.get(creative.image_url, timeout=30)
-                        #  # TODO(macpd): handle this more gracefully
-                        #  # TODO(macpd): check encoding
-                        #  image_request.raise_for_status()
-                    #  except requests.RequestException as request_exception:
-                        #  logging.info('Exception %s when requesting image_url: %s',
-                                     #  request_exception, creative.image_url)
-                        #  self.num_image_download_failure += 1
-                        #  # TODO(macpd): handle all error types
-                        #  continue
-
                     try:
                         image_dhash = get_image_dhash(creative.image.binary_data)
                     except OSError as error:
@@ -1171,8 +1151,9 @@ class FacebookAdCreativeRetriever:
                     image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
 
                 if unique_constraint_attrs in seen_unique_constraint_attrs:
-                    logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
-                                 unique_constraint_attrs)
+                    logging.info(
+                        'Dropping ad record with duplicate unique constriant attributes: %s',
+                        unique_constraint_attrs)
                     continue
 
                 ad_creative_link_url = None
@@ -1182,11 +1163,11 @@ class FacebookAdCreativeRetriever:
                 ad_creative_link_button_text = None
 
                 if creative.link_attributes:
-                    ad_creative_link_url = creative.link_attributes.url,
-                    ad_creative_link_caption = creative.link_attributes.caption,
-                    ad_creative_link_title = creative.link_attributes.title,
-                    ad_creative_link_description = creative.link_attributes.description,
-                    ad_creative_link_button_text = creative.link_attributes.button,
+                    ad_creative_link_url = creative.link_attributes.url
+                    ad_creative_link_caption = creative.link_attributes.caption
+                    ad_creative_link_title = creative.link_attributes.title
+                    ad_creative_link_description = creative.link_attributes.description
+                    ad_creative_link_button_text = creative.link_attributes.button
 
                 seen_unique_constraint_attrs.add(unique_constraint_attrs)
                 ad_creative_records.append(
@@ -1224,7 +1205,8 @@ def main(argv):
     # Force consistent langdetect results. https://pypi.org/project/langdetect/
     DetectorFactory.seed = 0
 
-    commit_to_db_every_n_processed = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
+    commit_to_db_every_n_processed = config.getint('LIMITS', 'BATCH_SIZE',
+                                                   fallback=DEFAULT_BATCH_SIZE)
     logging.info('Will commit to DB every %d snapshots processed.', commit_to_db_every_n_processed)
     slack_url = config.get('LOGGING', 'SLACK_URL')
 
@@ -1240,7 +1222,8 @@ def main(argv):
         archive_screenshots_bucket_client = make_gcs_bucket_client(ARCHIVE_SCREENSHOTS_BUCKET,
                                                                    GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
-            db_connection, creative_retriever_factory, browser_context_factory, ad_creative_images_bucket_client, ad_creative_video_bucket_client,
+            db_connection, creative_retriever_factory, browser_context_factory,
+            ad_creative_images_bucket_client, ad_creative_video_bucket_client,
             archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url)
         image_retriever.retreive_and_store_ad_creatives()
 
