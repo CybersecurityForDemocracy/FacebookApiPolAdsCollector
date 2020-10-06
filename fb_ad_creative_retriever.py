@@ -1,12 +1,10 @@
 import collections
-import configparser
 import datetime
 import enum
 import hashlib
 import logging
 import io
 import os.path
-from operator import attrgetter
 import socket
 import sys
 import time
@@ -18,28 +16,19 @@ from langdetect import DetectorFactory
 from langdetect.lang_detect_exception import LangDetectException
 import requests
 from PIL import Image
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import (ElementNotInteractableException, NoSuchElementException,
-                                        WebDriverException, ElementClickInterceptedException,
-                                        StaleElementReferenceException, TimeoutException)
 import tenacity
-
-import config_utils
-import db_functions
-import sim_hash_ad_creative_text
-import slack_notifier
-import snapshot_url_util
 
 from fbactiveads.adsnapshots import ad_creative_retriever
 from fbactiveads.adsnapshots import browser_context
 from fbactiveads.common import config as fbactiveads_config
 
+import config_utils
+import db_functions
+import sim_hash_ad_creative_text
+import slack_notifier
+
+
 LOGGER = logging.getLogger(__name__)
-CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
-CHROME_BROWSER_PATH = '/usr/bin/chromium-browser'
 AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
 AD_CREATIVE_VIDEOS_BUCKET = 'facebook_ad_videos'
 ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
@@ -48,104 +37,15 @@ VIDEO_HASH_PATH_DIR_NAME_LENGTH = 4
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 DEFAULT_BACKOFF_IN_SECONDS = 60
-RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
+RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
 TOO_MANY_REQUESTS_SLEEP_TIME = 4 * 60 * 60 # 4 hours
 NO_AVAILABLE_WORK_SLEEP_TIME = 1 * 60 * 60 # 1 hour
 
-SNAPSHOT_CONTENT_ROOT_XPATH = '//div[@id=\'content\']'
-CREATIVE_CONTAINER_XPATH = '//div[contains(@class, \'_7jyg _7jyi\')]'
-CREATIVE_LINK_CONTAINER_XPATH = (CREATIVE_CONTAINER_XPATH +
-                                 '//a[@class=\'_231w _231z _4yee\']')
-CREATIVE_LINK_XPATH_TEMPLATE = (
-    CREATIVE_LINK_CONTAINER_XPATH +
-    '/div/div/div[%d]/div/div[@class=\'_4ik4 _4ik5\']')
-CREATIVE_LINK_TITLE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 1
-CREATIVE_LINK_DESCRIPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 2
-CREATIVE_LINK_CAPTION_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 4
-CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH = CREATIVE_LINK_XPATH_TEMPLATE % 3
-CREATIVE_LINK_BUTTON_XPATH_SUFFIX = '//button//div[@class=\'_43rm\']'
-#  CREATIVE_LINK_BUTTON_XPATH_SUFFIX = '//button'
-
-EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE = (CREATIVE_LINK_CONTAINER_XPATH +
-                                           '/div/div[@class=\'_8jtf\']/div[%d]')
-EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 2
-EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 3
-EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH = EVENT_TYPE_CREATIVE_LINK_XPATH_TEMPLATE % 4
-
-CREATIVE_BODY_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_7jyr\']'
-CREATIVE_IMAGE_URL_XPATH = CREATIVE_CONTAINER_XPATH + '//img[@class=\'_7jys img\']'
-
-CAROUSEL_CREATIVE_LINK_CAPTION_XPATH_SUFFIX = (
-    '//div[@class=\'_7jyr\']/div/div[@class=\'_4ik4 _4ik5\']')
-CAROUSEL_XPATH = CREATIVE_CONTAINER_XPATH + '/div[@class=\'_23n-\']'
-
-MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE = (
-    '//div[@class=\'_a2e\']/div[%d]/div/a')
-# Arrow elemnt to navigate multiple creative selection UI that is too large to fit in UI bounding
-# box. (ex: 411302822856762).
-MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH = '//a/div[@direction=\'forward\']'
-# Time to wait for expected condition to click next creative seletor element
-NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS = 5
-
-CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE = (
-    CREATIVE_CONTAINER_XPATH + '//div[@class=\'_a2e\']/div[%d]//div[@class=\'_7jy-\']')
-CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH = (
-    CREATIVE_CONTAINER_XPATH + '//div[@class=\' _8jg- _8jg_\']')
-CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE = (
-    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH +
-    '//div/div[%d]/div/div[@class=\'_4ik4 _4ik5\']')
-CAROUSEL_TYPE_CREATIVE_NO_LINK_TITLE_XPATH = (
-    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 1)
-CAROUSEL_TYPE_CREATIVE_NO_LINK_DESCRIPTION_XPATH = (
-    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 2)
-CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH = (
-    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 4)
-CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_ALTERNATIVE_XPATH = (
-    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH_TEMPLATE % 3)
-CAROUSEL_TYPE_CREATIVE_NO_LINK_BUTTON_XPATH_SUFFIX = '//button//div[@class=\'_43rm\']'
-CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH = '//a/div[@class=\'_10sf _5x5_\']'
-
-CREATIVE_CAPTION_SECTION_FIELD_NAMES = [
-    'creative_link_url',
-    'creative_link_title',
-    'creative_link_caption',
-    'creative_link_description',
-    'creative_link_button_text']
-
-INVALID_ID_ERROR_TEXT = ("Error: Invalid ID\nPlease ensure that the URL is the same as what's in "
-    "the Graph API response.")
-AGE_RESTRICTION_ERROR_TEXT = (
-        'Because we\'re unable to determine your age, we cannot show you this ad.')
 TOO_MANY_REQUESTS_ERROR_TEXT = (
     'You have been temporarily blocked from searching or viewing the Ad Library due to too many '
     'requests. Please try again later.').lower()
 
-FB_AD_SNAPSHOT_BASE_URL = 'https://www.facebook.com/ads/archive/render_ad/'
 
-AdCreativeLinkAttributes = collections.namedtuple('AdCreativeLinkAttributes', [
-    'creative_link_url',
-    'creative_link_title',
-    'creative_link_description',
-    'creative_link_caption',
-    'creative_link_button_text'
-])
-
-FetchedAdCreativeData = collections.namedtuple('FetchedAdCreativeData', [
-    'archive_id',
-    'creative_body',
-    'creative_link_url',
-    'creative_link_title',
-    'creative_link_description',
-    'creative_link_caption',
-    'creative_link_button_text',
-    'image_url',
-    'video_url',
-])
-
-AdScreenshotAndCreatives = collections.namedtuple('AdScreenshotAndCreatives', [
-    'screenshot_binary_data',
-    'creatives'
-])
 
 AdCreativeRecord = collections.namedtuple('AdCreativeRecord', [
     'archive_id',
@@ -180,16 +80,6 @@ AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     'snapshot_fetch_time',
     'snapshot_fetch_status'
     ])
-
-AdImageRecord = collections.namedtuple('AdImageRecord', [
-    'archive_id',
-    'fetch_time',
-    'downloaded_url',
-    'bucket_path',
-    'image_url_fetch_status',
-    'sim_hash',
-    'image_sha256'
-])
 
 
 class Error(Exception):
@@ -232,25 +122,6 @@ def chunks(original_list, chunk_size):
         yield original_list[i:i + chunk_size]
 
 
-def get_headless_chrome_driver(webdriver_executable_path):
-    chrome_options = Options()
-    chrome_options.binary_location = CHROME_BROWSER_PATH
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    prefs = {"profile.default_content_setting_values.notifications":2,
-             "profile.managed_default_content_settings.stylesheets":2,
-             "profile.managed_default_content_settings.cookies":2,
-             "profile.managed_default_content_settings.javascript":1,
-             "profile.managed_default_content_settings.plugins":1,
-             "profile.managed_default_content_settings.popups":2,
-             "profile.managed_default_content_settings.geolocation":2,
-             "profile.managed_default_content_settings.media_stream":2}
-    chrome_options.add_experimental_option("prefs", prefs)
-    driver = webdriver.Chrome(executable_path=webdriver_executable_path, options=chrome_options)
-    driver.set_window_size(800, 1000)
-    return driver
-
-
 def make_gcs_bucket_client(bucket_name, credentials_file):
     storage_client = storage.Client.from_service_account_json(credentials_file)
     bucket_client = storage_client.get_bucket(bucket_name)
@@ -287,43 +158,12 @@ def upload_blob(bucket_client, blob_path, blob_data):
     blob.upload_from_string(blob_data)
     return blob.id
 
-def get_element_text_or_inner_html_if_contains_no_tags(webdriver_element):
-    """Returns webdriver_element .text attribute. If .text is falsey pulls element innerHTML and
-    returns that if does not contain '<' or '>'.
-    """
-    text = webdriver_element.text
-    # Sometimes .text does not return the text from a element even when the text there. So
-    # we pull the innerHTML, and use it for the button text if it does not contain '<' or
-    # '>'
-    if not text:
-        inner_html = webdriver_element.get_attribute('innerHTML')
-        if '<' not in inner_html and '>' not in inner_html:
-            text = inner_html
-    return text
-
-def fetched_ad_creatives_caption_section_fields_empty(fetched_ad_creatives):
-    caption_values = []
-    for caption_field_name in CREATIVE_CAPTION_SECTION_FIELD_NAMES:
-        caption_values.extend(map(attrgetter(caption_field_name), fetched_ad_creatives))
-    return not any(caption_values)
-
-def replace_empty_caption_section_fields(source_fetched_ad_creative,
-                                         fetched_ad_creative_list_to_transform):
-    new_fetched_ad_creatives = []
-    for creative in fetched_ad_creative_list_to_transform:
-        replacement_values = {}
-        for field_name in CREATIVE_CAPTION_SECTION_FIELD_NAMES:
-            if not getattr(creative, field_name):
-                replacement_values[field_name] = getattr(source_fetched_ad_creative, field_name)
-        new_fetched_ad_creatives.append(creative._replace(**replacement_values))
-    return new_fetched_ad_creatives
-
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, creative_retriever_factory, browser_context_factory, ad_creative_images_bucket_client,
-                 ad_creative_videos_bucket_client, archive_screenshots_bucket_client,
-                 commit_to_db_every_n_processed, slack_url):
+    def __init__(self, db_connection, creative_retriever_factory, browser_context_factory,
+                 ad_creative_images_bucket_client, ad_creative_videos_bucket_client,
+                 archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
         self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
         self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
@@ -343,7 +183,6 @@ class FacebookAdCreativeRetriever:
         self.commit_to_db_every_n_processed = commit_to_db_every_n_processed
         self.start_time = None
         self.slack_url = slack_url
-        self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
         self.creative_retriever_factory = creative_retriever_factory
         self.browser_context_factory = browser_context_factory
 
@@ -351,15 +190,10 @@ class FacebookAdCreativeRetriever:
         if not self.start_time:
             return 0
 
-        return (time.monotonic() - self.start_time)
+        return time.monotonic() - self.start_time
 
     def reset_start_time(self):
         self.start_time = time.monotonic()
-
-    def reset_chromedriver(self):
-        logging.info('Resetting chromedriver.')
-        self.chromedriver.quit()
-        self.chromedriver = get_headless_chrome_driver(CHROMEDRIVER_PATH)
 
     def log_stats(self):
         seconds_elapsed_procesing = self.get_seconds_elapsed_procesing()
@@ -401,48 +235,46 @@ class FacebookAdCreativeRetriever:
             self.reset_start_time()
 
     def retreive_and_store_ad_creatives(self):
-        #  remote_webdriver = WebDriver(command_executor='http://localhost:5554/wd/hub',
-                                     #  desired_capabilities=DesiredCapabilities.CHROME)
+        self.reset_start_time()
         try:
-            with self.browser_context_factory.web_browser() as browser:
-                creative_retriever = self.creative_retriever_factory.build(chrome_driver=browser)
-                num_snapshots_processed_since_chromedriver_reset = 0
-                # TODO(macpd): instantiate creative browser context and creative retriever
-                while True:
-                    batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
-                    self.current_batch_id = batch_and_archive_ids['batch_id']
-                    archive_ids = batch_and_archive_ids['archive_ids']
-                    logging.info('Processing batch ID %d of %d archive snapshots in chunks of %d',
-                                 self.current_batch_id, len(archive_ids),
-                                 self.commit_to_db_every_n_processed)
-                    try:
-                        self.process_archive_id_batch(archive_ids, creative_retriever)
-                    except BaseException as error:
-                        logging.info('Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
-                                     '%s', self.current_batch_id, error)
-                        self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
-                        self.db_connection.commit()
-                        raise
-                    num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
-                    if (num_snapshots_processed_since_chromedriver_reset >=
-                            RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS):
-                        logging.info('Processed %d snapshots since last reset (limit: %d)',
-                                     num_snapshots_processed_since_chromedriver_reset,
-                                     RESET_CHROME_DRIVER_AFTER_PROCESSING_N_SNAPSHOTS)
-                        self.reset_chromedriver()
-                        num_snapshots_processed_since_chromedriver_reset = 0
+            while True:
+                with self.browser_context_factory.web_browser() as browser:
+                    creative_retriever = self.creative_retriever_factory.build(
+                        chrome_driver=browser)
+                    num_snapshots_processed_since_chromedriver_reset = 0
+                    while (num_snapshots_processed_since_chromedriver_reset <
+                           RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
+                        batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
+                        self.current_batch_id = batch_and_archive_ids['batch_id']
+                        archive_ids = batch_and_archive_ids['archive_ids']
+                        logging.info(
+                            'Processing batch ID %d of %d archive snapshots in chunks of %d',
+                            self.current_batch_id, len(archive_ids),
+                            self.commit_to_db_every_n_processed)
+                        try:
+                            self.process_snapshot_fetch_batch(archive_ids, creative_retriever)
+                        except BaseException as error:
+                            logging.info(
+                                'Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
+                                '%s', self.current_batch_id, error)
+                            self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
+                            self.db_connection.commit()
+                            raise
+                        num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
 
-                    self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
-                    self.db_connection.commit()
+                        self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
+                        self.db_connection.commit()
+
+                    logging.info('Processed %d snapshots since last reset (limit: %d)',
+                                 num_snapshots_processed_since_chromedriver_reset,
+                                 RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS)
         finally:
             self.log_stats()
-            self.chromedriver.quit()
 
-    def process_archive_id_batch(self, archive_id_batch, creative_retriever):
+    def process_snapshot_fetch_batch(self, archive_id_batch, creative_retriever):
         num_snapshots_processed_in_current_batch = 0
         for archive_id_chunk in chunks(archive_id_batch, self.commit_to_db_every_n_processed):
-            self.process_archive_creatives_via_chrome_driver(
-                archive_id_chunk, creative_retriever)
+            self.process_archive_ids(archive_id_chunk, creative_retriever)
             self.db_connection.commit()
             num_snapshots_processed_in_current_batch += len(archive_id_chunk)
             logging.info('Processed %d of %d archive snapshots.',
@@ -469,565 +301,18 @@ class FacebookAdCreativeRetriever:
                               screenshot_binary_data)
         logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, blob_id)
 
-    def get_video_element_from_creative_container(self):
-        try:
-            return self.chromedriver.find_element_by_tag_name('video')
-        except NoSuchElementException:
-            return None
-
-    def get_image_url_from_creative_container(self):
-        try:
-            return self.chromedriver.find_element_by_xpath(
-                CREATIVE_IMAGE_URL_XPATH).get_attribute('src')
-        except NoSuchElementException:
-            return None
-
-    def get_event_type_ad_creative_link_attributes(self):
-        creative_link_url = None
-        creative_link_caption = None
-        creative_link_title = None
-        creative_link_description = None
-        creative_link_button_text = None
-        try:
-            creative_link_container = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CONTAINER_XPATH)
-            creative_link_url = creative_link_container.get_attribute('href')
-        except NoSuchElementException:
-            pass
-
-        try:
-
-            creative_link_title = self.chromedriver.find_element_by_xpath(
-                EVENT_TYPE_CREATIVE_LINK_TITLE_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_caption = self.chromedriver.find_element_by_xpath(
-                EVENT_TYPE_CREATIVE_LINK_CAPTION_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_description = self.chromedriver.find_element_by_xpath(
-                EVENT_TYPE_CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        if any([creative_link_url, creative_link_caption, creative_link_title,
-                creative_link_description, creative_link_button_text]):
-            return AdCreativeLinkAttributes(
-                creative_link_url=creative_link_url,
-                creative_link_caption=creative_link_caption,
-                creative_link_title=creative_link_title,
-                creative_link_description=creative_link_description,
-                creative_link_button_text=creative_link_button_text)
-
-        return None
-
-    def get_ad_creative_link_attributes(self):
-        creative_link_title = None
-        creative_link_caption = None
-        creative_link_description = None
-        creative_link_button_text = None
-        try:
-            creative_link_container = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CONTAINER_XPATH)
-            creative_link_url = creative_link_container.get_attribute('href')
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_title = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_TITLE_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_caption = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CAPTION_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        if not creative_link_caption:
-            try:
-                creative_link_caption = self.chromedriver.find_element_by_xpath(
-                    CREATIVE_LINK_CAPTION_ALTERNATIVE_XPATH).text
-            except NoSuchElementException:
-                pass
-
-        try:
-            creative_link_description = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_DESCRIPTION_XPATH).text
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CONTAINER_XPATH + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
-            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
-                creative_link_button_elem)
-        except NoSuchElementException:
-            pass
-
-        if any([creative_link_title, creative_link_caption, creative_link_description,
-                creative_link_button_text]):
-            return AdCreativeLinkAttributes(
-                creative_link_url=creative_link_url,
-                creative_link_caption=creative_link_caption,
-                creative_link_title=creative_link_title,
-                creative_link_description=creative_link_description,
-                creative_link_button_text=creative_link_button_text)
-        return None
-
-
-    def ad_snapshot_has_carousel_style_xpath(self):
-        try:
-            self.chromedriver.find_element_by_xpath(CAROUSEL_XPATH)
-        except NoSuchElementException:
-            return False
-
-        return True
-
-    def click_carousel_navigation_element(self):
-        try:
-            elem = self.chromedriver.find_element_by_xpath(
-                CAROUSEL_CREATIVE_TYPE_NAVIGATION_ELEM_XPATH)
-            elem.click()
-        except (NoSuchElementException, StaleElementReferenceException):
-            pass
-
-
-    def get_ad_creative_container_element(self, archive_id):
-        try:
-            return self.chromedriver.find_element_by_xpath(CREATIVE_CONTAINER_XPATH)
-        except NoSuchElementException as e:
-            logging.info(
-                'Unable to find ad creative container for Archive ID: %s, Ad appers to have NO '
-                'creative(s). \nError: %s', archive_id, e)
-        return None
-
-    def get_ad_creative_body(self, archive_id):
-        creative_body = None
-        try:
-            creative_container_element = self.get_ad_creative_container_element(archive_id)
-            if not creative_container_element:
-                return None
-
-            creative_body = creative_container_element.find_element_by_xpath(
-                CREATIVE_BODY_XPATH).text
-        except NoSuchElementException as e:
-            logging.debug(
-                'Unable to find ad creative body section for Archive ID: %s, Ad appers to have NO '
-                'creative body text. \nError: %s', archive_id, e)
-
-        return creative_body
-
-    def get_ad_snapshot_screenshot(self, archive_id):
-        creative_container_element = self.get_ad_creative_container_element(archive_id)
-        if creative_container_element:
-            return creative_container_element.screenshot_as_png
-
-        logging.info('Unable to get creative container for screenshot of archive ID %d.',
-                     archive_id)
-        return None
-
-    def get_carousel_carousel_wide_caption_data(self, archive_id):
-        creative_link_url = None
-        creative_link_title = None
-        creative_link_caption = None
-        creative_link_description = None
-        image_url = None
-        video_url = None
-        creative_link_button_text = None
-
-        try:
-            creative_link_container = self.chromedriver.find_element_by_xpath(
-                    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH)
-            creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
-                creative_link_container)
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_caption = self.chromedriver.find_element_by_xpath(
-                CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_XPATH).text
-            if not creative_link_caption:
-                creative_link_caption = None
-        except NoSuchElementException:
-            pass
-
-        if not creative_link_caption:
-            try:
-                creative_link_caption = self.chromedriver.find_element_by_xpath(
-                    CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_ALTERNATIVE_XPATH).text
-                if not creative_link_caption:
-                    creative_link_caption = None
-            except NoSuchElementException:
-                pass
-
-        try:
-            creative_link_title = self.chromedriver.find_element_by_xpath(
-                CAROUSEL_TYPE_CREATIVE_NO_LINK_TITLE_XPATH).text
-            if not creative_link_title:
-                creative_link_title = None
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_description = self.chromedriver.find_element_by_xpath(
-                CAROUSEL_TYPE_CREATIVE_NO_LINK_DESCRIPTION_XPATH).text
-            if not creative_link_description:
-                creative_link_description = None
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
-                CAROUSEL_TYPE_CREATIVE_NO_LINK_CAPTION_CONTAINTER_XPATH +
-                CAROUSEL_TYPE_CREATIVE_NO_LINK_BUTTON_XPATH_SUFFIX)
-
-            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
-                    creative_link_button_elem)
-            if not creative_link_button_text:
-                creative_link_button_text = None
-        except NoSuchElementException:
-            pass
-
-        if any([creative_link_url, creative_link_title, creative_link_caption,
-                creative_link_description,
-                creative_link_button_text, image_url]):
-            return FetchedAdCreativeData(
-                archive_id=archive_id,
-                creative_body=None,
-                creative_link_url=creative_link_url,
-                creative_link_title=creative_link_title,
-                creative_link_caption=creative_link_caption,
-                creative_link_description=creative_link_description,
-                creative_link_button_text=creative_link_button_text,
-                image_url=image_url,
-                video_url=video_url)
-
-        return None
-
-    def get_single_carousel_item_creative_data(self, carousel_index, archive_id, creative_body):
-        xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
-        creative_link_url = None
-        creative_link_title = None
-        creative_link_caption = None
-        image_url = None
-        video_url = None
-        creative_link_button_text = None
-
-        xpath_prefix = CAROUSEL_TYPE_LINK_TITLE_XPATH_TEMPLATE % carousel_index
-
-        # Some carousel type ads have only links, only images, or images with links. So we attempt
-        # to retrive link and image data separately, and return whatever we found.
-        try:
-            xpath = '%s//a' % xpath_prefix
-            creative_link_container = self.chromedriver.find_element_by_xpath(xpath)
-            creative_link_url = creative_link_container.get_attribute('href')
-            creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
-                creative_link_container)
-
-            # Sometimes we are unable to get the text of the last creative's title. So we try to get
-            # the button text.
-            if not creative_link_title:
-                self.click_carousel_navigation_element()
-                creative_link_button_elem = self.chromedriver.find_element_by_xpath(
-                    xpath + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
-
-                creative_link_title = get_element_text_or_inner_html_if_contains_no_tags(
-                        creative_link_button_elem)
-        except NoSuchElementException:
-            pass
-
-        try:
-            creative_link_caption = self.chromedriver.find_element_by_xpath(
-                xpath_prefix + CAROUSEL_CREATIVE_LINK_CAPTION_XPATH_SUFFIX).text
-        except NoSuchElementException:
-            pass
-
-        try:
-            xpath = '%s//video' % xpath_prefix
-            video_element = self.chromedriver.find_element_by_xpath(xpath)
-            image_url = video_element.get_attribute('poster')
-            video_url = video_element.get_attribute('src')
-            logging.debug('Found <video> tag, assuming creative has video')
-        except NoSuchElementException:
-            pass
-
-        if not image_url:
-            try:
-                xpath = '%s//img' % xpath_prefix
-                image_url = self.chromedriver.find_element_by_xpath(xpath).get_attribute('src')
-            except NoSuchElementException:
-                pass
-
-        try:
-            creative_link_button_elem = self.chromedriver.find_element_by_xpath(
-                xpath_prefix + CREATIVE_LINK_BUTTON_XPATH_SUFFIX)
-
-            creative_link_button_text = get_element_text_or_inner_html_if_contains_no_tags(
-                    creative_link_button_elem)
-        except NoSuchElementException:
-            pass
-
-        if any([creative_link_url, creative_link_title, creative_link_caption,
-                creative_link_button_text, image_url]):
-            return FetchedAdCreativeData(
-                archive_id=archive_id,
-                creative_body=creative_body,
-                creative_link_url=creative_link_url,
-                creative_link_title=creative_link_title,
-                creative_link_caption=creative_link_caption,
-                creative_link_description=None,
-                creative_link_button_text=creative_link_button_text,
-                image_url=image_url,
-                video_url=video_url)
-
-        return None
-
-    def carousel_style_ad_has_ad_removed_message(self):
-        try:
-            elem = self.chromedriver.find_element_by_xpath(
-                CREATIVE_CONTAINER_XPATH + '//div[@class=\'_7jyq\']')
-            return elem.text == 'Ad removed'
-        except NoSuchElementException:
-            return False
-
-    def get_carousel_ad_creative_data(self, archive_id):
-        fetched_ad_creatives = []
-        creative_body = self.get_ad_creative_body(archive_id)
-        for carousel_index in range(1, 10):
-            fetched_ad_creative_data = self.get_single_carousel_item_creative_data(
-                carousel_index, archive_id, creative_body)
-            if fetched_ad_creative_data:
-                fetched_ad_creatives.append(fetched_ad_creative_data)
-            else:
-                break
-
-            if self.carousel_style_ad_has_ad_removed_message():
-                break
-
-            # Attempt to bring next carousel element into view
-            self.click_carousel_navigation_element()
-        # Some Carousel type ads have only one link area for all creatives instead a link per
-        # creative. If no link info was found we try to get that data from that structure and then
-        # replace those values for all creatives.
-        if fetched_ad_creatives_caption_section_fields_empty(fetched_ad_creatives):
-            logging.info(
-                'No caption values found for carousel style ad %s. Assuming has a single caption.',
-                archive_id)
-            carousel_wide_caption_data = self.get_carousel_carousel_wide_caption_data(archive_id)
-            if carousel_wide_caption_data:
-                fetched_ad_creatives = replace_empty_caption_section_fields(
-                    carousel_wide_caption_data, fetched_ad_creatives)
-        return fetched_ad_creatives
-
-    def get_displayed_ad_creative_data(self, archive_id):
-        creative_body = self.get_ad_creative_body(archive_id)
-
-        try:
-            self.chromedriver.find_element_by_xpath(
-                CREATIVE_LINK_CONTAINER_XPATH)
-        except NoSuchElementException as e:
-            logging.info(
-                'Unable to find ad creative link section for Archive ID: %s. '
-                '\nError: %s', archive_id, e)
-
-
-        link_attrs = self.get_ad_creative_link_attributes()
-        if not link_attrs:
-            # If ad creative link attributes aren't found, parse page as an event
-            # type ad.
-            link_attrs = self.get_event_type_ad_creative_link_attributes()
-
-        if not link_attrs:
-            link_attrs = AdCreativeLinkAttributes(creative_link_url=None,
-                                                  creative_link_caption=None,
-                                                  creative_link_title=None,
-                                                  creative_link_description=None,
-                                                  creative_link_button_text=None)
-
-        logging.debug(
-            'Found creative text: \'%s\', link_url: \'%s\', link_title: '
-            '\'%s\', lingk_caption: \'%s\', link_description: \'%s\'',
-            creative_body, link_attrs.creative_link_url,
-            link_attrs.creative_link_title, link_attrs.creative_link_caption,
-            link_attrs.creative_link_description)
-
-        # TODO(macpd): handle image carousels, and "invalid IDs"
-        video_url = None
-        image_url = None
-        video_element = self.get_video_element_from_creative_container()
-        if video_element:
-            image_url = video_element.get_attribute('poster')
-            video_url = video_element.get_attribute('src')
-            logging.debug('Found <video> tag, assuming creative has video')
-        else:
-            image_url = self.get_image_url_from_creative_container()
-            if image_url:
-                logging.debug('Did not find <video> tag, but found <img> src')
-            else:
-                logging.info(
-                    'Found neither <video> nor <img> tag. Assuming no video '
-                    'or image in ad creative.')
-
-        return FetchedAdCreativeData(
-            archive_id=archive_id,
-            creative_body=creative_body,
-            creative_link_url=link_attrs.creative_link_url,
-            creative_link_title=link_attrs.creative_link_title,
-            creative_link_description=link_attrs.creative_link_description,
-            creative_link_caption=link_attrs.creative_link_caption,
-            creative_link_button_text=link_attrs.creative_link_button_text,
-            image_url=image_url,
-            video_url=video_url)
-
-    def raise_if_page_has_age_restriction_or_id_error(self):
-        error_text = None
-        try:
-            error_text = self.chromedriver.find_element_by_xpath(SNAPSHOT_CONTENT_ROOT_XPATH).text
-        except NoSuchElementException:
-            page_text = self.chromedriver.find_element_by_tag_name('html').text
-            logging.warning('Could not find content in page:%s', page_text)
-            if TOO_MANY_REQUESTS_ERROR_TEXT in page_text.lower():
-                raise TooManyRequestsException
-
-            raise SnapshotNoContentFoundError
-
-        if INVALID_ID_ERROR_TEXT in error_text:
-            raise SnapshotInvalidIdError
-
-        if AGE_RESTRICTION_ERROR_TEXT in error_text:
-            raise SnapshotAgeRestrictionError
-
-
-    def get_creative_data_list_via_chromedriver_with_retry_on_driver_error(self, archive_id,
-                                                                           snapshot_url):
-        """Attempts to get ad creative(s) data. Restarts webdriver and retries if error raised."""
-        try:
-            return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
-        except WebDriverException as chromedriver_exception:
-            logging.info('Chromedriver exception %s.\nRestarting chromedriver.',
-                         chromedriver_exception)
-            self.reset_chromedriver()
-
-        return self.get_creative_data_list_via_chromedriver(archive_id, snapshot_url)
-
-    def click_multiple_creative_overflow_navigation_arrow(self):
-        try:
-            navigation_elem = self.chromedriver.find_element_by_xpath(
-                MULTIPLE_CREATIVES_OVERFLOW_NAVIGATION_ELEMENT_XPATH)
-            navigation_elem.click()
-        except NoSuchElementException:
-            return False
-        return True
-
-    def click_multiple_creative_overflow_navigation_arrow_until_element_visible(self,
-                                                                                element,
-                                                                                max_tries=3):
-        for _ in range(max_tries):
-            self.click_multiple_creative_overflow_navigation_arrow()
-            try:
-                wait = WebDriverWait(self.chromedriver,
-                                     NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS)
-                wait.until(EC.visibility_of(element))
-                return True
-            except (ElementNotInteractableException, TimeoutException):
-                pass
-        return False
-
-
-    def get_creative_data_list_via_chromedriver(self, archive_id, snapshot_url):
-        logging.info('Getting creatives data from archive ID: %s', archive_id)
-        logging.debug('Getting creatives data from archive ID: %s\nURL: %s',
-                      archive_id, snapshot_url)
-        self.chromedriver.get(snapshot_url)
-
-        self.raise_if_page_has_age_restriction_or_id_error()
-        screenshot = self.get_ad_snapshot_screenshot(archive_id)
-
-        # If ad has carousel style xpath, it should not have multiple versions. Instead it will have
-        # multiple images with different images and links.
-        if self.ad_snapshot_has_carousel_style_xpath():
-            logging.info('%s appears to be a carousel style creative.', archive_id)
-            fetched_ad_creative_data_list = self.get_carousel_ad_creative_data(archive_id)
-            if fetched_ad_creative_data_list:
-                return AdScreenshotAndCreatives(screenshot_binary_data=screenshot,
-                                                creatives=fetched_ad_creative_data_list)
-
-
-        # If ad does not have carousel style image class, or no ad creatives data was found when
-        # parsed as a caroursel type, ad likely has one image/body per version.
-        creatives = []
-        for i in range(2, 21):
-            fetched_ad_creative_data = self.get_displayed_ad_creative_data(
-                archive_id)
-            if fetched_ad_creative_data:
-                creatives.append(fetched_ad_creative_data)
-            else:
-                # creative index is i-1 because loop first looks at current creative and then
-                # attempts to interact with page to select next creative.
-                logging.warning(
-                    'No ad creative data for archive ID: %d creative index %d',
-                    archive_id, i - 1)
-                break
-
-            # Attempt to select next ad creative version. If no such element, assume
-            # only one creative version is available.
-            xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                i)
-            try:
-                next_creative_version_selector = self.chromedriver.find_element_by_xpath(xpath)
-                # If element exists, but is not visible, click next arrow until it is visible.
-                if not next_creative_version_selector.is_displayed():
-                    self.click_multiple_creative_overflow_navigation_arrow_until_element_visible(
-                        next_creative_version_selector)
-                next_creative_version_selector.click()
-            except ElementClickInterceptedException:
-                # If there are more ad creatives than can fit in the multiple creative selection
-                # list the UI renders a navitation arrow over the last visible element. That arrow
-                # element intercepts clicks. So we click the element to move the next ad creative
-                # selection element into a clickable position.
-                self.click_multiple_creative_overflow_navigation_arrow()
-
-                # Sometimes after chrome is reset FB ad snapshot UI will show an informational
-                # diaglog that occludes the multiple creative selection elements.
-                # First we click on the first element, or element 3 previous, in the multiple
-                # creative selector to move focus elsewhere and dismiss the diaglog
-                xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                    max(1, i -3))
-                self.chromedriver.find_element_by_xpath(xpath).click()
-                # Then click on the desired element.
-                xpath = MULTIPLE_CREATIVES_VERSION_SLECTOR_ELEMENT_XPATH_TEMPLATE % (
-                    i)
-                self.chromedriver.find_element_by_xpath(xpath).click()
-            except (ElementNotInteractableException, TimeoutException) as elem_error:
-                logging.warning(
-                    'Element to select from multiple creatives appears to be present at xpath '
-                    '\'%s\', but is not interactable after waiting %d seconds Archive ID: %s.\n'
-                    'error: %s', xpath, NEXT_CREATIVE_VERSION_ELEMENT_CLICKABLE_WAIT_SECONDS,
-                    archive_id, elem_error)
-                break
-            except NoSuchElementException:
-                break
-
-        return AdScreenshotAndCreatives(screenshot_binary_data=screenshot, creatives=creatives)
-
-    def process_archive_creatives_via_chrome_driver(self, archive_id_batch, creative_retriever):
+    def process_archive_ids(self, archive_ids, creative_retriever):
         archive_ids_without_creative_found = []
         creatives = []
         snapshot_metadata_records = []
         archive_id_to_fetched_data = {}
-        for archive_id in archive_id_batch:
+        for archive_id in archive_ids:
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
                 fetch_time = datetime.datetime.now()
                 screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
                 archive_id_to_fetched_data[archive_id] = screenshot_and_creatives
-                print(archive_id, 'creatives:\n', screenshot_and_creatives.creatives)
+                logging.debug('%s creatives:\n%s', archive_id, screenshot_and_creatives.creatives)
                 if screenshot_and_creatives.creatives:
                     creatives.extend(screenshot_and_creatives.creatives)
                     snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
@@ -1035,8 +320,7 @@ class FacebookAdCreativeRetriever:
                     archive_ids_without_creative_found.append(archive_id)
                     snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
                     logging.info(
-                        'Unable to find ad creative(s) for archive_id: %s, snapshot_url: '
-                        '%s', archive_id, snapshot_url)
+                        'Unable to find ad creative(s) for archive_id: %s', archive_id)
 
             except TooManyRequestsException as error:
                 slack_msg = (
@@ -1056,7 +340,7 @@ class FacebookAdCreativeRetriever:
                 self.num_snapshots_fetch_failed += 1
                 # TODO(macpd): decide how to count the errors below
             except SnapshotNoContentFoundError as error:
-                logging.info('No content found for archive_id %d, %s', archive_id, snapshot_url)
+                logging.info('No content found for archive_id %d', archive_id)
                 snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
             except SnapshotAgeRestrictionError as error:
                 snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
