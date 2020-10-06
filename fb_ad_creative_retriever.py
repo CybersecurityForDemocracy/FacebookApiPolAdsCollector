@@ -37,6 +37,7 @@ import snapshot_url_util
 
 from facebook_ad_scraper.fbactiveads.adsnapshots import ad_creative_retriever
 from facebook_ad_scraper.fbactiveads.adsnapshots import browser_context
+from facebook_ad_scraper.fbactiveads.common import config as fbactiveads_config
 
 LOGGER = logging.getLogger(__name__)
 CHROMEDRIVER_PATH = '/usr/bin/chromedriver'
@@ -323,7 +324,7 @@ def replace_empty_caption_section_fields(source_fetched_ad_creative,
 class FacebookAdCreativeRetriever:
 
     def __init__(self, db_connection, creative_retriever_factory, browser_context_factory, ad_creative_images_bucket_client,
-                 ad_creative_videos_bucket_client, archive_screenshots_bucket_client, access_token,
+                 ad_creative_videos_bucket_client, archive_screenshots_bucket_client,
                  commit_to_db_every_n_processed, slack_url):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
         self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
@@ -341,7 +342,6 @@ class FacebookAdCreativeRetriever:
         self.current_batch_id = None
         self.db_connection = db_connection
         self.db_interface = db_functions.DBInterface(db_connection)
-        self.access_token = access_token
         self.commit_to_db_every_n_processed = commit_to_db_every_n_processed
         self.start_time = None
         self.slack_url = slack_url
@@ -1019,13 +1019,11 @@ class FacebookAdCreativeRetriever:
         return AdScreenshotAndCreatives(screenshot_binary_data=screenshot, creatives=creatives)
 
     def process_archive_creatives_via_chrome_driver(self, archive_id_batch, creative_retriever):
-        archive_id_to_snapshot_url = snapshot_url_util.construct_archive_id_to_snapshot_url_map(
-            self.access_token, archive_id_batch)
         archive_ids_without_creative_found = []
         creatives = []
         snapshot_metadata_records = []
-        archive_id_to_screenshot = {}
-        for archive_id, snapshot_url in archive_id_to_snapshot_url.items():
+        archive_id_to_fetched_data = {}
+        for archive_id in archive_id_batch:
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
                 fetch_time = datetime.datetime.now()
@@ -1034,9 +1032,12 @@ class FacebookAdCreativeRetriever:
                         #  archive_id, snapshot_url))
                 # TODO(macpd): use new creative retreiver here
                 screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
-                if screenshot_and_creatives.screenshot_binary_data:
-                    archive_id_to_screenshot[archive_id] = (
-                        screenshot_and_creatives.screenshot_binary_data)
+                archive_id_to_fetched_data[archive_id] = screenshot_and_creatives
+                #  screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
+                print('screenshot_and_creatives:\n', screenshot_and_creatives)
+                #  if screenshot_and_creatives.screenshot_binary_data:
+                    #  archive_id_to_screenshot[archive_id] = (
+                        #  screenshot_and_creatives.screenshot_binary_data)
                 if screenshot_and_creatives.creatives:
                     creatives.extend(screenshot_and_creatives.creatives)
                     snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
@@ -1081,115 +1082,132 @@ class FacebookAdCreativeRetriever:
         self.num_snapshots_without_creative_found += len(
             archive_ids_without_creative_found)
 
-        for archive_id in archive_id_to_screenshot:
-            self.store_snapshot_screenshot(archive_id, archive_id_to_screenshot[archive_id])
+        for archive_id in archive_id_to_fetched_data:
+            fetched_data = archive_id_to_fetched_data[archive_id]
+            if fetched_data.screenshot_binary_data:
+                self.store_snapshot_screenshot(archive_id, fetched_data.screenshot_binary_data)
 
         ad_creative_records = []
         # Used to prevent sending multiple records for upsert in same batch that have duplicate
         # attributes the database requires to be unique.
         seen_unique_constraint_attrs = set()
-        for creative in creatives:
-            image_dhash = None
-            image_sha256 = None
-            image_bucket_path = None
-            video_sha256 = None
-            video_bucket_path = None
-            fetch_time = datetime.datetime.now()
-            if creative.image_url:
-                try:
-                    image_request = requests.get(creative.image_url, timeout=30)
-                    # TODO(macpd): handle this more gracefully
-                    # TODO(macpd): check encoding
-                    image_request.raise_for_status()
-                except requests.RequestException as request_exception:
-                    logging.info('Exception %s when requesting image_url: %s',
-                                 request_exception, creative.image_url)
-                    self.num_image_download_failure += 1
-                    # TODO(macpd): handle all error types
+        for archive_id, fetched_data in archive_id_to_fetched_data.items():
+            if not fetched_data.creatives:
+                logging.warning('No creatives for %s', archive_id)
+            for creative in fetched_data.creatives:
+                image_dhash = None
+                image_sha256 = None
+                image_bucket_path = None
+                video_sha256 = None
+                video_bucket_path = None
+                fetch_time = datetime.datetime.now()
+                if creative.image:
+                    #  try:
+                        #  image_request = requests.get(creative.image_url, timeout=30)
+                        #  # TODO(macpd): handle this more gracefully
+                        #  # TODO(macpd): check encoding
+                        #  image_request.raise_for_status()
+                    #  except requests.RequestException as request_exception:
+                        #  logging.info('Exception %s when requesting image_url: %s',
+                                     #  request_exception, creative.image_url)
+                        #  self.num_image_download_failure += 1
+                        #  # TODO(macpd): handle all error types
+                        #  continue
+
+                    try:
+                        image_dhash = get_image_dhash(creative.image.binary_data)
+                    except OSError as error:
+                        logging.warning(
+                            "Error generating dhash for archive ID: %s, image_url: %s. "
+                            "images_bytes len: %d\n%s", creative.archive_id,
+                            creative.image_url, len(creative.image.binary_data), error)
+                        self.num_image_download_failure += 1
+                        continue
+
+                    self.num_image_download_success += 1
+                    image_sha256 = hashlib.sha256(creative.image.binary_data).hexdigest()
+                    image_bucket_path = self.store_image_in_google_bucket(
+                        image_dhash, creative.image.binary_data)
+                if creative.video_url:
+                    try:
+                        video_request = requests.get(creative.video_url, timeout=30)
+                        # TODO(macpd): handle this more gracefully
+                        # TODO(macpd): check encoding
+                        video_request.raise_for_status()
+                    except requests.RequestException as request_exception:
+                        logging.info('Exception %s when requesting video_url: %s',
+                                     request_exception, creative.video_url)
+                        self.num_video_download_failure += 1
+                        # TODO(macpd): handle all error types
+                        continue
+
+                    video_bytes = video_request.content
+
+                    self.num_video_download_success += 1
+                    video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                    video_bucket_path = self.store_video_in_google_bucket(
+                        video_sha256, video_bytes)
+
+                text = None
+                text_sim_hash = None
+                text_sha256_hash = None
+                ad_creative_body_language = None
+                if creative.body:
+                    text = creative.body
+                    # Get simhash as hex without leading '0x'
+                    text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
+                        text)
+                    text_sha256_hash = hashlib.sha256(bytes(
+                        text, encoding='UTF-32')).hexdigest()
+                    try:
+                        ad_creative_body_language = detect(text)
+                    except LangDetectException as error:
+                        logging.info('Unable to determine language of ad creative body from %s',
+                                     creative.archive_id)
+                        ad_creative_body_language = None
+
+                unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
+                    archive_id=archive_id, text_sha256_hash=text_sha256_hash,
+                    image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
+
+                if unique_constraint_attrs in seen_unique_constraint_attrs:
+                    logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
+                                 unique_constraint_attrs)
                     continue
 
-                image_bytes = image_request.content
-                try:
-                    image_dhash = get_image_dhash(image_bytes)
-                except OSError as error:
-                    logging.warning(
-                        "Error generating dhash for archive ID: %s, image_url: %s. "
-                        "images_bytes len: %d\n%s", creative.archive_id,
-                        creative.image_url, len(image_bytes), error)
-                    self.num_image_download_failure += 1
-                    continue
+                ad_creative_link_url = None
+                ad_creative_link_caption = None
+                ad_creative_link_title = None
+                ad_creative_link_description = None
+                ad_creative_link_button_text = None
 
-                self.num_image_download_success += 1
-                image_sha256 = hashlib.sha256(image_bytes).hexdigest()
-                image_bucket_path = self.store_image_in_google_bucket(
-                    image_dhash, image_bytes)
-            if creative.video_url:
-                try:
-                    video_request = requests.get(creative.video_url, timeout=30)
-                    # TODO(macpd): handle this more gracefully
-                    # TODO(macpd): check encoding
-                    video_request.raise_for_status()
-                except requests.RequestException as request_exception:
-                    logging.info('Exception %s when requesting video_url: %s',
-                                 request_exception, creative.video_url)
-                    self.num_video_download_failure += 1
-                    # TODO(macpd): handle all error types
-                    continue
+                if creative.link_attributes:
+                    ad_creative_link_url = creative.link_attributes.url,
+                    ad_creative_link_caption = creative.link_attributes.caption,
+                    ad_creative_link_title = creative.link_attributes.title,
+                    ad_creative_link_description = creative.link_attributes.description,
+                    ad_creative_link_button_text = creative.link_attributes.button,
 
-                video_bytes = video_request.content
-
-                self.num_video_download_success += 1
-                video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                video_bucket_path = self.store_video_in_google_bucket(
-                    video_sha256, video_bytes)
-
-            text = None
-            text_sim_hash = None
-            text_sha256_hash = None
-            ad_creative_body_language = None
-            if creative.creative_body:
-                text = creative.creative_body
-                # Get simhash as hex without leading '0x'
-                text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
-                    text)
-                text_sha256_hash = hashlib.sha256(bytes(
-                    text, encoding='UTF-32')).hexdigest()
-                try:
-                    ad_creative_body_language = detect(creative.creative_body)
-                except LangDetectException as error:
-                    logging.info('Unable to determine language of ad creative body from %s',
-                                 creative.archive_id)
-                    ad_creative_body_language = None
-
-            unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
-                archive_id=creative.archive_id, text_sha256_hash=text_sha256_hash,
-                image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
-
-            if unique_constraint_attrs in seen_unique_constraint_attrs:
-                logging.info('Dropping ad record with duplicate unique constriant attributes: %s',
-                             unique_constraint_attrs)
-                continue
-
-            seen_unique_constraint_attrs.add(unique_constraint_attrs)
-            ad_creative_records.append(
-                AdCreativeRecord(
-                    ad_creative_body=text,
-                    ad_creative_body_language=ad_creative_body_language,
-                    ad_creative_link_url=creative.creative_link_url,
-                    ad_creative_link_caption=creative.creative_link_caption,
-                    ad_creative_link_title=creative.creative_link_title,
-                    ad_creative_link_description=creative.creative_link_description,
-                    ad_creative_link_button_text=creative.creative_link_button_text,
-                    archive_id=creative.archive_id,
-                    text_sha256_hash=text_sha256_hash,
-                    text_sim_hash=text_sim_hash,
-                    image_downloaded_url=creative.image_url,
-                    image_bucket_path=image_bucket_path,
-                    image_sim_hash=image_dhash,
-                    image_sha256_hash=image_sha256,
-                    video_downloaded_url=creative.video_url,
-                    video_bucket_path=video_bucket_path,
-                    video_sha256_hash=video_sha256))
+                seen_unique_constraint_attrs.add(unique_constraint_attrs)
+                ad_creative_records.append(
+                    AdCreativeRecord(
+                        ad_creative_body=text,
+                        ad_creative_body_language=ad_creative_body_language,
+                        ad_creative_link_url=ad_creative_link_url,
+                        ad_creative_link_caption=ad_creative_link_caption,
+                        ad_creative_link_title=ad_creative_link_title,
+                        ad_creative_link_description=ad_creative_link_description,
+                        ad_creative_link_button_text=ad_creative_link_button_text,
+                        archive_id=archive_id,
+                        text_sha256_hash=text_sha256_hash,
+                        text_sim_hash=text_sim_hash,
+                        image_downloaded_url=creative.image.url,
+                        image_bucket_path=image_bucket_path,
+                        image_sim_hash=image_dhash,
+                        image_sha256_hash=image_sha256,
+                        video_downloaded_url=creative.video_url,
+                        video_bucket_path=video_bucket_path,
+                        video_sha256_hash=video_sha256))
 
         logging.info('Inserting %d AdCreativeRecords to to DB.',
                      len(ad_creative_records))
@@ -1201,13 +1219,11 @@ class FacebookAdCreativeRetriever:
 
 
 def main(argv):
-    config = configparser.ConfigParser()
-    config.read(argv[0])
+    config = fbactiveads_config.load_config(argv[0])
 
     # Force consistent langdetect results. https://pypi.org/project/langdetect/
     DetectorFactory.seed = 0
 
-    access_token = config_utils.get_facebook_access_token(config)
     commit_to_db_every_n_processed = config.getint('LIMITS', 'BATCH_SIZE', fallback=DEFAULT_BATCH_SIZE)
     logging.info('Will commit to DB every %d snapshots processed.', commit_to_db_every_n_processed)
     slack_url = config.get('LOGGING', 'SLACK_URL')
@@ -1225,8 +1241,7 @@ def main(argv):
                                                                    GCS_CREDENTIALS_FILE)
         image_retriever = FacebookAdCreativeRetriever(
             db_connection, creative_retriever_factory, browser_context_factory, ad_creative_images_bucket_client, ad_creative_video_bucket_client,
-            archive_screenshots_bucket_client, access_token, commit_to_db_every_n_processed,
-            slack_url)
+            archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url)
         image_retriever.retreive_and_store_ad_creatives()
 
 
