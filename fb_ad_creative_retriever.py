@@ -228,13 +228,22 @@ class FacebookAdCreativeRetriever:
                            RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
                         batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
                         self.current_batch_id = batch_and_archive_ids['batch_id']
-                        archive_ids = batch_and_archive_ids['archive_ids']
+                        archive_id_batch = batch_and_archive_ids['archive_ids']
                         logging.info(
                             'Processing batch ID %d of %d archive snapshots in chunks of %d',
-                            self.current_batch_id, len(archive_ids),
+                            self.current_batch_id, len(archive_id_batch),
                             self.commit_to_db_every_n_processed)
                         try:
-                            self.process_snapshot_fetch_batch(archive_ids, creative_retriever)
+                            num_snapshots_processed_in_current_batch = 0
+                            for archive_id_chunk in chunks(archive_id_batch,
+                                                           self.commit_to_db_every_n_processed):
+                                self.process_archive_ids(archive_id_chunk, creative_retriever)
+                                self.db_connection.commit()
+                                num_snapshots_processed_in_current_batch += len(archive_id_chunk)
+                                logging.info('Processed %d of %d archive snapshots.',
+                                             num_snapshots_processed_in_current_batch,
+                                             len(archive_id_batch))
+                                self.log_stats()
                         except BaseException as error:
                             logging.info(
                                 'Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
@@ -242,7 +251,7 @@ class FacebookAdCreativeRetriever:
                             self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
                             self.db_connection.commit()
                             raise
-                        num_snapshots_processed_since_chromedriver_reset += len(archive_ids)
+                        num_snapshots_processed_since_chromedriver_reset += len(archive_id_batch)
 
                         self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
                         self.db_connection.commit()
@@ -251,16 +260,6 @@ class FacebookAdCreativeRetriever:
                                  num_snapshots_processed_since_chromedriver_reset,
                                  RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS)
         finally:
-            self.log_stats()
-
-    def process_snapshot_fetch_batch(self, archive_id_batch, creative_retriever):
-        num_snapshots_processed_in_current_batch = 0
-        for archive_id_chunk in chunks(archive_id_batch, self.commit_to_db_every_n_processed):
-            self.process_archive_ids(archive_id_chunk, creative_retriever)
-            self.db_connection.commit()
-            num_snapshots_processed_in_current_batch += len(archive_id_chunk)
-            logging.info('Processed %d of %d archive snapshots.',
-                         num_snapshots_processed_in_current_batch, len(archive_id_batch))
             self.log_stats()
 
     def store_image_in_google_bucket(self, image_dhash, image_bytes):
@@ -291,6 +290,7 @@ class FacebookAdCreativeRetriever:
         for archive_id in archive_ids:
             snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
             try:
+                logging.info('Retrieving creatives for archive ID %s', archive_id)
                 fetch_time = datetime.datetime.now()
                 screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
                 archive_id_to_fetched_data[archive_id] = screenshot_and_creatives
@@ -354,6 +354,7 @@ class FacebookAdCreativeRetriever:
                 image_dhash = None
                 image_sha256 = None
                 image_bucket_path = None
+                image_url = None
                 video_sha256 = None
                 video_bucket_path = None
                 fetch_time = datetime.datetime.now()
@@ -363,12 +364,13 @@ class FacebookAdCreativeRetriever:
                     except OSError as error:
                         logging.warning(
                             "Error generating dhash for archive ID: %s, image_url: %s. "
-                            "images_bytes len: %d\n%s", creative.archive_id,
-                            creative.image_url, len(creative.image.binary_data), error)
+                            "images_bytes len: %d\n%s", archive_id,
+                            creative.image.url, len(creative.image.binary_data), error)
                         self.num_image_download_failure += 1
                         continue
 
                     self.num_image_download_success += 1
+                    image_url = creative.image.url
                     image_sha256 = hashlib.sha256(creative.image.binary_data).hexdigest()
                     image_bucket_path = self.store_image_in_google_bucket(
                         image_dhash, creative.image.binary_data)
@@ -407,7 +409,7 @@ class FacebookAdCreativeRetriever:
                         ad_creative_body_language = detect(text)
                     except LangDetectException as error:
                         logging.info('Unable to determine language of ad creative body from %s',
-                                     creative.archive_id)
+                                     archive_id)
                         ad_creative_body_language = None
 
                 unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
@@ -446,7 +448,7 @@ class FacebookAdCreativeRetriever:
                         archive_id=archive_id,
                         text_sha256_hash=text_sha256_hash,
                         text_sim_hash=text_sim_hash,
-                        image_downloaded_url=creative.image.url,
+                        image_downloaded_url=image_url,
                         image_bucket_path=image_bucket_path,
                         image_sim_hash=image_dhash,
                         image_sha256_hash=image_sha256,
