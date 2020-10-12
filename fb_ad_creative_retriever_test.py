@@ -1,21 +1,5 @@
 """Unit tests for fb_ad_creative_retriever. This test intentionally uses live data fetch from
 facebook's ad archive to confirm that changes to that page's structure does not break collection.
-
-Ad type cases tested:
-- Single creative
--- Text only (781238262414047)
--- Image only (1094114480759124)
--- Video only (2622398471408486)
--- Image and text (714921558918790)
--- Video and text (333715494500930)
--- Image, text, and link (2225062044275658)
--- Video, text, and link (515029052382226)
-- Multiple Creatives
--- Image, text, and link (3142605315791574)
-- Carousel Style Ads TODO
--- Only image and/or text (2853013434745967)
--- Image and link (with button) (289864105344773)
--- Image and link (without button) (842440562832839)
 """
 
 from collections import namedtuple
@@ -214,25 +198,18 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
         self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testSingleCreativeVideoAndText(self):
-        archive_id = 333715494500930
+        archive_id = 613656125985578
         ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
-        expected_creative_body = (
-            'As they say, not all skinfolk is kinfolk. There are plenty of Black people out there '
-            'spreading misinformation in support of Donald Trump, either because they\'ve been '
-            'misled themselves, because they think it adds to their "woke" factor, or both. Don\'t '
-            'be fooled by the opposite of what you know to be true about this president just '
-            'because someone who looks like you said it.\n\n'
-            'We can all fight against this misinformation by calling it out when we hear it and by '
-            'voting EARLY. If you qualify, please make sure you are able to mail in your absentee '
-            'ballot with time to spare. Register to vote and request an absentee ballot at\n\n'
-            '#BlackChurchPAC #BlackChurchVote #OrganizeTheChurch #Vote #Vote2020')
+        expected_creative_body = ('What is Gabrielle Union afraid of? Tune in to the '
+                                  '#CarlosWatsonShow to hear more: https://youtu.be/6V8Rf28afoc')
         self.assertAdCreativeListEqual(
             ad_creative_records,
             [make_ad_creative_record(archive_id=archive_id, ad_creative_body=expected_creative_body,
-                                     has_image_url=False,
+                                     has_image_url=True,
+                                     image_sim_hash='864a5e948ccd0dd62406ebf5a0ff0900',
                                      has_video_url=True)])
         print(ad_creative_records[0].video_sha256_hash)
-        #  self.assertCreativeImagesUploaded(ad_creative_records)
+        self.assertCreativeImagesUploaded(ad_creative_records)
         self.assertCreativeVideosUploaded(ad_creative_records)
 
     def testSingleCreativeImageTextAndLink(self):
