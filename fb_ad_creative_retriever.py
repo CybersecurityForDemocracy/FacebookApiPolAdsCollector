@@ -259,6 +259,18 @@ class FacebookAdCreativeRetriever:
                     logging.info('Processed %d snapshots since last reset (limit: %d)',
                                  num_snapshots_processed_since_chromedriver_reset,
                                  RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS)
+        except (ad_creative_retriever.TooManyRequestsError, EndBatchCrawlerException) as error:
+            suggested_sleep_time = getattr(error, 'wait_before_next_batch_seconds',
+                                           TOO_MANY_REQUESTS_SLEEP_TIME)
+            slack_msg = (
+                ':rotating_light: :rotating_light: :rotating_light: '
+                'fb_ad_creative_retriever.py raised %s on host %s. Sleeping %d seconds! '
+                ':rotating_light: :rotating_light: :rotating_light:' % (
+                    error, socket.getfqdn(), suggested_sleep_time))
+            slack_notifier.notify_slack(self.slack_url, slack_msg)
+            logging.error('%s raised. Sleeping %d seconds.',
+                          error, suggested_sleep_time)
+            time.sleep(suggested_sleep_time)
         finally:
             self.log_stats()
 
@@ -282,179 +294,79 @@ class FacebookAdCreativeRetriever:
                               screenshot_binary_data)
         logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, blob_id)
 
-    def process_archive_ids(self, archive_ids, creative_retriever):
-        archive_ids_without_creative_found = []
-        creatives = []
-        snapshot_metadata_records = []
-        archive_id_to_fetched_data = {}
-        for archive_id in archive_ids:
-            snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
-            try:
-                logging.info('Retrieving creatives for archive ID %s', archive_id)
-                fetch_time = datetime.datetime.now()
-                screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
-                archive_id_to_fetched_data[archive_id] = screenshot_and_creatives
-                logging.debug('%s creatives:\n%s', archive_id, screenshot_and_creatives.creatives)
-                if screenshot_and_creatives.creatives:
-                    creatives.extend(screenshot_and_creatives.creatives)
-                    snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
-                else:
-                    archive_ids_without_creative_found.append(archive_id)
-                    snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
-                    logging.info(
-                        'Unable to find ad creative(s) for archive_id: %s', archive_id)
+    def retrieve_ad(self, archive_id, creative_retriever):
+        snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
+        screenshot_and_creatives = None
+        try:
+            logging.info('Retrieving creatives for archive ID %s', archive_id)
+            fetch_time = datetime.datetime.now()
+            screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
+            logging.debug('%s creatives:\n%s', archive_id, screenshot_and_creatives.creatives)
 
-            except ad_creative_retriever.TooManyRequestsError as error:
-                slack_msg = (
-                    ':rotating_light: :rotating_light: :rotating_light: '
-                    'fb_ad_creative_retriever.py thread raised with TooManyRequestsError on '
-                    'host %s. Sleeping %d seconds! :rotating_light: :rotating_light: '
-                    ':rotating_light:' % (socket.getfqdn(), TOO_MANY_REQUESTS_SLEEP_TIME))
-                slack_notifier.notify_slack(self.slack_url, slack_msg)
-                logging.error('TooManyRequestsError raised. Sleeping %d seconds.',
-                              TOO_MANY_REQUESTS_SLEEP_TIME)
-                time.sleep(TOO_MANY_REQUESTS_SLEEP_TIME)
-
-            except requests.RequestException as request_exception:
+            if screenshot_and_creatives.creatives:
+                snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
+            else:
+                archive_ids_without_creative_found.append(archive_id)
+                snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
                 logging.info(
-                    'Request exception while processing archive id:%s\n%s',
-                    archive_id, request_exception)
-                self.num_snapshots_fetch_failed += 1
-                # TODO(macpd): decide how to count the errors below
-            except ad_creative_retriever.SnapshotNoContentFoundError as error:
-                logging.info('No content found for archive_id %d', archive_id)
-                snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
-            except ad_creative_retriever.SnapshotAgeRestrictionError as error:
-                snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
-            except ad_creative_retriever.SnapshotInvalidIdError as error:
-                snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
+                    'Unable to find ad creative(s) for archive_id: %s', archive_id)
 
-            # TODO(macpd): use ad_creative_retriever errors and exceptions
-            snapshot_metadata_records.append(AdSnapshotMetadataRecord(
-                archive_id=archive_id, snapshot_fetch_time=fetch_time,
-                snapshot_fetch_status=snapshot_fetch_status))
-            self.num_snapshots_processed += 1
+        except requests.RequestException as request_exception:
+            logging.info(
+                'Request exception while processing archive id:%s\n%s',
+                archive_id, request_exception)
+            self.num_snapshots_fetch_failed += 1
+            # TODO(macpd): decide how to count the errors below
+        except ad_creative_retriever.SnapshotNoContentFoundError as error:
+            logging.info('No content found for archive_id %d', archive_id)
+            snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
+        except ad_creative_retriever.SnapshotAgeRestrictionError as error:
+            snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
+        except ad_creative_retriever.SnapshotInvalidIdError as error:
+            snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
-        self.num_ad_creatives_found += len(creatives)
+        # TODO(macpd): use ad_creative_retriever errors and exceptions
+        snapshot_metadata_record = AdSnapshotMetadataRecord(
+            archive_id=archive_id, snapshot_fetch_time=fetch_time,
+            snapshot_fetch_status=snapshot_fetch_status)
+        self.num_snapshots_processed += 1
+
+        return screenshot_and_creatives, snapshot_metadata_record
+
+    def process_archive_ids(self, archive_ids, creative_retriever):
+        num_archive_ids_without_creative_found = 0
+        snapshot_metadata_records = []
+        ad_creative_records = []
+        for archive_id in archive_ids:
+            screenshot_and_creatives, snapshot_metadata_record = self.retrieve_ad(
+                archive_id, creative_retriever)
+            snapshot_metadata_records.append(snapshot_metadata_record)
+            if not screenshot_and_creatives or not screenshot_and_creatives.creatives:
+                archive_ids_without_creative_found += 1
+                logging.info(
+                    'Unable to find ad creative(s) for archive_id: %s', archive_id)
+                continue
+
+            if screenshot_and_creatives.screenshot_binary_data:
+                self.store_snapshot_screenshot(archive_id, fetched_data.screenshot_binary_data)
+            else:
+                logging.info('No screenshot for archive ID: %s', archive_id)
+
+            if screenshot_and_creatives.creatives:
+                new_ad_creative_recoreds = self.process_fetched_ad_creative_data(
+                    archive_id, screenshot_and_creatives)
+                if new_ad_creative_recoreds:
+                    ad_creative_records.extend(new_ad_creative_recoreds)
+                else:
+                    logging.info('No ad creative records generated for archive ID: %s', archive_id)
+            else:
+                archive_ids_without_creative_found += 1
+                logging.info(
+                    'Unable to find ad creative(s) for archive_id: %s', archive_id)
+
+        self.num_ad_creatives_found += len(ad_creative_records)
         self.num_snapshots_without_creative_found += len(
             archive_ids_without_creative_found)
-
-        for archive_id, fetched_data in archive_id_to_fetched_data.items():
-            if fetched_data.screenshot_binary_data:
-                self.store_snapshot_screenshot(archive_id, fetched_data.screenshot_binary_data)
-
-        ad_creative_records = []
-        # Used to prevent sending multiple records for upsert in same batch that have duplicate
-        # attributes the database requires to be unique.
-        seen_unique_constraint_attrs = set()
-        for archive_id, fetched_data in archive_id_to_fetched_data.items():
-            if not fetched_data.creatives:
-                logging.warning('No creatives for %s', archive_id)
-            for creative in fetched_data.creatives:
-                image_dhash = None
-                image_sha256 = None
-                image_bucket_path = None
-                image_url = None
-                video_sha256 = None
-                video_bucket_path = None
-                fetch_time = datetime.datetime.now()
-                if creative.image:
-                    try:
-                        image_dhash = get_image_dhash(creative.image.binary_data)
-                    except OSError as error:
-                        logging.warning(
-                            "Error generating dhash for archive ID: %s, image_url: %s. "
-                            "images_bytes len: %d\n%s", archive_id,
-                            creative.image.url, len(creative.image.binary_data), error)
-                        self.num_image_download_failure += 1
-                        continue
-
-                    self.num_image_download_success += 1
-                    image_url = creative.image.url
-                    image_sha256 = hashlib.sha256(creative.image.binary_data).hexdigest()
-                    image_bucket_path = self.store_image_in_google_bucket(
-                        image_dhash, creative.image.binary_data)
-                if creative.video_url:
-                    try:
-                        video_request = requests.get(creative.video_url, timeout=30)
-                        # TODO(macpd): handle this more gracefully
-                        # TODO(macpd): check encoding
-                        video_request.raise_for_status()
-                    except requests.RequestException as request_exception:
-                        logging.info('Exception %s when requesting video_url: %s',
-                                     request_exception, creative.video_url)
-                        self.num_video_download_failure += 1
-                        # TODO(macpd): handle all error types
-                        continue
-
-                    video_bytes = video_request.content
-
-                    self.num_video_download_success += 1
-                    video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                    video_bucket_path = self.store_video_in_google_bucket(
-                        video_sha256, video_bytes)
-
-                text = None
-                text_sim_hash = None
-                text_sha256_hash = None
-                ad_creative_body_language = None
-                if creative.body:
-                    text = creative.body
-                    # Get simhash as hex without leading '0x'
-                    text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
-                        text)
-                    text_sha256_hash = hashlib.sha256(bytes(
-                        text, encoding='UTF-32')).hexdigest()
-                    try:
-                        ad_creative_body_language = detect(text)
-                    except LangDetectException as error:
-                        logging.info('Unable to determine language of ad creative body from %s',
-                                     archive_id)
-                        ad_creative_body_language = None
-
-                unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
-                    archive_id=archive_id, text_sha256_hash=text_sha256_hash,
-                    image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
-
-                if unique_constraint_attrs in seen_unique_constraint_attrs:
-                    logging.info(
-                        'Dropping ad record with duplicate unique constriant attributes: %s',
-                        unique_constraint_attrs)
-                    continue
-
-                ad_creative_link_url = None
-                ad_creative_link_caption = None
-                ad_creative_link_title = None
-                ad_creative_link_description = None
-                ad_creative_link_button_text = None
-
-                if creative.link_attributes:
-                    ad_creative_link_url = creative.link_attributes.url
-                    ad_creative_link_caption = creative.link_attributes.caption
-                    ad_creative_link_title = creative.link_attributes.title
-                    ad_creative_link_description = creative.link_attributes.description
-                    ad_creative_link_button_text = creative.link_attributes.button
-
-                seen_unique_constraint_attrs.add(unique_constraint_attrs)
-                ad_creative_records.append(
-                    AdCreativeRecord(
-                        ad_creative_body=text,
-                        ad_creative_body_language=ad_creative_body_language,
-                        ad_creative_link_url=ad_creative_link_url,
-                        ad_creative_link_caption=ad_creative_link_caption,
-                        ad_creative_link_title=ad_creative_link_title,
-                        ad_creative_link_description=ad_creative_link_description,
-                        ad_creative_link_button_text=ad_creative_link_button_text,
-                        archive_id=archive_id,
-                        text_sha256_hash=text_sha256_hash,
-                        text_sim_hash=text_sim_hash,
-                        image_downloaded_url=image_url,
-                        image_bucket_path=image_bucket_path,
-                        image_sim_hash=image_dhash,
-                        image_sha256_hash=image_sha256,
-                        video_downloaded_url=creative.video_url,
-                        video_bucket_path=video_bucket_path,
-                        video_sha256_hash=video_sha256))
 
         logging.info('Inserting %d AdCreativeRecords to to DB.',
                      len(ad_creative_records))
@@ -463,6 +375,125 @@ class FacebookAdCreativeRetriever:
         self.db_interface.insert_ad_creative_records(ad_creative_records)
         logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
+
+
+    def process_fetched_ad_creative_data(self, archive_id, fetched_data):
+        if not fetched_data.creatives:
+            logging.warning('No creatives for %s', archive_id)
+            return None
+
+        # Used to prevent sending multiple records for upsert in same batch that have duplicate
+        # attributes the database requires to be unique.
+        seen_unique_constraint_attrs = set()
+        ad_creative_records = []
+
+        for creative in fetched_data.creatives:
+            image_dhash = None
+            image_sha256 = None
+            image_bucket_path = None
+            image_url = None
+            video_sha256 = None
+            video_bucket_path = None
+            fetch_time = datetime.datetime.now()
+            if creative.image:
+                try:
+                    image_dhash = get_image_dhash(creative.image.binary_data)
+                except OSError as error:
+                    logging.warning(
+                        "Error generating dhash for archive ID: %s, image_url: %s. "
+                        "images_bytes len: %d\n%s", archive_id,
+                        creative.image.url, len(creative.image.binary_data), error)
+                    self.num_image_download_failure += 1
+                    continue
+
+                self.num_image_download_success += 1
+                image_url = creative.image.url
+                image_sha256 = hashlib.sha256(creative.image.binary_data).hexdigest()
+                image_bucket_path = self.store_image_in_google_bucket(
+                    image_dhash, creative.image.binary_data)
+            if creative.video_url:
+                try:
+                    video_request = requests.get(creative.video_url, timeout=30)
+                    # TODO(macpd): handle this more gracefully
+                    # TODO(macpd): check encoding
+                    video_request.raise_for_status()
+                except requests.RequestException as request_exception:
+                    logging.info('Exception %s when requesting video_url: %s',
+                                 request_exception, creative.video_url)
+                    self.num_video_download_failure += 1
+                    # TODO(macpd): handle all error types
+                    continue
+
+                video_bytes = video_request.content
+
+                self.num_video_download_success += 1
+                video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                video_bucket_path = self.store_video_in_google_bucket(
+                    video_sha256, video_bytes)
+
+            text = None
+            text_sim_hash = None
+            text_sha256_hash = None
+            ad_creative_body_language = None
+            if creative.body:
+                text = creative.body
+                # Get simhash as hex without leading '0x'
+                text_sim_hash = '%x' % sim_hash_ad_creative_text.hash_ad_creative_text(
+                    text)
+                text_sha256_hash = hashlib.sha256(bytes(
+                    text, encoding='UTF-32')).hexdigest()
+                try:
+                    ad_creative_body_language = detect(text)
+                except LangDetectException as error:
+                    logging.info('Unable to determine language of ad creative body from %s',
+                                 archive_id)
+                    ad_creative_body_language = None
+
+            unique_constraint_attrs = AdCreativeRecordUniqueConstraintAttributes(
+                archive_id=archive_id, text_sha256_hash=text_sha256_hash,
+                image_sha256_hash=image_sha256, video_sha256_hash=video_sha256)
+
+            if unique_constraint_attrs in seen_unique_constraint_attrs:
+                logging.info(
+                    'Dropping ad record with duplicate unique constriant attributes: %s',
+                    unique_constraint_attrs)
+                continue
+
+            ad_creative_link_url = None
+            ad_creative_link_caption = None
+            ad_creative_link_title = None
+            ad_creative_link_description = None
+            ad_creative_link_button_text = None
+
+            if creative.link_attributes:
+                ad_creative_link_url = creative.link_attributes.url
+                ad_creative_link_caption = creative.link_attributes.caption
+                ad_creative_link_title = creative.link_attributes.title
+                ad_creative_link_description = creative.link_attributes.description
+                ad_creative_link_button_text = creative.link_attributes.button
+
+            seen_unique_constraint_attrs.add(unique_constraint_attrs)
+            ad_creative_records.append(
+                AdCreativeRecord(
+                    ad_creative_body=text,
+                    ad_creative_body_language=ad_creative_body_language,
+                    ad_creative_link_url=ad_creative_link_url,
+                    ad_creative_link_caption=ad_creative_link_caption,
+                    ad_creative_link_title=ad_creative_link_title,
+                    ad_creative_link_description=ad_creative_link_description,
+                    ad_creative_link_button_text=ad_creative_link_button_text,
+                    archive_id=archive_id,
+                    text_sha256_hash=text_sha256_hash,
+                    text_sim_hash=text_sim_hash,
+                    image_downloaded_url=image_url,
+                    image_bucket_path=image_bucket_path,
+                    image_sim_hash=image_dhash,
+                    image_sha256_hash=image_sha256,
+                    video_downloaded_url=creative.video_url,
+                    video_bucket_path=video_bucket_path,
+                    video_sha256_hash=video_sha256))
+
+        return ad_creative_records
 
 
 def main(argv):
