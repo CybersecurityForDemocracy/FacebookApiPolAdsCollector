@@ -30,6 +30,7 @@ import tenacity
 from fbactiveads.adsnapshots import ad_creative_retriever
 from fbactiveads.adsnapshots import browser_context
 from fbactiveads.common import config as fbactiveads_config
+from fbactiveads.common.crawler import EndBatchCrawlerException
 
 import config_utils
 import db_functions
@@ -306,7 +307,6 @@ class FacebookAdCreativeRetriever:
             if screenshot_and_creatives.creatives:
                 snapshot_fetch_status = SnapshotFetchStatus.SUCCESS
             else:
-                archive_ids_without_creative_found.append(archive_id)
                 snapshot_fetch_status = SnapshotFetchStatus.NO_AD_CREATIVES_FOUND
                 logging.info(
                     'Unable to find ad creative(s) for archive_id: %s', archive_id)
@@ -317,12 +317,12 @@ class FacebookAdCreativeRetriever:
                 archive_id, request_exception)
             self.num_snapshots_fetch_failed += 1
             # TODO(macpd): decide how to count the errors below
-        except ad_creative_retriever.SnapshotNoContentFoundError as error:
+        except ad_creative_retriever.SnapshotNoContentFoundError:
             logging.info('No content found for archive_id %d', archive_id)
             snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
-        except ad_creative_retriever.SnapshotAgeRestrictionError as error:
+        except ad_creative_retriever.SnapshotAgeRestrictionError:
             snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
-        except ad_creative_retriever.SnapshotInvalidIdError as error:
+        except ad_creative_retriever.SnapshotInvalidIdError:
             snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
         # TODO(macpd): use ad_creative_retriever errors and exceptions
@@ -334,7 +334,6 @@ class FacebookAdCreativeRetriever:
         return screenshot_and_creatives, snapshot_metadata_record
 
     def process_archive_ids(self, archive_ids, creative_retriever):
-        num_archive_ids_without_creative_found = 0
         snapshot_metadata_records = []
         ad_creative_records = []
         for archive_id in archive_ids:
@@ -348,7 +347,8 @@ class FacebookAdCreativeRetriever:
                 continue
 
             if screenshot_and_creatives.screenshot_binary_data:
-                self.store_snapshot_screenshot(archive_id, fetched_data.screenshot_binary_data)
+                self.store_snapshot_screenshot(archive_id,
+                                               screenshot_and_creatives.screenshot_binary_data)
             else:
                 logging.info('No screenshot for archive ID: %s', archive_id)
 
@@ -394,7 +394,6 @@ class FacebookAdCreativeRetriever:
             image_url = None
             video_sha256 = None
             video_bucket_path = None
-            fetch_time = datetime.datetime.now()
             if creative.image:
                 try:
                     image_dhash = get_image_dhash(creative.image.binary_data)
