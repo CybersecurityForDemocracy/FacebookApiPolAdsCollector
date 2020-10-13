@@ -143,18 +143,12 @@ def upload_blob(bucket_client, blob_path, blob_data):
     blob.upload_from_string(blob_data)
     return blob.id
 
-def send_slack_message(slack_url, msg, slack_user_id_to_include=None):
-    if slack_user_id_to_include:
-        msg = '<@{}> {}'.format(slack_user_id_to_include, msg)
-    slack_notifier.notify_slack(slack_url, msg)
-
 
 class FacebookAdCreativeRetriever:
 
     def __init__(self, db_connection, creative_retriever_factory, browser_context_factory,
                  ad_creative_images_bucket_client, ad_creative_videos_bucket_client,
-                 archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-                 slack_user_id_to_include):
+                 archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
         self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
         self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
@@ -174,7 +168,6 @@ class FacebookAdCreativeRetriever:
         self.commit_to_db_every_n_processed = commit_to_db_every_n_processed
         self.start_time = None
         self.slack_url = slack_url
-        self.slack_user_id_to_include = slack_user_id_to_include
         self.creative_retriever_factory = creative_retriever_factory
         self.browser_context_factory = browser_context_factory
         self.creative_retriever_generator = self.make_creative_retriever_generator()
@@ -296,8 +289,7 @@ class FacebookAdCreativeRetriever:
                     'fb_ad_creative_retriever.py raised %s on host %s. Sleeping %d seconds! '
                     ':rotating_light: :rotating_light: :rotating_light:' % (
                         error, socket.getfqdn(), suggested_sleep_time))
-                send_slack_message(self.slack_url, slack_msg,
-                                   slack_user_id_to_include=self.slack_user_id_to_include)
+                slack_notifier.notify_slack(self.slack_url, slack_msg)
                 logging.error('%s raised. Sleeping %d seconds.',
                               error, suggested_sleep_time)
                 time.sleep(suggested_sleep_time)
@@ -545,7 +537,6 @@ def main(argv):
                                                    fallback=DEFAULT_BATCH_SIZE)
     logging.info('Will commit to DB every %d snapshots processed.', commit_to_db_every_n_processed)
     slack_url = config.get('LOGGING', 'SLACK_URL')
-    slack_user_id_to_include = config.get('LOGGING', 'SLACK_USER_ID_TO_INCLUDE', fallback=None)
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
@@ -561,19 +552,8 @@ def main(argv):
         image_retriever = FacebookAdCreativeRetriever(
             db_connection, creative_retriever_factory, browser_context_factory,
             ad_creative_images_bucket_client, ad_creative_video_bucket_client,
-            archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-            slack_user_id_to_include)
-        try:
-            image_retriever.retreive_and_store_ad_creatives()
-        except BaseException as error:
-            slack_msg = (
-                ':rotating_light: :rotating_light: :rotating_light: '
-                'fb_ad_creative_retriever.py raised %s on host %s.'
-                ':rotating_light: :rotating_light: :rotating_light:' % (
-                    error, socket.getfqdn()))
-            send_slack_message(slack_url, slack_msg,
-                               slack_user_id_to_include=slack_user_id_to_include)
-            raise
+            archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url)
+        image_retriever.retreive_and_store_ad_creatives()
 
 
 if __name__ == '__main__':
