@@ -22,10 +22,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
 
-def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_language=None, ad_creative_link_url=None,
-                                  ad_creative_link_title=None, ad_creative_link_description=None,
-                                  ad_creative_link_caption=None, ad_creative_link_button_text=None,
-                                  has_image_url=None, image_sim_hash=None, has_video_url=None):
+def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_language=None,
+                            ad_creative_link_url=None, ad_creative_link_title=None,
+                            ad_creative_link_description=None, ad_creative_link_caption=None,
+                            ad_creative_link_button_text=None, has_image_url=None,
+                            image_sim_hash=None, has_video_url=None):
     return AdCreativeRecord(
         archive_id=archive_id, ad_creative_body=ad_creative_body,
         ad_creative_body_language=ad_creative_body_language, text_sha256_hash=None,
