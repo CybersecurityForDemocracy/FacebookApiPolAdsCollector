@@ -22,10 +22,11 @@ logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
 
 
-def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_language=None, ad_creative_link_url=None,
-                                  ad_creative_link_title=None, ad_creative_link_description=None,
-                                  ad_creative_link_caption=None, ad_creative_link_button_text=None,
-                                  has_image_url=None, image_sim_hash=None, has_video_url=None):
+def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_language=None,
+                            ad_creative_link_url=None, ad_creative_link_title=None,
+                            ad_creative_link_description=None, ad_creative_link_caption=None,
+                            ad_creative_link_button_text=None, has_image_url=None,
+                            image_sim_hash=None, has_video_url=None):
     return AdCreativeRecord(
         archive_id=archive_id, ad_creative_body=ad_creative_body,
         ad_creative_body_language=ad_creative_body_language, text_sha256_hash=None,
@@ -56,16 +57,15 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             ad_creative_videos_bucket_client=self.mock_video_bucket_client,
             archive_screenshots_bucket_client=self.mock_screenshot_bucket_client,
             commit_to_db_every_n_processed=None, slack_url=None)
+        self.retriever.reset_creative_retriever()
 
     def tearDown(self):
         time.sleep(2.0)
 
     def retrieve_ad(self, archive_id):
-        with self.browser_context_factory.web_browser() as browser:
-            creative_retriever = self.creative_retriever_factory.build(chrome_driver=browser)
-            retrieved_data, snapshot_metadata_record = self.retriever.retrieve_ad(archive_id, creative_retriever)
-            ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id, retrieved_data)
-            return ad_creative_records, snapshot_metadata_record
+        retrieved_data, snapshot_metadata_record = self.retriever.retrieve_ad(archive_id)
+        ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id, retrieved_data)
+        return ad_creative_records, snapshot_metadata_record
 
     def assertAdCreativeListEqual(self, creative_list_a, creative_list_b):
         if len(creative_list_a) != len(creative_list_b):
