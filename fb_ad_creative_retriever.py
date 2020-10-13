@@ -369,8 +369,7 @@ class FacebookAdCreativeRetriever:
                     'Unable to find ad creative(s) for archive_id: %s', archive_id)
 
         self.num_ad_creatives_found += len(ad_creative_records)
-        self.num_snapshots_without_creative_found += len(
-            archive_ids_without_creative_found)
+        self.num_snapshots_without_creative_found += archive_ids_without_creative_found
 
         logging.info('Inserting %d AdCreativeRecords to to DB.',
                      len(ad_creative_records))
