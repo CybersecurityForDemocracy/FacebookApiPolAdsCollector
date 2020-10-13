@@ -337,6 +337,7 @@ class FacebookAdCreativeRetriever:
         return screenshot_and_creatives, snapshot_metadata_record
 
     def process_archive_ids(self, archive_ids, creative_retriever):
+        archive_ids_without_creative_found = 0
         snapshot_metadata_records = []
         ad_creative_records = []
         for archive_id in archive_ids:
