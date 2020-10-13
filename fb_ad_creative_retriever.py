@@ -565,6 +565,9 @@ def main(argv):
             slack_user_id_to_include)
         try:
             image_retriever.retreive_and_store_ad_creatives()
+        except KeyboardInterrupt:
+            # don't log about Ctrl-C
+            raise
         except BaseException as error:
             slack_msg = (
                 ':rotating_light: :rotating_light: :rotating_light: '
