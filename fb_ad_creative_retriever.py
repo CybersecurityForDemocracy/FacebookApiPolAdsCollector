@@ -318,7 +318,8 @@ class FacebookAdCreativeRetriever:
                 archive_id, request_exception)
             self.num_snapshots_fetch_failed += 1
             # TODO(macpd): decide how to count the errors below
-        except ad_creative_retriever.SnapshotNoContentFoundError:
+        except (ad_creative_retriever.SnapshotNoContentFoundError,
+                ad_creative_retriever.SnapshotMissingMediaError):
             logging.info('No content found for archive_id %d', archive_id)
             snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
         except ad_creative_retriever.SnapshotAgeRestrictionError:
