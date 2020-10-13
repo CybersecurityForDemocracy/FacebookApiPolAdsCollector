@@ -1,190 +1,222 @@
 """Unit tests for fb_ad_creative_retriever. This test intentionally uses live data fetch from
 facebook's ad archive to confirm that changes to that page's structure does not break collection.
-
-Ad type cases tested:
-- Single creative
--- Text only (781238262414047)
--- Image only (1094114480759124)
--- Video only (2622398471408486)
--- Image and text (714921558918790)
--- Video and text (333715494500930)
--- Image, text, and link (2225062044275658)
--- Video, text, and link (515029052382226)
-- Multiple Creatives
--- Image, text, and link (3142605315791574)
-- Carousel Style Ads TODO
--- Only image and/or text (2853013434745967)
--- Image and link (with button) (289864105344773)
--- Image and link (without button) (842440562832839)
 """
 
 from collections import namedtuple
 import logging
-import os
 import sys
+import time
 import unittest
+import unittest.mock
 
-from fb_ad_creative_retriever import FetchedAdCreativeData
+from fbactiveads.adsnapshots import ad_creative_retriever
+from fbactiveads.adsnapshots import browser_context
+from fbactiveads.common import config as fbactiveads_config
+from fb_ad_creative_retriever import AdCreativeRecord, make_image_hash_file_path, make_video_sha256_hash_file_path
+
 import fb_ad_creative_retriever
-import snapshot_url_util
-
-ACCESS_TOKEN = os.environ['FB_ACCESS_TOKEN']
 
 # uncomment these lines to get log output to stdout when tests execute
-# logger = logging.getLogger()
-# logger.addHandler(logging.StreamHandler(sys.stdout))
-# logger.setLevel(logging.INFO)
+logger = logging.getLogger()
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.setLevel(logging.INFO)
 
 
-def make_fetched_ad_creative_data(archive_id, creative_body=None, creative_link_url=None,
-                                  creative_link_title=None, creative_link_description=None,
-                                  creative_link_caption=None, creative_link_button_text=None,
-                                  image_url=None, video_url=None):
-    return FetchedAdCreativeData(archive_id, creative_body, creative_link_url, creative_link_title,
-                                 creative_link_description, creative_link_caption,
-                                 creative_link_button_text, image_url, video_url)
+def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_language=None, ad_creative_link_url=None,
+                                  ad_creative_link_title=None, ad_creative_link_description=None,
+                                  ad_creative_link_caption=None, ad_creative_link_button_text=None,
+                                  has_image_url=None, image_sim_hash=None, has_video_url=None):
+    return AdCreativeRecord(
+        archive_id=archive_id, ad_creative_body=ad_creative_body,
+        ad_creative_body_language=ad_creative_body_language, text_sha256_hash=None,
+        ad_creative_link_url=ad_creative_link_url, ad_creative_link_title=ad_creative_link_title,
+        ad_creative_link_description=ad_creative_link_description,
+        ad_creative_link_caption=ad_creative_link_caption,
+        ad_creative_link_button_text=ad_creative_link_button_text, image_sha256_hash=None,
+        image_downloaded_url=has_image_url, image_bucket_path=None, text_sim_hash=None,
+        image_sim_hash=image_sim_hash, video_sha256_hash=None, video_downloaded_url=has_video_url,
+        video_bucket_path=None)
 
 
 class FacebookAdCreativeRetrieverTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        config = fbactiveads_config.load_config('fb_ad_creative_retriever_test.cfg')
+        cls.creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
+        cls.browser_context_factory = browser_context.DockerSeleniumBrowserContextFactory(config)
+
     def setUp(self):
-        self.maxDiff = None
-        self.access_token=ACCESS_TOKEN
+        self.mock_image_bucket_client = unittest.mock.Mock()
+        self.mock_video_bucket_client = unittest.mock.Mock()
+        self.mock_screenshot_bucket_client = unittest.mock.Mock()
         self.retriever = fb_ad_creative_retriever.FacebookAdCreativeRetriever(
-            db_connection=None, ad_creative_images_bucket_client=None,
-            ad_creative_videos_bucket_client=None, archive_screenshots_bucket_client=None,
-            access_token=self.access_token, commit_to_db_every_n_processed=None, slack_url=None)
+            db_connection=None, creative_retriever_factory=self.creative_retriever_factory,
+            browser_context_factory=self.browser_context_factory,
+            ad_creative_images_bucket_client=self.mock_image_bucket_client,
+            ad_creative_videos_bucket_client=self.mock_video_bucket_client,
+            archive_screenshots_bucket_client=self.mock_screenshot_bucket_client,
+            commit_to_db_every_n_processed=None, slack_url=None)
 
     def tearDown(self):
-        self.retriever.chromedriver.quit()
+        time.sleep(2.0)
 
-    def make_snapshot_url(self, archive_id):
-        return snapshot_url_util.construct_snapshot_urls(self.access_token, [archive_id])[0]
+    def retrieve_ad(self, archive_id):
+        with self.browser_context_factory.web_browser() as browser:
+            creative_retriever = self.creative_retriever_factory.build(chrome_driver=browser)
+            retrieved_data, snapshot_metadata_record = self.retriever.retrieve_ad(archive_id, creative_retriever)
+            ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id, retrieved_data)
+            return ad_creative_records, snapshot_metadata_record
 
     def assertAdCreativeListEqual(self, creative_list_a, creative_list_b):
         if len(creative_list_a) != len(creative_list_b):
             self.fail(
                 'Ad creative lists are different lengths. {} != {}'.format(
                     len(creative_list_a),  len(creative_list_b)))
-        for idx in range(len(creative_list_a)):
-            self.assertFetchedAdCreativeDataEqual(creative_list_a[idx], creative_list_b[idx],
-                                                  creative_index=idx)
+        for idx, (creative_a, creative_b) in enumerate(zip(creative_list_a, creative_list_b)):
+            self.assertAdCreativeRecordEqual(creative_a, creative_b, creative_index=idx)
 
+    def assertAdCreativeRecordValid(self, ad_creative_record):
+        if ad_creative_record.ad_creative_body:
+            self.assertIsNotNone(ad_creative_record.text_sim_hash)
+            self.assertIsNotNone(ad_creative_record.text_sha256_hash)
+            self.assertIsNotNone(ad_creative_record.ad_creative_body_language)
+        if ad_creative_record.image_downloaded_url:
+            self.assertIsNotNone(ad_creative_record.image_sim_hash)
+            self.assertIsNotNone(ad_creative_record.image_sha256_hash)
+            self.assertIsNotNone(ad_creative_record.image_bucket_path)
+        if ad_creative_record.video_downloaded_url:
+            self.assertIsNotNone(ad_creative_record.video_sim_hash)
+            self.assertIsNotNone(ad_creative_record.video_sha256_hash)
+            self.assertIsNotNone(ad_creative_record.video_bucket_path)
 
-
-    def assertFetchedAdCreativeDataEqual(self, creative_data_a, creative_data_b, creative_index=None):
+    def assertAdCreativeRecordEqual(self, creative_data_a, creative_data_b, creative_index=None):
         self.assertEqual(creative_data_a.archive_id, creative_data_b.archive_id,
                          msg='Archive ID from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.creative_body, creative_data_b.creative_body,
+        self.assertEqual(creative_data_a.ad_creative_body, creative_data_b.ad_creative_body,
                          msg='Creative body from creative {}'.format(creative_index))
-        if creative_data_a.creative_link_url:
-            creative_a_link_url_prefix = creative_data_a.creative_link_url.rsplit('&', maxsplit=1)[0]
+        if creative_data_a.ad_creative_link_url:
+            creative_a_link_url_prefix = creative_data_a.ad_creative_link_url.rsplit('&', maxsplit=1)[0]
         else:
             creative_a_link_url_prefix = None
-        if creative_data_b.creative_link_url:
-            creative_b_link_url_prefix = creative_data_b.creative_link_url.rsplit('&', maxsplit=1)[0]
+        if creative_data_b.ad_creative_link_url:
+            creative_b_link_url_prefix = creative_data_b.ad_creative_link_url.rsplit('&', maxsplit=1)[0]
         else:
             creative_b_link_url_prefix = None
 
         self.assertEqual(creative_a_link_url_prefix, creative_b_link_url_prefix,
                          msg='Creative link URL from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.creative_link_title, creative_data_b.creative_link_title,
+        self.assertEqual(creative_data_a.ad_creative_link_title, creative_data_b.ad_creative_link_title,
                          msg='Creative link title from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.creative_link_description,
-                         creative_data_b.creative_link_description,
+        self.assertEqual(creative_data_a.ad_creative_link_description,
+                         creative_data_b.ad_creative_link_description,
                          msg='Creative link description from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.creative_link_caption,
-                         creative_data_b.creative_link_caption,
+        self.assertEqual(creative_data_a.ad_creative_link_caption,
+                         creative_data_b.ad_creative_link_caption,
                          msg='Creative link caption from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.creative_link_button_text,
-                         creative_data_b.creative_link_button_text,
+        self.assertEqual(creative_data_a.ad_creative_link_button_text,
+                         creative_data_b.ad_creative_link_button_text,
                          msg='Creative link button text from creative {}'.format(creative_index))
-        if creative_data_a.image_url:
-            self.assertTrue(creative_data_b.image_url,
+        if creative_data_a.image_downloaded_url:
+            self.assertTrue(creative_data_b.image_downloaded_url,
                          msg='Creative image URL present vs not present from creative {}'.format(creative_index))
         else:
-            self.assertFalse(creative_data_b.image_url,
+            self.assertFalse(creative_data_b.image_downloaded_url,
                          msg='Creative image URL not present vs present from creative {}'.format(creative_index))
-        if creative_data_a.video_url:
-            self.assertTrue(creative_data_b.video_url,
+        self.assertEqual(creative_data_a.image_sim_hash, creative_data_b.image_sim_hash,
+                         msg='Creative image simhash from creative {}'.format(creative_index))
+        if creative_data_a.video_downloaded_url:
+            self.assertTrue(creative_data_b.video_downloaded_url,
                          msg='Creative video URL present vs not present from creative {}'.format(creative_index))
         else:
-            self.assertFalse(creative_data_b.video_url,
+            self.assertFalse(creative_data_b.video_downloaded_url,
                          msg='Creative video URL not present vs present from creative {}'.format(creative_index))
 
+    def assertCreativeImagesUploaded(self, ad_creative_records):
+        expected_calls = []
+        for ad_creative_record in ad_creative_records:
+            expected_calls.append(unittest.mock.call.blob(make_image_hash_file_path(ad_creative_record.image_sim_hash)))
+            expected_calls.append(unittest.mock.call.blob().upload_from_string(unittest.mock.ANY))
+        self.mock_image_bucket_client.assert_has_calls(expected_calls)
+
+    def assertCreativeVideosUploaded(self, ad_creative_records):
+        expected_calls = []
+        for ad_creative_record in ad_creative_records:
+            expected_calls.append(unittest.mock.call.blob(make_video_sha256_hash_file_path(ad_creative_record.video_sha256_hash)))
+            expected_calls.append(unittest.mock.call.blob().upload_from_string(unittest.mock.ANY))
+        self.mock_video_bucket_client.assert_has_calls(expected_calls)
 
     def testSingleCreativeTextOnly(self):
         archive_id = 781238262414047
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body='These Liberal Media types should be wiped from the face of television.'
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(archive_id=archive_id,
-                                           creative_body=expected_creative_body)])
+        expected_creatives = [make_ad_creative_record(archive_id=archive_id,
+                                                      ad_creative_body=expected_creative_body)]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.mock_image_bucket_client.assert_not_called()
+        self.mock_video_bucket_client.assert_not_called()
 
     def testSingleCreativeImageOnly(self):
         archive_id = 1094114480759124
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(archive_id=archive_id, creative_body='', image_url=True)]
-        )
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
+
+        expected_creatives = [make_ad_creative_record(archive_id=archive_id, has_image_url=True,
+                                 image_sim_hash='79d8b83ce22b0f227f008338c0c2ff08')]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
+        self.mock_video_bucket_client.assert_not_called()
 
     def testSingleCreativeVideoOnly(self):
         archive_id = 2622398471408486
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(archive_id=archive_id, creative_body='', image_url=True,
-                                          video_url=True)])
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
+        expected_creatives = [make_ad_creative_record(archive_id=archive_id,
+                                     ad_creative_link_description='An Important Reminder from IFI',
+                                     image_sim_hash='5d5bdb5a1eb6b21c2d0d83dbfe100000',
+                                     has_image_url=True, has_video_url=True)]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
+        self.assertCreativeVideosUploaded(ad_creative_records)
 
     def testSingleCreativeImageAndText(self):
         archive_id = 714921558918790
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body=('Proud Sarkozy Bakery shopper since 1981. Raised my daughters on '
                                 'Oatmeal bread and Saturday morning Cheese Crowns. Try one.')
+        expected_creatives = [
+            make_ad_creative_record(archive_id=archive_id, ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    image_sim_hash='2f6b3b3a323919339fcdc91c82209173')]
         self.assertAdCreativeListEqual(
-            retrieved_data.creatives, [make_fetched_ad_creative_data(archive_id=archive_id,
-            creative_body=expected_creative_body, image_url=True)])
+            ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testSingleCreativeVideoAndText(self):
-        archive_id = 333715494500930
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
-        expected_creative_body = (
-            'As they say, not all skinfolk is kinfolk. There are plenty of Black people out there '
-            'spreading misinformation in support of Donald Trump, either because they\'ve been '
-            'misled themselves, because they think it adds to their "woke" factor, or both. Don\'t '
-            'be fooled by the opposite of what you know to be true about this president just '
-            'because someone who looks like you said it.\n\n'
-            'We can all fight against this misinformation by calling it out when we hear it and by '
-            'voting EARLY. If you qualify, please make sure you are able to mail in your absentee '
-            'ballot with time to spare. Register to vote and request an absentee ballot at\n\n'
-            '#BlackChurchPAC #BlackChurchVote #OrganizeTheChurch #Vote #Vote2020')
+        archive_id = 613656125985578
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        expected_creative_body = ('What is Gabrielle Union afraid of? Tune in to the '
+                                  '#CarlosWatsonShow to hear more: https://youtu.be/6V8Rf28afoc')
         self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(archive_id=archive_id,
-                                           creative_body=expected_creative_body, video_url=True)])
+            ad_creative_records,
+            [make_ad_creative_record(archive_id=archive_id, ad_creative_body=expected_creative_body,
+                                     has_image_url=True,
+                                     image_sim_hash='864a5e948ccd0dd62406ebf5a0ff0900',
+                                     has_video_url=True)])
+        print(ad_creative_records[0].video_sha256_hash)
+        self.assertCreativeImagesUploaded(ad_creative_records)
+        self.assertCreativeVideosUploaded(ad_creative_records)
 
     def testSingleCreativeImageTextAndLink(self):
         archive_id = 2225062044275658
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body = (
             'Join Bernie Sanders and Alexandria Ocasio-Cortez for a climate crisis summit in Des '
             'Moines! This event is free and open to the public. RSVPS are encouraged.\n\n'
@@ -201,24 +233,24 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
              'https://l.facebook.com/l.php?u=https%3A%2F%2Fact.berniesanders.com%2Fevent%2Fevent-be'
              'rnie-sanders-attend%2F38266%3Fsource%3Dads-fb-191103-desmoinesIA-AOCclimatesummit_rsv'
              'p-demint-V2-h1-p1&')
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(
-                archive_id=archive_id,
-                creative_body=expected_creative_body,
-                creative_link_url=expected_creative_link_url,
-                creative_link_description='RSVP: Join Bernie and AOC in Des Moines',
-                creative_link_caption='RSVP now.',
-                creative_link_button_text='Sign Up', 
-                image_url=True, video_url=False)])
+        expected_creatives = [
+            make_ad_creative_record(archive_id=archive_id, ad_creative_body=expected_creative_body,
+                                    ad_creative_link_url=expected_creative_link_url,
+                                    ad_creative_link_description=(
+                                        'RSVP: Join Bernie and AOC in Des Moines'),
+                                    ad_creative_link_caption='RSVP now.',
+                                    ad_creative_link_title='ACT.BERNIESANDERS.COM',
+                                    ad_creative_link_button_text='Sign Up', has_image_url=True,
+                                    image_sim_hash='abd022c6122435f028d1208c12fe3f0e')]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testSingleCreativeVideoTextAndLink(self):
         archive_id = 515029052382226
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
-        creative = retrieved_data.creatives[0]
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
+        creative = ad_creative_records[0]
         self.assertEqual(creative.archive_id, archive_id)
         expected_creative_body = (
             'As a nation, we can’t be great if we’re not good.\n\n'
@@ -229,194 +261,219 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             'williamson-2020-committee')
         expected_creative_link_caption = (
             'Click here to help Marianne reach the next round of debates.')
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            [make_fetched_ad_creative_data(
-                    archive_id=archive_id,
-                creative_body=expected_creative_body,
-                creative_link_url=expected_creative_link_url,
-                creative_link_title='SECURE.ACTBLUE.COM',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption=expected_creative_link_caption,
-                creative_link_button_text='Donate Now', image_url=True, video_url=True)])
+        expected_creatives = [
+            make_ad_creative_record(archive_id=archive_id, ad_creative_body=expected_creative_body,
+                                    ad_creative_link_url=expected_creative_link_url,
+                                    ad_creative_link_title='SECURE.ACTBLUE.COM',
+                                    ad_creative_link_description='Are We Good?',
+                                    ad_creative_link_caption=expected_creative_link_caption,
+                                    ad_creative_link_button_text='Donate Now', has_image_url=True,
+                                    image_sim_hash='0c1c94b6bab68e9b69ff1f85e2e0fc12',
+                                    has_video_url=True)]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
+        self.assertCreativeVideosUploaded(ad_creative_records)
 
-    def testSingleCreativeImageTextAndLink(self):
+    def testMultipleCreativesEachWithImageTextAndLink(self):
         archive_id = 3142605315791574
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
 
         expected_creatives = [
-            FetchedAdCreativeData(
-                archive_id=3142605315791574, creative_body=('Illegal poaching is on the rise and '
+            make_ad_creative_record(
+                archive_id=3142605315791574, ad_creative_body=('Illegal poaching is on the rise and '
                 'puts already endangered animals at an even greater risk. Help protect endangered '
                 'species from increased threats during this global crisis and beyond.'),
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Your Gift Helps Protect Endangered Species',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/99130734_3142605395791566_7122455412120485888_n.jpg?_nc_cat=100&_nc_sid=cf96c8&_nc_ohc=gHgKWLKfOr8AX_70BH-&_nc_ht=scontent-lga3-1.xx&oh=84630b2da39b18c2b3bbc3b689630a19&oe=5F991337',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Your Gift Helps Protect Endangered Species',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True,
+                image_sim_hash='e484262561624949c3803e7cc926c040'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Help protect animals at risk.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100325272_3142605425791563_8069878648762531840_n.jpg?_nc_cat=106&_nc_sid=cf96c8&_nc_ohc=-54BVx0lHp4AX_FMQov&_nc_ht=scontent-lga3-1.xx&oh=7b958b642031ed3b541467acf26fd00a&oe=5F9780F4',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Help protect animals at risk.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True,
+                image_sim_hash='b9291947637373738100111e18800002'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Time is running out. Act today.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100047467_3142605439124895_1592358661135532032_n.jpg?_nc_cat=104&_nc_sid=cf96c8&_nc_ohc=eTuUqriuYJkAX8b1tIj&_nc_ht=scontent-lga3-1.xx&oh=e88e75cccab40dbf62da95877a577406&oe=5F9AAF8A',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Time is running out. Act today.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='cc5cd49c746427c63cfff0f971002e0e'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Help save wild animals and the places they call home.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100418596_3142605382458234_7188989875784253440_n.jpg?_nc_cat=111&_nc_sid=cf96c8&_nc_ohc=c5w9uLza02QAX9QQYo8&_nc_ht=scontent-lga3-1.xx&oh=7be755c5c0e1b0692f41185903415c32&oe=5F9ADDB4',
-                video_url=None),
-            FetchedAdCreativeData(
-                archive_id=3142605315791574, creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Your Gift Helps Protect Endangered Species',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100324487_3142605405791565_7160982385457102848_n.jpg?_nc_cat=108&_nc_sid=cf96c8&_nc_ohc=gTL025aPoQ4AX8_haIb&_nc_ht=scontent-lga3-1.xx&oh=ae3af2e78b26cd46bd546a4f7d090a19&oe=5F999CCB',
-                video_url=None),
-            FetchedAdCreativeData(
-                archive_id=3142605315791574, creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Help protect animals at risk.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100371925_3142605412458231_2837179701233975296_n.jpg?_nc_cat=108&_nc_sid=cf96c8&_nc_ohc=z3c-8xNLsgIAX-yuMFF&_nc_ht=scontent-lga3-1.xx&oh=a9ef1b6ca8c795361e9f72172db5d62c&oe=5F9A18A8',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Help save wild animals and the places they call home.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='d9dade562e8dcdeb27a1805266bfff7f'),
+            make_ad_creative_record(
+                archive_id=3142605315791574, ad_creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Your Gift Helps Protect Endangered Species',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='4842531b3b030b0d3800009c30034207'),
+            make_ad_creative_record(
+                archive_id=3142605315791574, ad_creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Help protect animals at risk.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='f3d1d8aea5c54c96fef7f3fb02c34d0c'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Time is running out. Act today.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100047194_3142605435791562_2797997775449489408_n.jpg?_nc_cat=103&_nc_sid=cf96c8&_nc_ohc=xIFUBhcoXSMAX9i0Hid&_nc_oc=AQmbd7iew-meNU396yfeeuvRvsz1WACTeTB38lygN7-nFehYq2t6Qfj-P3f_R4fUhcw&_nc_ht=scontent-lga3-1.xx&oh=ba6163e218f0b41486de31719c68e915&oe=5F97E63A',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Time is running out. Act today.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='e0d0a3a763e3c38eefd00000f906861f'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Help save wild animals and the places they call home.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100044634_3142605445791561_4645630927379103744_n.jpg?_nc_cat=109&_nc_sid=cf96c8&_nc_ohc=1NZ_6EaeSy8AX9JD862&_nc_ht=scontent-lga3-1.xx&oh=42c922fa555be7393c76acc9b3a2321b&oe=5F994CDB',
-                video_url=None),
-            FetchedAdCreativeData(
+                ad_creative_body='Poachers have used stay-at-home orders as an invitation to hunt already endangered species. Time is running out for these beautiful animals and your gift can help us protect them.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Help save wild animals and the places they call home.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='cf9b1b1b9b8e8786409ac043131ac3df'),
+            make_ad_creative_record(
                 archive_id=3142605315791574,
-                creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Your Gift Helps Protect Endangered Species',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100380318_3142605429124896_4049428439503994880_n.jpg?_nc_cat=100&_nc_sid=cf96c8&_nc_ohc=yb_CMp-f0OAAX8bbRLd&_nc_ht=scontent-lga3-1.xx&oh=4a4907ab0e156540e789c6570bc14f61&oe=5F977A66',
-                video_url=None),
-            FetchedAdCreativeData(
-                archive_id=3142605315791574, creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
-                creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
-                creative_link_title='SECURE.WCS.ORG',
-                creative_link_description='NOT AFFILIATED WITH FACEBOOK',
-                creative_link_caption='Help protect animals at risk.',
-                creative_link_button_text='Donate Now',
-                image_url='https://scontent-lga3-1.xx.fbcdn.net/v/t39.16868-6/s600x600/100445522_3142605399124899_6094252318906122240_n.jpg?_nc_cat=101&_nc_sid=cf96c8&_nc_ohc=m54qmvImoSoAX9ptow1&_nc_ht=scontent-lga3-1.xx&oh=d287f2c50921deedb06a99ea7aaf54fc&oe=5F9A75FD',
-                video_url=None)]
+                ad_creative_body='While the world battles a global crisis, we are fighting increased threats against already endangered animals. Help us stop illegal wildlife crime and protect the future for these animals.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Your Gift Helps Protect Endangered Species',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='f4c8aa2cb4e1f3c3f4c580483c812013'),
+            make_ad_creative_record(
+                archive_id=3142605315791574, ad_creative_body='Illegal poaching is on the rise and puts already endangered animals at an even greater risk. Help protect endangered species from increased threats during this global crisis and beyond.',
+                ad_creative_link_url='https://l.facebook.com/l.php?u=https%3A%2F%2Fsecure.wcs.org%2Fdonate%2Fdonate-and-fight-save-wildlife&h=AT1Q-h8go7WbTP3kuR1VB4jekC9qLnVyi18HdhKIxS5tYv-BPFfzBWodleKsLQKZ2pOid9Ab1TLPIS3F8Wb2-Bto_BXC4mdqUtcRlXnyzCrL_fyplowNED5fyxglOUBS9Q1I2zITSRIjAQ',
+                ad_creative_link_title='SECURE.WCS.ORG',
+                ad_creative_link_description='Help protect animals at risk.',
+                ad_creative_link_button_text='Donate Now',
+                has_image_url=True, image_sim_hash='2f0f4d4d4d2b2b33b27e5508c9b37f6f')
+        ]
 
-        self.assertAdCreativeListEqual(
-            retrieved_data.creatives,
-            expected_creatives)
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testCarouselStyleAdTextAndImage(self):
         archive_id = 2853013434745967
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body = ('Proud to join our firefighters and friends at the dedication of '
                                   'this new truck for the Fort Hill fire station.')
-        expected_creatives = []
-        for i in range(3):
-            expected_creatives.append(
-                make_fetched_ad_creative_data(archive_id=archive_id,
-                                              creative_body=expected_creative_body, image_url=True))
-        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+        expected_creatives = [
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    image_sim_hash='32b93534dc666757008b0220900000c0'),
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    image_sim_hash='8d8d8dc5667737667f101980c9463749'),
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    image_sim_hash='72696c6deb6e5f2707e37804a7eed804')
+        ]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testCarouselStyleAdTextImageAndButtonNoLink(self):
         archive_id = 289864105344773
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body = ('Giving is always better than receiving. Thank you to all the '
                                   'essential workers. We appreciate you!! A special thanks to '
                                   'Royalton Police Department for allowing us to show our support.')
 
-        expected_creatives = []
-        for i in range(3):
-            expected_creatives.append(
-                make_fetched_ad_creative_data(archive_id=archive_id,
-                                              creative_body=expected_creative_body,
-                                              image_url=True,
-                                              creative_link_description='Wes Sherrod - SCC',
-                                              creative_link_caption='Auto Body Shop',
-                                              creative_link_button_text='Send Message'
-                                              ))
-        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+        expected_creatives = [
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    ad_creative_link_description='Wes Sherrod - SCC',
+                                    ad_creative_link_caption='Auto Body Shop',
+                                    ad_creative_link_button_text='Send Message',
+                                    image_sim_hash='e41c14529c607303c0000056bf0062ff'),
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    ad_creative_link_description='Wes Sherrod - SCC',
+                                    ad_creative_link_caption='Auto Body Shop',
+                                    ad_creative_link_button_text='Send Message',
+                                    image_sim_hash='c6f2921052c42139000080217f8000ff'),
+            make_ad_creative_record(archive_id=archive_id,
+                                    ad_creative_body=expected_creative_body,
+                                    has_image_url=True,
+                                    ad_creative_link_description='Wes Sherrod - SCC',
+                                    ad_creative_link_caption='Auto Body Shop',
+                                    ad_creative_link_button_text='Send Message',
+                                    image_sim_hash='90b08c8cb4e8eadc80f780087e7fe098')
+        ]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
     def testCarouselStyleAdTextVideoAndButtonOnEachCarouselItem(self):
         archive_id = 238370824248079
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body = (
             'Looking for a place to livestream and earn money at the same time? Look no further!')
 
-        expected_creatives = []
-        for i in range(3):
-            expected_creatives.append(
-                make_fetched_ad_creative_data(
-                    archive_id=archive_id, creative_body=expected_creative_body,
-                    image_url=True,
-                    video_url=True,
-                    creative_link_url='https://l.facebook.com/l.php?u=http%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.asiainno.uplive',
-                    creative_link_description=None,
-                    creative_link_title='Install Now',
-                    creative_link_caption=None,
-                    creative_link_button_text='Install Now'))
-        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+        expected_creatives = [
+            make_ad_creative_record(
+                archive_id=archive_id, ad_creative_body=expected_creative_body,
+                has_image_url=True,
+                has_video_url=True,
+                ad_creative_link_url='https://l.facebook.com/l.php?u=http%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.asiainno.uplive',
+                ad_creative_link_description=None,
+                ad_creative_link_title=None,
+                ad_creative_link_caption=None,
+                ad_creative_link_button_text='Install Now',
+                image_sim_hash='9cb672736386862318bc0cf7f3000402'),
+            make_ad_creative_record(
+                archive_id=archive_id, ad_creative_body=expected_creative_body,
+                has_image_url=True,
+                has_video_url=True,
+                ad_creative_link_url='https://l.facebook.com/l.php?u=http%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.asiainno.uplive',
+                ad_creative_link_description=None,
+                ad_creative_link_title=None,
+                ad_creative_link_caption=None,
+                ad_creative_link_button_text='Install Now',
+                image_sim_hash='70e0b0f1b4b0f874fffc786b8f028300'),
+            make_ad_creative_record(
+                archive_id=archive_id, ad_creative_body=expected_creative_body,
+                has_image_url=True,
+                has_video_url=True,
+                ad_creative_link_url='https://l.facebook.com/l.php?u=http%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.asiainno.uplive',
+                ad_creative_link_description=None,
+                ad_creative_link_title=None,
+                ad_creative_link_caption=None,
+                ad_creative_link_button_text='Install Now',
+                image_sim_hash='3286c7c3c393110ffff10c9f00801308')
+        ]
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
+        self.assertCreativeVideosUploaded(ad_creative_records)
 
     def testCarouselStyleAdTextImageAndLinkNoButton(self):
         archive_id = 842440562832839
-        retrieved_data = (
-            self.retriever.get_creative_data_list_via_chromedriver_with_retry_on_driver_error(
-                archive_id, self.make_snapshot_url(archive_id)))
-        self.assertIsNotNone(retrieved_data.screenshot_binary_data)
+        ad_creative_records, snapshot_metadata_record = (
+            self.retrieve_ad(
+                archive_id))
         expected_creative_body = (
              'Thank you to all our supporters! We are working hard to get all our students on-line '
              'so they can do their homework and get tutoring remotely. Please donate and/or share, '
@@ -436,16 +493,25 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             'SURROUNDING SUBURBS THE OPPORTUNITY TO REACH OUT TO THEIR NEIGHBORS AND STRENGTHEN '
             'THE HARMONY IN OUR CITY!')
 
-        expected_creatives = []
-        for i in range(2):
-            expected_creatives.append(
-                make_fetched_ad_creative_data(
+        expected_creatives = [
+                make_ad_creative_record(
                     archive_id=archive_id,
-                    creative_body=expected_creative_body,
-                    image_url=True,
-                    creative_link_title=expected_creative_link_title,
-                    creative_link_description='Technology and Book fundraiser'))
-        self.assertAdCreativeListEqual(retrieved_data.creatives, expected_creatives)
+                    ad_creative_body=expected_creative_body,
+                    has_image_url=True,
+                    ad_creative_link_title=expected_creative_link_title,
+                    ad_creative_link_description='Technology and Book fundraiser',
+                    image_sim_hash='a42d51513c7e54f0e43c7287f3681cd7'),
+                make_ad_creative_record(
+                    archive_id=archive_id,
+                    ad_creative_body=expected_creative_body,
+                    has_image_url=True,
+                    ad_creative_link_title=expected_creative_link_title,
+                    ad_creative_link_description='Technology and Book fundraiser',
+                    image_sim_hash='2438b8b486a6a5930c7ffbb170a0ccef'),
+        ]
+
+        self.assertAdCreativeListEqual(ad_creative_records, expected_creatives)
+        self.assertCreativeImagesUploaded(ad_creative_records)
 
 
 if __name__ == '__main__':
