@@ -348,10 +348,10 @@ class FacebookAdCreativeRetriever:
             screenshot_and_creatives, snapshot_metadata_record = self.retrieve_ad(
                 archive_id, creative_retriever)
             snapshot_metadata_records.append(snapshot_metadata_record)
-            if not screenshot_and_creatives or not screenshot_and_creatives.creatives:
+            if not screenshot_and_creatives:
                 archive_ids_without_creative_found += 1
                 logging.info(
-                    'Unable to find ad creative(s) for archive_id: %s', archive_id)
+                    'Unable to get screenshot or creative(s) for archive_id: %s', archive_id)
                 continue
 
             if screenshot_and_creatives.screenshot_binary_data:
