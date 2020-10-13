@@ -170,6 +170,8 @@ class FacebookAdCreativeRetriever:
         self.slack_url = slack_url
         self.creative_retriever_factory = creative_retriever_factory
         self.browser_context_factory = browser_context_factory
+        self.creative_retriever_generator = self.make_creative_retriever_generator()
+        self.creative_retriever = None
 
     def get_seconds_elapsed_procesing(self):
         if not self.start_time:
@@ -219,63 +221,80 @@ class FacebookAdCreativeRetriever:
             time.sleep(NO_AVAILABLE_WORK_SLEEP_TIME)
             self.reset_start_time()
 
+    def make_creative_retriever_generator(self):
+        """Generator to encapsulate creation of new ad_creative_retriever instances. On each
+        interation the old browser context and creative retriever instance are release, a new
+        browser context is created, and a new retriever instance is yielded.
+        """
+        while True:
+            with self.browser_context_factory.web_browser() as browser:
+                new_creative_retriever = self.creative_retriever_factory.build(
+                    chrome_driver=browser)
+                yield new_creative_retriever
+
+    def reset_creative_retriever(self):
+        logging.info('Resetting creative retriever instance')
+        self.creative_retriever = next(self.creative_retriever_generator)
+
+
     def retreive_and_store_ad_creatives(self):
         self.reset_start_time()
-        try:
-            while True:
-                with self.browser_context_factory.web_browser() as browser:
-                    creative_retriever = self.creative_retriever_factory.build(
-                        chrome_driver=browser)
-                    num_snapshots_processed_since_chromedriver_reset = 0
-                    while (num_snapshots_processed_since_chromedriver_reset <
-                           RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
-                        batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
-                        self.current_batch_id = batch_and_archive_ids['batch_id']
-                        archive_id_batch = batch_and_archive_ids['archive_ids']
-                        logging.info(
-                            'Processing batch ID %d of %d archive snapshots in chunks of %d',
-                            self.current_batch_id, len(archive_id_batch),
-                            self.commit_to_db_every_n_processed)
-                        try:
-                            num_snapshots_processed_in_current_batch = 0
-                            for archive_id_chunk in chunks(archive_id_batch,
-                                                           self.commit_to_db_every_n_processed):
-                                self.process_archive_ids(archive_id_chunk, creative_retriever)
-                                self.db_connection.commit()
-                                num_snapshots_processed_in_current_batch += len(archive_id_chunk)
-                                logging.info('Processed %d of %d archive snapshots.',
-                                             num_snapshots_processed_in_current_batch,
-                                             len(archive_id_batch))
-                                self.log_stats()
-                        except BaseException as error:
-                            logging.info(
-                                'Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
-                                '%s', self.current_batch_id, error)
-                            self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
-                            self.db_connection.commit()
-                            raise
-                        num_snapshots_processed_since_chromedriver_reset += len(archive_id_batch)
-
-                        self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
+        self.reset_creative_retriever()
+        num_snapshots_processed_since_chromedriver_reset = 0
+        while True:
+            try:
+                batch_and_archive_ids = self.get_archive_id_batch_or_wait_until_available()
+                self.current_batch_id = batch_and_archive_ids['batch_id']
+                archive_id_batch = batch_and_archive_ids['archive_ids']
+                logging.info(
+                    'Processing batch ID %d of %d archive snapshots in chunks of %d',
+                    self.current_batch_id, len(archive_id_batch),
+                    self.commit_to_db_every_n_processed)
+                try:
+                    num_snapshots_processed_in_current_batch = 0
+                    for archive_id_chunk in chunks(archive_id_batch,
+                                                   self.commit_to_db_every_n_processed):
+                        self.process_archive_ids(archive_id_chunk)
                         self.db_connection.commit()
+                        num_snapshots_processed_in_current_batch += len(archive_id_chunk)
+                        logging.info('Processed %d of %d archive snapshots.',
+                                     num_snapshots_processed_in_current_batch,
+                                     len(archive_id_batch))
+                        self.log_stats()
+                except BaseException as error:
+                    logging.info(
+                        'Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
+                        '%s', self.current_batch_id, error)
+                    self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
+                    self.db_connection.commit()
+                    raise
+                num_snapshots_processed_since_chromedriver_reset += len(archive_id_batch)
 
+                self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
+                self.db_connection.commit()
+
+                if (num_snapshots_processed_since_chromedriver_reset <
+                    RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
                     logging.info('Processed %d snapshots since last reset (limit: %d)',
                                  num_snapshots_processed_since_chromedriver_reset,
                                  RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS)
-        except (ad_creative_retriever.TooManyRequestsError, EndBatchCrawlerException) as error:
-            suggested_sleep_time = getattr(error, 'wait_before_next_batch_seconds',
-                                           TOO_MANY_REQUESTS_SLEEP_TIME)
-            slack_msg = (
-                ':rotating_light: :rotating_light: :rotating_light: '
-                'fb_ad_creative_retriever.py raised %s on host %s. Sleeping %d seconds! '
-                ':rotating_light: :rotating_light: :rotating_light:' % (
-                    error, socket.getfqdn(), suggested_sleep_time))
-            slack_notifier.notify_slack(self.slack_url, slack_msg)
-            logging.error('%s raised. Sleeping %d seconds.',
-                          error, suggested_sleep_time)
-            time.sleep(suggested_sleep_time)
-        finally:
-            self.log_stats()
+                    self.reset_creative_retriever()
+                    num_snapshots_processed_since_chromedriver_reset = 0
+
+            except (ad_creative_retriever.TooManyRequestsError, EndBatchCrawlerException) as error:
+                suggested_sleep_time = getattr(error, 'wait_before_next_batch_seconds',
+                                               TOO_MANY_REQUESTS_SLEEP_TIME)
+                slack_msg = (
+                    ':rotating_light: :rotating_light: :rotating_light: '
+                    'fb_ad_creative_retriever.py raised %s on host %s. Sleeping %d seconds! '
+                    ':rotating_light: :rotating_light: :rotating_light:' % (
+                        error, socket.getfqdn(), suggested_sleep_time))
+                slack_notifier.notify_slack(self.slack_url, slack_msg)
+                logging.error('%s raised. Sleeping %d seconds.',
+                              error, suggested_sleep_time)
+                time.sleep(suggested_sleep_time)
+            finally:
+                self.log_stats()
 
     def store_image_in_google_bucket(self, image_dhash, image_bytes):
         image_bucket_path = make_image_hash_file_path(image_dhash)
@@ -297,13 +316,20 @@ class FacebookAdCreativeRetriever:
                               screenshot_binary_data)
         logging.debug('Uploaded %d archive_id snapshot to %s', archive_id, blob_id)
 
-    def retrieve_ad(self, archive_id, creative_retriever):
+    def retrieve_ad(self, archive_id):
         snapshot_fetch_status = SnapshotFetchStatus.UNKNOWN
         screenshot_and_creatives = None
         try:
             logging.info('Retrieving creatives for archive ID %s', archive_id)
-            fetch_time = datetime.datetime.now()
-            screenshot_and_creatives = creative_retriever.retrieve_ad(str(archive_id))
+            try:
+                fetch_time = datetime.datetime.now()
+                screenshot_and_creatives = self.creative_retriever.retrieve_ad(str(archive_id))
+            except ad_creative_retriever.BrowserTimeoutError as error:
+                logging.info('Browser timed out (%s), resetting ad creative retriever', error)
+                self.reset_creative_retriever()
+                fetch_time = datetime.datetime.now()
+                screenshot_and_creatives = self.creative_retriever.retrieve_ad(str(archive_id))
+
             logging.debug('%s creatives:\n%s', archive_id, screenshot_and_creatives.creatives)
 
             if screenshot_and_creatives.creatives:
@@ -340,13 +366,12 @@ class FacebookAdCreativeRetriever:
 
         return screenshot_and_creatives, snapshot_metadata_record
 
-    def process_archive_ids(self, archive_ids, creative_retriever):
+    def process_archive_ids(self, archive_ids):
         archive_ids_without_creative_found = 0
         snapshot_metadata_records = []
         ad_creative_records = []
         for archive_id in archive_ids:
-            screenshot_and_creatives, snapshot_metadata_record = self.retrieve_ad(
-                archive_id, creative_retriever)
+            screenshot_and_creatives, snapshot_metadata_record = self.retrieve_ad(archive_id)
             snapshot_metadata_records.append(snapshot_metadata_record)
             if not screenshot_and_creatives:
                 archive_ids_without_creative_found += 1
