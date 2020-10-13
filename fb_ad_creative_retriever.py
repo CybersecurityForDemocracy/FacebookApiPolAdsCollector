@@ -97,6 +97,7 @@ class SnapshotFetchStatus(enum.IntEnum):
     INVALID_ID_ERROR = 3
     AGE_RESTRICTION_ERROR = 4
     NO_AD_CREATIVES_FOUND = 5
+    INTELLECTUAL_PROPERTY_VIOLATION_ERROR = 6
 
 
 def chunks(original_list, chunk_size):
@@ -322,6 +323,8 @@ class FacebookAdCreativeRetriever:
             snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
         except ad_creative_retriever.SnapshotAgeRestrictionError:
             snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
+        except ad_creative_retriever.IntellectualPropertyViolationError:
+            snapshot_fetch_status = SnapshotFetchStatus.INTELLECTUAL_PROPERTY_VIOLATION_ERROR
         except ad_creative_retriever.SnapshotInvalidIdError:
             snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
 
