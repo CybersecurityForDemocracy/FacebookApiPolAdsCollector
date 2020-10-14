@@ -227,7 +227,8 @@ def get_stop_at_datetime(stop_at_time_str):
 def main(config):
     logging.info("starting")
 
-    slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
+    slack_url_info_channel = config.get('LOGGING', 'SLACK_URL_INFO_CHANNEL', fallback='')
+    slack_url_error_channel = config.get('LOGGING', 'SLACK_URL_ERROR_CHANNEL', fallback='')
 
     min_expected_active_ads = int(config['SEARCH']['MINIMUM_EXPECTED_ACTIVE_ADS'])
     logging.info('Expecting minimum %d active ads.', min_expected_active_ads)
@@ -249,13 +250,15 @@ def main(config):
     search_runner = SearchRunner(connection, db, search_runner_params)
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
-    notify_slack(slack_url,
+    notify_slack(slack_url_info_channel,
                  f"Starting active ad collection at {start_time} for "
                  f"{country_code_uppercase}")
     completion_status = 'Failure'
+    slack_url_for_completion_msg = slack_url_error_channel
     try:
         search_runner.run_search()
         completion_status = 'Success'
+        slack_url_for_completion_msg = slack_url_info_channel
     except Exception as e:
         completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
@@ -265,7 +268,7 @@ def main(config):
         num_ads_marked_active = search_runner.num_ads_marked()
         logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
-            slack_url, country_code_uppercase, completion_status, start_time,
+            slack_url_for_completion_msg, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_marked_active, min_expected_active_ads,
             search_runner.get_formatted_graph_error_counts())
 

@@ -643,7 +643,8 @@ def get_stop_at_datetime(stop_at_time_str):
 def main(config):
     logging.info("starting")
 
-    slack_url = config.get('LOGGING', 'SLACK_URL', fallback='')
+    slack_url_info_channel = config.get('LOGGING', 'SLACK_URL_INFO_CHANNEL', fallback='')
+    slack_url_error_channel = config.get('LOGGING', 'SLACK_URL_ERROR_CHANNEL', fallback='')
 
     if 'MINIMUM_EXPECTED_NEW_ADS' in config['SEARCH']:
         min_expected_new_ads = int(config['SEARCH']['MINIMUM_EXPECTED_NEW_ADS'])
@@ -680,10 +681,11 @@ def main(config):
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
-    notify_slack(slack_url,
+    notify_slack(slack_url_info_channel,
                  f"Starting UNIFIED collection at {start_time} for "
                  f"{country_code_uppercase} for {page_string}")
     completion_status = 'Failure'
+    slack_url_for_completion_msg = slack_url_error_channel
     try:
         if page_ids:
             curr_page_ids = get_page_data(connection, config)
@@ -702,6 +704,7 @@ def main(config):
         else:
             search_runner.run_search(page_name="''")
         completion_status = 'Success'
+        slack_url_for_completion_msg = slack_url_info_channel
     except Exception as e:
         completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
@@ -712,7 +715,7 @@ def main(config):
         num_impressions_added = search_runner.num_impressions_added_to_db()
         logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
-            slack_url, country_code_uppercase, completion_status, start_time,
+            slack_url_for_completion_msg, country_code_uppercase, completion_status, start_time,
             end_time, num_ads_added, num_impressions_added,
             min_expected_new_ads, min_expected_new_impressions,
             search_runner.get_formatted_graph_error_counts())
