@@ -56,7 +56,7 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
             ad_creative_images_bucket_client=self.mock_image_bucket_client,
             ad_creative_videos_bucket_client=self.mock_video_bucket_client,
             archive_screenshots_bucket_client=self.mock_screenshot_bucket_client,
-            commit_to_db_every_n_processed=None, slack_url=None)
+            commit_to_db_every_n_processed=None, slack_url=None, slack_user_id_to_include=None)
         self.retriever.reset_creative_retriever()
 
     def tearDown(self):
