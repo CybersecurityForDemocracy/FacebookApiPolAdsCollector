@@ -280,7 +280,7 @@ class FacebookAdCreativeRetriever:
                 self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
                 self.db_connection.commit()
 
-                if (num_snapshots_processed_since_chromedriver_reset <
+                if (num_snapshots_processed_since_chromedriver_reset >=
                     RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
                     logging.info('Processed %d snapshots since last reset (limit: %d)',
                                  num_snapshots_processed_since_chromedriver_reset,
