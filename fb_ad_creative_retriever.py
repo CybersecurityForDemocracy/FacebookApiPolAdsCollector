@@ -31,6 +31,7 @@ from fbactiveads.adsnapshots import ad_creative_retriever
 from fbactiveads.adsnapshots import browser_context
 from fbactiveads.common import config as fbactiveads_config
 from fbactiveads.common.crawler import EndBatchCrawlerException
+from selenium.common.exceptions import WebDriverException
 
 import config_utils
 import db_functions
@@ -332,8 +333,8 @@ class FacebookAdCreativeRetriever:
             try:
                 fetch_time = datetime.datetime.now()
                 screenshot_and_creatives = self.creative_retriever.retrieve_ad(str(archive_id))
-            except ad_creative_retriever.BrowserTimeoutError as error:
-                logging.info('Browser timed out (%s), resetting ad creative retriever', error)
+            except (ad_creative_retriever.BrowserTimeoutError, WebDriverException) as error:
+                logging.info('Browser error (%s), resetting ad creative retriever', error)
                 self.reset_creative_retriever()
                 fetch_time = datetime.datetime.now()
                 screenshot_and_creatives = self.creative_retriever.retrieve_ad(str(archive_id))
