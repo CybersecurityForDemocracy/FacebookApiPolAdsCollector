@@ -67,6 +67,33 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
         ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id, retrieved_data)
         return ad_creative_records, snapshot_metadata_record
 
+    def assertAdCreativeRecordValid(self, ad_creative_record, creative_index=None):
+        if ad_creative_record.ad_creative_body:
+            self.assertIsNotNone(ad_creative_record.text_sim_hash,
+                                 msg='Creative {} has body text, but is missing text_sim_hash'.format(creative_index))
+            self.assertIsNotNone(ad_creative_record.text_sha256_hash,
+                                 msg='Creative {} has body text, but is missing text_sha256_hash'.format(creative_index))
+            self.assertIsNotNone(
+                ad_creative_record.ad_creative_body_language,
+                msg='Creative {} has body text, but is missing ad_creative_body_language'.format(creative_index))
+        if ad_creative_record.image_downloaded_url:
+            self.assertIsNotNone(
+                ad_creative_record.image_sim_hash,
+                msg='Creative {} has image_downloaded_url but is missing image_sim_hash'.format(creative_index))
+            self.assertIsNotNone(ad_creative_record.image_sha256_hash,
+                msg='Creative {} has image_downloaded_url but is missing image_sha256_hash'.format(creative_index))
+            self.assertIsNotNone(ad_creative_record.image_bucket_path,
+                msg='Creative {} has image_downloaded_url but is missing image_bucket_path'.format(creative_index))
+        if ad_creative_record.video_downloaded_url:
+            self.assertIsNotNone(ad_creative_record.video_sha256_hash,
+                msg='Creative {} has video_downloaded_url but is missing video_sha256_hash'.format(creative_index))
+            self.assertIsNotNone(ad_creative_record.video_bucket_path,
+                msg='Creative {} has video_downloaded_url but is missing video_bucket_path'.format(creative_index))
+
+    def assertAdCreativeRecordsValid(self, creative_list):
+        for i, creative in enumerate(creative_list):
+            self.assertAdCreativeRecordValid(creative, creative_index=i)
+
     def assertAdCreativeListEqual(self, creative_list_a, creative_list_b):
         if len(creative_list_a) != len(creative_list_b):
             self.fail(
@@ -74,20 +101,6 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
                     len(creative_list_a),  len(creative_list_b)))
         for idx, (creative_a, creative_b) in enumerate(zip(creative_list_a, creative_list_b)):
             self.assertAdCreativeRecordEqual(creative_a, creative_b, creative_index=idx)
-
-    def assertAdCreativeRecordValid(self, ad_creative_record):
-        if ad_creative_record.ad_creative_body:
-            self.assertIsNotNone(ad_creative_record.text_sim_hash)
-            self.assertIsNotNone(ad_creative_record.text_sha256_hash)
-            self.assertIsNotNone(ad_creative_record.ad_creative_body_language)
-        if ad_creative_record.image_downloaded_url:
-            self.assertIsNotNone(ad_creative_record.image_sim_hash)
-            self.assertIsNotNone(ad_creative_record.image_sha256_hash)
-            self.assertIsNotNone(ad_creative_record.image_bucket_path)
-        if ad_creative_record.video_downloaded_url:
-            self.assertIsNotNone(ad_creative_record.video_sim_hash)
-            self.assertIsNotNone(ad_creative_record.video_sha256_hash)
-            self.assertIsNotNone(ad_creative_record.video_bucket_path)
 
     def assertAdCreativeRecordEqual(self, creative_data_a, creative_data_b, creative_index=None):
         self.assertEqual(creative_data_a.archive_id, creative_data_b.archive_id,
@@ -147,9 +160,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeTextOnly(self):
         archive_id = 781238262414047
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body='These Liberal Media types should be wiped from the face of television.'
         expected_creatives = [make_ad_creative_record(archive_id=archive_id,
                                                       ad_creative_body=expected_creative_body)]
@@ -159,9 +171,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeImageOnly(self):
         archive_id = 1094114480759124
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
 
         expected_creatives = [make_ad_creative_record(archive_id=archive_id, has_image_url=True,
                                  image_sim_hash='79d8b83ce22b0f227f008338c0c2ff08')]
@@ -171,9 +182,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeVideoOnly(self):
         archive_id = 2622398471408486
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creatives = [make_ad_creative_record(archive_id=archive_id,
                                      ad_creative_link_description='An Important Reminder from IFI',
                                      image_sim_hash='5d5bdb5a1eb6b21c2d0d83dbfe100000',
@@ -184,9 +194,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeImageAndText(self):
         archive_id = 714921558918790
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body=('Proud Sarkozy Bakery shopper since 1981. Raised my daughters on '
                                 'Oatmeal bread and Saturday morning Cheese Crowns. Try one.')
         expected_creatives = [
@@ -200,6 +209,7 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
     def testSingleCreativeVideoAndText(self):
         archive_id = 613656125985578
         ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = ('What is Gabrielle Union afraid of? Tune in to the '
                                   '#CarlosWatsonShow to hear more: https://youtu.be/6V8Rf28afoc')
         self.assertAdCreativeListEqual(
@@ -214,9 +224,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeImageTextAndLink(self):
         archive_id = 2225062044275658
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = (
             'Join Bernie Sanders and Alexandria Ocasio-Cortez for a climate crisis summit in Des '
             'Moines! This event is free and open to the public. RSVPS are encouraged.\n\n'
@@ -247,9 +256,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testSingleCreativeVideoTextAndLink(self):
         archive_id = 515029052382226
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         creative = ad_creative_records[0]
         self.assertEqual(creative.archive_id, archive_id)
         expected_creative_body = (
@@ -276,9 +284,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testMultipleCreativesEachWithImageTextAndLink(self):
         archive_id = 3142605315791574
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
 
         expected_creatives = [
             make_ad_creative_record(
@@ -368,9 +375,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testCarouselStyleAdTextAndImage(self):
         archive_id = 2853013434745967
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = ('Proud to join our firefighters and friends at the dedication of '
                                   'this new truck for the Fort Hill fire station.')
         expected_creatives = [
@@ -392,9 +398,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testCarouselStyleAdTextImageAndButtonNoLink(self):
         archive_id = 289864105344773
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = ('Giving is always better than receiving. Thank you to all the '
                                   'essential workers. We appreciate you!! A special thanks to '
                                   'Royalton Police Department for allowing us to show our support.')
@@ -427,9 +432,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testCarouselStyleAdTextVideoAndButtonOnEachCarouselItem(self):
         archive_id = 238370824248079
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = (
             'Looking for a place to livestream and earn money at the same time? Look no further!')
 
@@ -471,9 +475,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def testCarouselStyleAdTextImageAndLinkNoButton(self):
         archive_id = 842440562832839
-        ad_creative_records, snapshot_metadata_record = (
-            self.retrieve_ad(
-                archive_id))
+        ad_creative_records, snapshot_metadata_record = self.retrieve_ad(archive_id)
+        self.assertAdCreativeRecordsValid(ad_creative_records)
         expected_creative_body = (
              'Thank you to all our supporters! We are working hard to get all our students on-line '
              'so they can do their homework and get tutoring remotely. Please donate and/or share, '
