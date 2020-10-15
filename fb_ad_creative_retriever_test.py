@@ -2,7 +2,6 @@
 facebook's ad archive to confirm that changes to that page's structure does not break collection.
 """
 
-from collections import namedtuple
 import logging
 import sys
 import time
@@ -16,7 +15,6 @@ from fb_ad_creative_retriever import AdCreativeRecord, make_image_hash_file_path
 
 import fb_ad_creative_retriever
 
-# uncomment these lines to get log output to stdout when tests execute
 logger = logging.getLogger()
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
@@ -64,31 +62,45 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
 
     def retrieve_ad(self, archive_id):
         retrieved_data, snapshot_metadata_record = self.retriever.retrieve_ad(archive_id)
-        ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id, retrieved_data)
+        self.assertEqual(snapshot_metadata_record.archive_id, archive_id)
+        self.assertEqual(snapshot_metadata_record.snapshot_fetch_status,
+                         fb_ad_creative_retriever.SnapshotFetchStatus.SUCCESS)
+        ad_creative_records = self.retriever.process_fetched_ad_creative_data(archive_id,
+                                                                              retrieved_data)
         return ad_creative_records, snapshot_metadata_record
 
     def assertAdCreativeRecordValid(self, ad_creative_record, creative_index=None):
         if ad_creative_record.ad_creative_body:
-            self.assertIsNotNone(ad_creative_record.text_sim_hash,
-                                 msg='Creative {} has body text, but is missing text_sim_hash'.format(creative_index))
-            self.assertIsNotNone(ad_creative_record.text_sha256_hash,
-                                 msg='Creative {} has body text, but is missing text_sha256_hash'.format(creative_index))
+            self.assertIsNotNone(
+                ad_creative_record.text_sim_hash,
+                msg='Creative {} has body text, but is missing text_sim_hash'.format(
+                    creative_index))
+            self.assertIsNotNone(
+                ad_creative_record.text_sha256_hash,
+                msg='Creative {} has body text, but is missing text_sha256_hash'.format(
+                    creative_index))
             self.assertIsNotNone(
                 ad_creative_record.ad_creative_body_language,
-                msg='Creative {} has body text, but is missing ad_creative_body_language'.format(creative_index))
+                msg='Creative {} has body text, but is missing ad_creative_body_language'.format(
+                    creative_index))
         if ad_creative_record.image_downloaded_url:
             self.assertIsNotNone(
                 ad_creative_record.image_sim_hash,
-                msg='Creative {} has image_downloaded_url but is missing image_sim_hash'.format(creative_index))
+                msg='Creative {} has image_downloaded_url but is missing image_sim_hash'.format(
+                    creative_index))
             self.assertIsNotNone(ad_creative_record.image_sha256_hash,
-                msg='Creative {} has image_downloaded_url but is missing image_sha256_hash'.format(creative_index))
+                msg='Creative {} has image_downloaded_url but is missing image_sha256_hash'.format(
+                    creative_index))
             self.assertIsNotNone(ad_creative_record.image_bucket_path,
-                msg='Creative {} has image_downloaded_url but is missing image_bucket_path'.format(creative_index))
+                msg='Creative {} has image_downloaded_url but is missing image_bucket_path'.format(
+                    creative_index))
         if ad_creative_record.video_downloaded_url:
             self.assertIsNotNone(ad_creative_record.video_sha256_hash,
-                msg='Creative {} has video_downloaded_url but is missing video_sha256_hash'.format(creative_index))
+                msg='Creative {} has video_downloaded_url but is missing video_sha256_hash'.format(
+                    creative_index))
             self.assertIsNotNone(ad_creative_record.video_bucket_path,
-                msg='Creative {} has video_downloaded_url but is missing video_bucket_path'.format(creative_index))
+                msg='Creative {} has video_downloaded_url but is missing video_bucket_path'.format(
+                    creative_index))
 
     def assertAdCreativeRecordsValid(self, creative_list):
         for i, creative in enumerate(creative_list):
