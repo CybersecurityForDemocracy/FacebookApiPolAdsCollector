@@ -362,7 +362,8 @@ class FacebookAdCreativeRetriever:
             snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
         except ad_creative_retriever.SnapshotIntellectualPropertyViolationError:
             snapshot_fetch_status = SnapshotFetchStatus.INTELLECTUAL_PROPERTY_VIOLATION_ERROR
-        except ad_creative_retriever.SnapshotInvalidIdError:
+        except (ad_creative_retriever.SnapshotInvalidIdError,
+                ad_creative_retriever.SnapshotWrongAdArchiveIdError):
             snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
         except ad_creative_retriever.SnapshotPermanentlyUnavailableError:
             snapshot_fetch_status = SnapshotFetchStatus.SNAPSHOT_PERMANENTLY_UNAVAILABLE_ERROR
