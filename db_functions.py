@@ -655,7 +655,7 @@ class DBInterface():
         if country_code:
             unbatched_archive_ids_query = (
                 'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
-                'JOIN ads USING(achive_id) JOIN ad_countries USING(archive_id) '
+                'JOIN ads USING(archive_id) JOIN ad_countries USING(archive_id) '
                 'WHERE ad_snapshot_metadata.needs_scrape = true AND '
                 'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL '
                 'AND country_code ILIKE %(country_code)s'
@@ -663,7 +663,7 @@ class DBInterface():
         else:
             unbatched_archive_ids_query = (
                 'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
-                'JOIN ads USING(achive_id) WHERE '
+                'JOIN ads USING(archive_id) WHERE '
                 'ad_snapshot_metadata.needs_scrape = true AND '
                 'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL ORDER BY ad_creation_time ASC')
         # This query inserts an empty row and gets back the autoincremented new batch_id.
