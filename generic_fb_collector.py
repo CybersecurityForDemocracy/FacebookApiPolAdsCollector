@@ -658,8 +658,10 @@ def main(config):
         min_expected_new_impressions = DEFAULT_MINIMUM_EXPECTED_NEW_IMPRESSIONS
     logging.info('Expecting minimum %d new impressions.', min_expected_new_impressions)
 
-    stop_at_datetime = get_stop_at_datetime(
-        config.get('SEARCH', 'STOP_AT_CLOCK_TIME', fallback='23:55'))
+    if 'STOP_AT_CLOCK_TIME' in config['SEARCH']:
+        stop_at_datetime = get_stop_at_datetime(config['SEARCH']['STOP_AT_CLOCK_TIME'])
+    else:
+        stop_at_datetime = None
 
     search_runner_params = SearchRunnerParams(
         country_code=config['SEARCH']['COUNTRY_CODE'],
