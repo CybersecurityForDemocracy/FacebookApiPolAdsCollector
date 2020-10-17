@@ -638,14 +638,15 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def make_snapshot_fetch_batches(self, batch_size=1000):
+    def make_snapshot_fetch_batches(self, batch_size=1000, country_code=None):
         """
         Add snapshots that need to be fetched into snapshot_fetch_batches in batches of batch_size.
 
         Args:
             batch_size: int size of batches to create.
         """
-        logging.info('About to make batches (size %d) of unfetched archive IDs.', batch_size)
+        logging.info('About to make batches (size %d) of unfetched archive IDs. Contry code '
+                     'restriction: %s', batch_size, country_code)
         read_cursor = self.get_cursor()
         read_cursor.arraysize = batch_size
         # Get all archive IDs that are unfetched and not part of an existing batch (and reached the
