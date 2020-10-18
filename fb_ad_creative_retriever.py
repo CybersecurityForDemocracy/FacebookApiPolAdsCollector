@@ -248,7 +248,7 @@ class FacebookAdCreativeRetriever:
 
 
     def retreive_and_store_ad_creatives(self):
-        logging.info('Max video download size %d', max_video_download_size)
+        logging.info('Max video download size %d', self.max_video_download_size)
         self.reset_creative_retriever()
         self.reset_start_time()
         num_snapshots_processed_since_chromedriver_reset = 0
