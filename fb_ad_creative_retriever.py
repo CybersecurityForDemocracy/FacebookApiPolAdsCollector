@@ -473,7 +473,7 @@ class FacebookAdCreativeRetriever:
                             logging.info(
                                 '%s video size (%s bytes) exceeds max_video_download_size %s',
                                 archive_id, video_request.headers['content-length'],
-                                self.max_video_download_size))
+                                self.max_video_download_size)
                             self.num_video_download_failure += 1
 
                 except requests.RequestException as request_exception:
