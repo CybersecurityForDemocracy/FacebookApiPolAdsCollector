@@ -184,6 +184,8 @@ class SearchRunner():
         return self.total_ads_marked_active
 
 
+def min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
+   return num_ads_marked_active >= min_expected_active_ads
 
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
@@ -191,7 +193,7 @@ def send_completion_slack_notification(
         graph_error_count_string):
     duration_minutes = (end_time - start_time).seconds / 60
     slack_msg_error_prefix = ''
-    if (num_ads_marked_active < min_expected_active_ads):
+    if not min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
         error_log_msg = (
             f"Minimum expected records not met! Ads expected: "
             f"{min_expected_active_ads} added: {num_ads_marked_active}, ")
@@ -266,6 +268,9 @@ def main(config):
         connection.close()
         end_time = datetime.datetime.now()
         num_ads_marked_active = search_runner.num_ads_marked()
+        if not min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
+            slack_url_for_completion_msg = slack_url_error_channel
+
         logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url_for_completion_msg, country_code_uppercase, completion_status, start_time,

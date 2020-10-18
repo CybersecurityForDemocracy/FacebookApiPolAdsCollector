@@ -597,14 +597,19 @@ def get_pages_from_archive(archive_path):
 
     return page_ads
 
+def min_expected_ads_or_impressions_met(num_ads_added, min_expected_new_ads, num_impressions_added,
+                                        min_expected_new_impressions):
+    return (num_ads_added >= min_expected_new_ads and
+            num_impressions_added >= min_expected_new_impressions)
+
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
         num_ads_added, num_impressions_added, min_expected_new_ads,
         min_expected_new_impressions, graph_error_count_string):
     duration_minutes = (end_time - start_time).seconds / 60
     slack_msg_error_prefix = ''
-    if (num_ads_added < min_expected_new_ads or
-            num_impressions_added < min_expected_new_impressions):
+    if not min_expected_ads_or_impressions_met(num_ads_added, min_expected_new_ads,
+                                               num_impressions_added, min_expected_new_impressions):
         error_log_msg = (
             f"Minimum expected records not met! Ads expected: "
             f"{min_expected_new_ads} added: {num_ads_added}, "
@@ -715,6 +720,12 @@ def main(config):
         end_time = datetime.datetime.now()
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
+        if not min_expected_ads_or_impressions_met(num_ads_added, min_expected_new_ads,
+                                                   num_impressions_added,
+                                                   min_expected_new_impressions):
+
+            # log to error channel because num expected ads or impressions not met
+            slack_url_for_completion_msg = slack_url_error_channel
         logging.info(search_runner.get_formatted_graph_error_counts())
         send_completion_slack_notification(
             slack_url_for_completion_msg, country_code_uppercase, completion_status, start_time,
