@@ -87,6 +87,10 @@ AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     'snapshot_fetch_status'
     ])
 
+DownloadedVideoAttributes = collections.namedtuple('DownloadedVideoAttributes',
+                                                   ['video_sha256_hash',
+                                                    'video_bucket_path'])
+
 
 class Error(Exception):
     """Generic error type for this module."""
@@ -423,6 +427,7 @@ class FacebookAdCreativeRetriever:
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
     def download_video(self, archive_id, video_url):
+        video_bytes = None
         try:
             with requests.get(video_url, timeout=30, stream=True) as video_request:
                 # TODO(macpd): handle this more gracefully
@@ -432,32 +437,40 @@ class FacebookAdCreativeRetriever:
                     logging.info('Refusing to download video for %s, no \'%s\' header in response.',
                                  archive_id, CONTENT_LENGTH_HEADER)
                     return None
+
                 try:
                     video_content_len = int(video_request.headers.get(CONTENT_LENGTH_HEADER))
-                    if video_content_len <= self.max_video_download_size:
-                        video_bytes = video_request.content
-                        self.num_video_download_success += 1
-                        return video_bytes
-
-                    logging.info(
-                        '%s video size (%s bytes) exceeds max_video_download_size %s',
-                        archive_id, video_request.headers['content-length'],
-                        self.max_video_download_size)
-                    self.num_video_download_failure += 1
                 except ValueError:
                     logging.info(
                         'Unable to convert %s header value (%s) to int for archive ID '
                         '%s. Refusing to download video.', CONTENT_LENGTH_HEADER,
                         video_request.headers.get(CONTENT_LENGTH_HEADER),
                         archive_id)
+                    return None
+
+                if video_content_len > self.max_video_download_size:
+                    logging.info(
+                        '%s video size (%s bytes) exceeds max_video_download_size %s',
+                        archive_id, video_request.headers['content-length'],
+                        self.max_video_download_size)
+                    self.num_video_download_failure += 1
+                    return None
+
+                video_bytes = video_request.content
 
         except requests.RequestException as request_exception:
             logging.info('Exception %s when requesting video_url: %s',
                          request_exception, video_url)
             self.num_video_download_failure += 1
             # TODO(macpd): handle all error types
+            return None
 
-        return None
+        self.num_video_download_success += 1
+        video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+        video_bucket_path = self.store_video_in_google_bucket(
+            video_sha256, video_bytes)
+        return DownloadedVideoAttributes(video_sha256_hash=video_sha256,
+                                         video_bucket_path=video_bucket_path)
 
 
     def process_fetched_ad_creative_data(self, archive_id, fetched_data):
@@ -494,11 +507,10 @@ class FacebookAdCreativeRetriever:
                 image_bucket_path = self.store_image_in_google_bucket(
                     image_dhash, creative.image.binary_data)
             if creative.video_url:
-                video_bytes = self.download_video(archive_id, creative.video_url)
-                if video_bytes:
-                    video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                    video_bucket_path = self.store_video_in_google_bucket(
-                        video_sha256, video_bytes)
+                downloaded_video_attributes = self.download_video(archive_id, creative.video_url)
+                if downloaded_video_attributes:
+                    video_sha256 = downloaded_video_attributes.video_sha256_hash
+                    video_bucket_path = downloaded_video_attributes.video_bucket_path
 
             text = None
             text_sim_hash = None
