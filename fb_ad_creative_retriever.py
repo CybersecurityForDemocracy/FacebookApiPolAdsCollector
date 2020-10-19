@@ -43,8 +43,10 @@ LOGGER = logging.getLogger(__name__)
 AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
 AD_CREATIVE_VIDEOS_BUCKET = 'facebook_ad_videos'
 ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
+CONTENT_LENGTH_HEADER = 'content-length'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 VIDEO_HASH_PATH_DIR_NAME_LENGTH = 4
+DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE = 768000000 # approx 768 MB
 DEFAULT_MAX_ARCHIVE_IDS = 200
 DEFAULT_BATCH_SIZE = 20
 RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS = 2000
@@ -155,10 +157,11 @@ class FacebookAdCreativeRetriever:
     def __init__(self, db_connection, creative_retriever_factory, browser_context_factory,
                  ad_creative_images_bucket_client, ad_creative_videos_bucket_client,
                  archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-                 slack_user_id_to_include):
+                 slack_user_id_to_include, max_video_download_size=DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
         self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
         self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
+        self.max_video_download_size = max_video_download_size
         self.num_snapshots_processed = 0
         self.num_snapshots_fetch_failed = 0
         self.num_ad_creatives_found = 0
@@ -246,8 +249,9 @@ class FacebookAdCreativeRetriever:
 
 
     def retreive_and_store_ad_creatives(self):
-        self.reset_start_time()
+        logging.info('Max video download size %d bytes', self.max_video_download_size)
         self.reset_creative_retriever()
+        self.reset_start_time()
         num_snapshots_processed_since_chromedriver_reset = 0
         while True:
             try:
@@ -418,6 +422,43 @@ class FacebookAdCreativeRetriever:
         logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
+    def download_video(self, archive_id, video_url):
+        try:
+            with requests.get(video_url, timeout=30, stream=True) as video_request:
+                # TODO(macpd): handle this more gracefully
+                # TODO(macpd): check encoding
+                video_request.raise_for_status()
+                if CONTENT_LENGTH_HEADER not in video_request.headers:
+                    logging.info('Refusing to download video for %s, no \'%s\' header in response.',
+                                 archive_id, CONTENT_LENGTH_HEADER)
+                    return None
+                try:
+                    video_content_len = int(video_request.headers.get(CONTENT_LENGTH_HEADER))
+                    if video_content_len <= self.max_video_download_size:
+                        video_bytes = video_request.content
+                        self.num_video_download_success += 1
+                        return video_bytes
+
+                    logging.info(
+                        '%s video size (%s bytes) exceeds max_video_download_size %s',
+                        archive_id, video_request.headers['content-length'],
+                        self.max_video_download_size)
+                    self.num_video_download_failure += 1
+                except ValueError:
+                    logging.info(
+                        'Unable to convert %s header value (%s) to int for archive ID '
+                        '%s. Refusing to download video.', CONTENT_LENGTH_HEADER,
+                        video_request.headers.get(CONTENT_LENGTH_HEADER),
+                        archive_id)
+
+        except requests.RequestException as request_exception:
+            logging.info('Exception %s when requesting video_url: %s',
+                         request_exception, video_url)
+            self.num_video_download_failure += 1
+            # TODO(macpd): handle all error types
+
+        return None
+
 
     def process_fetched_ad_creative_data(self, archive_id, fetched_data):
         if not fetched_data.creatives:
@@ -453,24 +494,11 @@ class FacebookAdCreativeRetriever:
                 image_bucket_path = self.store_image_in_google_bucket(
                     image_dhash, creative.image.binary_data)
             if creative.video_url:
-                try:
-                    video_request = requests.get(creative.video_url, timeout=30)
-                    # TODO(macpd): handle this more gracefully
-                    # TODO(macpd): check encoding
-                    video_request.raise_for_status()
-                except requests.RequestException as request_exception:
-                    logging.info('Exception %s when requesting video_url: %s',
-                                 request_exception, creative.video_url)
-                    self.num_video_download_failure += 1
-                    # TODO(macpd): handle all error types
-                    continue
-
-                video_bytes = video_request.content
-
-                self.num_video_download_success += 1
-                video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                video_bucket_path = self.store_video_in_google_bucket(
-                    video_sha256, video_bytes)
+                video_bytes = self.download_video(archive_id, creative.video_url)
+                if video_bytes:
+                    video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                    video_bucket_path = self.store_video_in_google_bucket(
+                        video_sha256, video_bytes)
 
             text = None
             text_sim_hash = None
@@ -548,6 +576,8 @@ def main(argv):
     logging.info('Will commit to DB every %d snapshots processed.', commit_to_db_every_n_processed)
     slack_url = config.get('LOGGING', 'SLACK_URL')
     slack_user_id_to_include = config.get('LOGGING', 'SLACK_USER_ID_TO_INCLUDE', fallback=None)
+    max_video_download_size = config.getint('LIMITS', 'max_video_download_size',
+                                            fallback=DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE)
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
     creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
@@ -564,7 +594,7 @@ def main(argv):
             db_connection, creative_retriever_factory, browser_context_factory,
             ad_creative_images_bucket_client, ad_creative_video_bucket_client,
             archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-            slack_user_id_to_include)
+            slack_user_id_to_include, max_video_download_size=max_video_download_size)
         try:
             image_retriever.retreive_and_store_ad_creatives()
         except KeyboardInterrupt:
