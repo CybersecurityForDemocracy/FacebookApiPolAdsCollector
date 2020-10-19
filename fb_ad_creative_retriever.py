@@ -88,8 +88,8 @@ AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     ])
 
 DownloadedVideoAttributes = collections.namedtuple('DownloadedVideoAttributes',
-                                                   ['video_sha256_hash',
-                                                    'video_downloaded_url',
+                                                   ['video_downloaded_url',
+                                                    'video_sha256_hash',
                                                     'video_bucket_path'])
 
 
