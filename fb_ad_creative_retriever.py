@@ -88,8 +88,7 @@ AdSnapshotMetadataRecord = collections.namedtuple('AdSnapshotMetadataRecord', [
     ])
 
 DownloadedVideoAttributes = collections.namedtuple('DownloadedVideoAttributes',
-                                                   ['video_downloaded_url',
-                                                    'video_sha256_hash',
+                                                   ['video_sha256_hash',
                                                     'video_bucket_path'])
 
 
@@ -454,8 +453,7 @@ class FacebookAdCreativeRetriever:
                     video_sha256 = hashlib.sha256(video_bytes).hexdigest()
                     video_bucket_path = self.store_video_in_google_bucket(
                         video_sha256, video_bytes)
-                    return DownloadedVideoAttributes(video_downloaded_url=video_url,
-                                                     video_sha256_hash=video_sha256,
+                    return DownloadedVideoAttributes(video_sha256_hash=video_sha256,
                                                      video_bucket_path=video_bucket_path)
 
                 logging.info(
