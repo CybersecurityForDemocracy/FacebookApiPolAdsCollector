@@ -425,24 +425,18 @@ class FacebookAdCreativeRetriever:
     def download_video(self, archive_id, video_url):
         try:
             with requests.get(video_url, timeout=30, stream=True) as video_request:
-
                 # TODO(macpd): handle this more gracefully
                 # TODO(macpd): check encoding
                 video_request.raise_for_status()
                 if CONTENT_LENGTH_HEADER not in video_request.headers:
-                    logging.info(
-                        'Refusing to download video for %s, no \'%s\' header in response.',
-                        archive_id, CONTENT_LENGTH_HEADER)
+                    logging.info('Refusing to download video for %s, no \'%s\' header in response.',
+                                 archive_id, CONTENT_LENGTH_HEADER)
                     return None
                 try:
-                    video_content_len = int(
-                        video_request.headers.get(CONTENT_LENGTH_HEADER))
+                    video_content_len = int(video_request.headers.get(CONTENT_LENGTH_HEADER))
                     if video_content_len <= self.max_video_download_size:
                         video_bytes = video_request.content
                         self.num_video_download_success += 1
-                        #  video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                        #  video_bucket_path = self.store_video_in_google_bucket(
-                            #  video_sha256, video_bytes)
                         return video_bytes
 
                     logging.info(
