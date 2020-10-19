@@ -43,6 +43,7 @@ LOGGER = logging.getLogger(__name__)
 AD_CREATIVE_IMAGES_BUCKET = 'facebook_ad_images'
 AD_CREATIVE_VIDEOS_BUCKET = 'facebook_ad_videos'
 ARCHIVE_SCREENSHOTS_BUCKET = 'facebook_ad_archive_screenshots'
+CONTENT_LENGTH_HEADER = 'content-length'
 GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
 VIDEO_HASH_PATH_DIR_NAME_LENGTH = 4
 DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE = 768000000 # approx 768 MB
@@ -248,7 +249,7 @@ class FacebookAdCreativeRetriever:
 
 
     def retreive_and_store_ad_creatives(self):
-        logging.info('Max video download size %d', self.max_video_download_size)
+        logging.info('Max video download size %d bytes', self.max_video_download_size)
         self.reset_creative_retriever()
         self.reset_start_time()
         num_snapshots_processed_since_chromedriver_reset = 0
@@ -421,6 +422,49 @@ class FacebookAdCreativeRetriever:
         logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
         self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
+    def download_video(self, archive_id, video_url):
+        try:
+            with requests.get(video_url, timeout=30, stream=True) as video_request:
+
+                # TODO(macpd): handle this more gracefully
+                # TODO(macpd): check encoding
+                video_request.raise_for_status()
+                if CONTENT_LENGTH_HEADER not in video_request.headers:
+                    logging.info(
+                        'Refusing to download video for %s, no \'%s\' header in response.',
+                        archive_id, CONTENT_LENGTH_HEADER)
+                    return None
+                try:
+                    video_content_len = int(
+                        video_request.headers.get(CONTENT_LENGTH_HEADER))
+                    if video_content_len <= self.max_video_download_size:
+                        video_bytes = video_request.content
+                        self.num_video_download_success += 1
+                        #  video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                        #  video_bucket_path = self.store_video_in_google_bucket(
+                            #  video_sha256, video_bytes)
+                        return video_bytes
+
+                    logging.info(
+                        '%s video size (%s bytes) exceeds max_video_download_size %s',
+                        archive_id, video_request.headers['content-length'],
+                        self.max_video_download_size)
+                    self.num_video_download_failure += 1
+                except ValueError:
+                    logging.info(
+                        'Unable to convert %s header value (%s) to int for archive ID '
+                        '%s. Refusing to download video.', CONTENT_LENGTH_HEADER,
+                        video_request.headers.get(CONTENT_LENGTH_HEADER),
+                        archive_id)
+
+        except requests.RequestException as request_exception:
+            logging.info('Exception %s when requesting video_url: %s',
+                         request_exception, video_url)
+            self.num_video_download_failure += 1
+            # TODO(macpd): handle all error types
+
+        return None
+
 
     def process_fetched_ad_creative_data(self, archive_id, fetched_data):
         if not fetched_data.creatives:
@@ -456,33 +500,11 @@ class FacebookAdCreativeRetriever:
                 image_bucket_path = self.store_image_in_google_bucket(
                     image_dhash, creative.image.binary_data)
             if creative.video_url:
-                try:
-                    with requests.get(creative.video_url, timeout=30, stream=True) as video_request:
-
-                        # TODO(macpd): handle this more gracefully
-                        # TODO(macpd): check encoding
-                        video_request.raise_for_status()
-                        if (int(video_request.headers['content-length']) <
-                            self.max_video_download_size):
-                            video_bytes = video_request.content
-                            self.num_video_download_success += 1
-                            video_sha256 = hashlib.sha256(video_bytes).hexdigest()
-                            video_bucket_path = self.store_video_in_google_bucket(
-                                video_sha256, video_bytes)
-                        else:
-                            logging.info(
-                                '%s video size (%s bytes) exceeds max_video_download_size %s',
-                                archive_id, video_request.headers['content-length'],
-                                self.max_video_download_size)
-                            self.num_video_download_failure += 1
-
-                except requests.RequestException as request_exception:
-                    logging.info('Exception %s when requesting video_url: %s',
-                                 request_exception, creative.video_url)
-                    self.num_video_download_failure += 1
-                    # TODO(macpd): handle all error types
-                    continue
-
+                video_bytes = self.download_video(archive_id, creative.video_url)
+                if video_bytes:
+                    video_sha256 = hashlib.sha256(video_bytes).hexdigest()
+                    video_bucket_path = self.store_video_in_google_bucket(
+                        video_sha256, video_bytes)
 
             text = None
             text_sim_hash = None
