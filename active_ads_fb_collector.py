@@ -52,6 +52,8 @@ class SearchRunner():
         backoff_multiplier = 1
         logging.info(datetime.datetime.now())
         request_count = 0
+        ad_delivery_date_arg = (datetime.date.today() -
+                                datetime.timedelta(days=yesterday)).isoformat()
         while (has_next and request_count < self.max_requests and
                self.allowed_execution_time_remaining()):
             request_count += 1
@@ -65,7 +67,9 @@ class SearchRunner():
                     ad_reached_countries=self.country_code,
                     ad_type='POLITICAL_AND_ISSUE_ADS',
                     ad_active_status='ALL',
-                    impression_condition='HAS_IMPRESSIONS_YESTERDAY',
+                    #  impression_condition='HAS_IMPRESSIONS_YESTERDAY',
+                    ad_delivery_date_max=ad_delivery_date_arg,
+                    ad_delivery_date_min=ad_delivery_date_arg,
                     limit=self.request_limit,
                     search_terms='""',
                     fields="id",
