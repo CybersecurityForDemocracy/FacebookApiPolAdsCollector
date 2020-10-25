@@ -52,8 +52,7 @@ class SearchRunner():
         backoff_multiplier = 1
         logging.info(datetime.datetime.now())
         request_count = 0
-        ad_delivery_date_arg = (datetime.date.today() -
-                                datetime.timedelta(days=yesterday)).isoformat()
+        ad_delivery_date_arg = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
         while (has_next and request_count < self.max_requests and
                self.allowed_execution_time_remaining()):
             request_count += 1
