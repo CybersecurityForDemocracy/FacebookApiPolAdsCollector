@@ -38,6 +38,7 @@ class SearchRunner():
         self.active_ads = []
         self.total_ads_marked_active = 0
         self.graph_error_counts = defaultdict(int)
+        self.ad_delivery_date_arg = datetime.date.today() - datetime.timedelta(days=1)
         self.stop_time = None
         if search_runner_params.stop_at_datetime:
             self.stop_time = search_runner_params.stop_at_datetime.timestamp()
@@ -52,7 +53,7 @@ class SearchRunner():
         backoff_multiplier = 1
         logging.info(datetime.datetime.now())
         request_count = 0
-        ad_delivery_date_arg = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+        ad_delivery_date_arg_isoformat = self.ad_delivery_date_arg.isoformat()
         while (has_next and request_count < self.max_requests and
                self.allowed_execution_time_remaining()):
             request_count += 1
@@ -66,9 +67,8 @@ class SearchRunner():
                     ad_reached_countries=self.country_code,
                     ad_type='POLITICAL_AND_ISSUE_ADS',
                     ad_active_status='ALL',
-                    #  impression_condition='HAS_IMPRESSIONS_YESTERDAY',
-                    ad_delivery_date_max=ad_delivery_date_arg,
-                    ad_delivery_date_min=ad_delivery_date_arg,
+                    ad_delivery_date_max=ad_delivery_date_arg_isoformat,
+                    ad_delivery_date_min=ad_delivery_date_arg_isoformat,
                     limit=self.request_limit,
                     search_terms='""',
                     fields="id",
@@ -156,10 +156,8 @@ class SearchRunner():
     def write_results(self):
         #write new ads to our database
         num_active_ads = len(self.active_ads)
-        logging.info("marking %d ads as active today", num_active_ads)
-        # Last active date is yesterday because we rely on condition HAS_IMPRESSIONS_YESTERDAY
-        last_active_date = datetime.date.today() - datetime.timedelta(days=1)
-        self.db.update_ad_last_active_date(last_active_date, self.active_ads)
+        logging.info("marking %d ads as active %s", num_active_ads, self.ad_delivery_date_arg)
+        self.db.update_ad_last_active_date(self.ad_delivery_date_arg, self.active_ads)
         self.total_ads_marked_active += num_active_ads
         self.active_ads = []
         self.connection.commit()
