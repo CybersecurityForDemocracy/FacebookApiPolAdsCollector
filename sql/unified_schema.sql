@@ -206,83 +206,104 @@ CREATE TABLE ad_ids (
   CONSTRAINT unique_ad_id_archive_id UNIQUE(ad_id, archive_id)
 );
 
--- Triggers to automatatically update the last_modified_time on every update.
-CREATE EXTENSION IF NOT EXISTS moddatetime;
+-- Triggers to automatatically update the last_modified_time on every update. Can't use moddatetime in postgres on AWS RDS.
+CREATE OR REPLACE FUNCTION set_last_modified_column_to_now()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.last_modified_time = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER pages_moddatetime
+CREATE TRIGGER pages_set_last_modified_column_to_now
 BEFORE UPDATE ON pages
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER ads_moddatetime
+CREATE TRIGGER ads_set_last_modified_column_to_now
 BEFORE UPDATE ON ads
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER ad_countries_moddatetime
+CREATE TRIGGER ad_countries_set_last_modified_column_to_now
 BEFORE UPDATE ON ad_countries
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER impressions_moddatetime
+CREATE TRIGGER impressions_set_last_modified_column_to_now
 BEFORE UPDATE ON impressions
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER funder_metadata_moddatetime
+CREATE TRIGGER funder_metadata_set_last_modified_column_to_now
 BEFORE UPDATE ON funder_metadata
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER ad_metadata_moddatetime
+CREATE TRIGGER ad_metadata_set_last_modified_column_to_now
 BEFORE UPDATE ON ad_metadata
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER page_metadata_moddatetime
+CREATE TRIGGER page_metadata_set_last_modified_column_to_now
 BEFORE UPDATE ON page_metadata
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER page_name_history_moddatetime
+CREATE TRIGGER page_name_history_set_last_modified_column_to_now
 BEFORE UPDATE ON page_name_history
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER ad_snapshot_metadata_moddatetime
+CREATE TRIGGER ad_snapshot_metadata_set_last_modified_column_to_now
 BEFORE UPDATE ON ad_snapshot_metadata
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER ad_creatives_moddatetime
+CREATE TRIGGER ad_creatives_set_last_modified_column_to_now
 BEFORE UPDATE ON ad_creatives
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER demo_impressions_moddatetime
+CREATE TRIGGER demo_impressions_set_last_modified_column_to_now
 BEFORE UPDATE ON demo_impressions
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER region_impressions_moddatetime
+CREATE TRIGGER region_impressions_set_last_modified_column_to_now
 BEFORE UPDATE ON region_impressions
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER demo_impression_results_moddatetime
+CREATE TRIGGER demo_impression_results_set_last_modified_column_to_now
 BEFORE UPDATE ON demo_impression_results
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER region_impression_results_moddatetime
+CREATE TRIGGER region_impression_results_set_last_modified_column_to_now
 BEFORE UPDATE ON region_impression_results
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
-CREATE TRIGGER snapshot_fetch_batches_moddatetime
+CREATE TRIGGER snapshot_fetch_batches_set_last_modified_column_to_now
 BEFORE UPDATE ON snapshot_fetch_batches
 FOR EACH ROW
-EXECUTE PROCEDURE moddatetime(last_modified_time);
+WHEN (OLD IS DISTINCT FROM NEW)
+EXECUTE PROCEDURE set_last_modified_column_to_now();
 
 CREATE INDEX ads_page_id_idx ON public.ads USING btree (page_id);
 CREATE INDEX ads_page_id_ad_delivery_start_time_idx ON public.ads USING btree (page_id, ad_delivery_start_time ASC);
