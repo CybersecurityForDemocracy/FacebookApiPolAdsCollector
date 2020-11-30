@@ -86,6 +86,10 @@ class SearchRunner():
                 else:
                     logging.error("No results")
 
+                if e.code == 190:
+                    logging.error('FACEBOOK ACCESS TOKEN EXPIRED!!!')
+                    raise
+
                 # Error 4 is application level throttling
                 # Error 613 is "Custom-level throttling" "Calls to this api have exceeded the rate limit."
                 # https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
@@ -186,7 +190,7 @@ class SearchRunner():
 
 
 def min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
-   return num_ads_marked_active >= min_expected_active_ads
+    return num_ads_marked_active >= min_expected_active_ads
 
 def send_completion_slack_notification(
         slack_url, country_code, completion_status, start_time, end_time,
@@ -205,7 +209,7 @@ def send_completion_slack_notification(
             ":rotating_light: :rotating_light: :rotating_light: ")
 
     completion_message = (
-        f"{slack_msg_error_prefix} Collection started at{start_time} for "
+        f"{slack_msg_error_prefix} Collection started at {start_time} for "
         f"{country_code} completed in {duration_minutes} minutes. Added "
         f" active {num_ads_marked_active} ads. "
         f"Completion status {completion_status}. {graph_error_count_string}")
