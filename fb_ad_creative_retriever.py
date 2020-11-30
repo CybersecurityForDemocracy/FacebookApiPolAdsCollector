@@ -615,7 +615,7 @@ def main(argv):
         except BaseException as error:
             slack_msg = (
                 ':rotating_light: :rotating_light: :rotating_light: '
-                'fb_ad_creative_retriever.py raised %s on host %s.'
+                'fb_ad_creative_retriever.py raised |%r| on host %s.'
                 ':rotating_light: :rotating_light: :rotating_light:' % (
                     error, socket.getfqdn()))
             send_slack_message(slack_url, slack_msg,
