@@ -4,6 +4,7 @@ import logging
 
 import psycopg2
 import psycopg2.extras
+from psycopg2 import sql
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
@@ -638,34 +639,42 @@ class DBInterface():
                                        template=insert_template,
                                        page_size=_DEFAULT_PAGE_SIZE)
 
-    def make_snapshot_fetch_batches(self, batch_size=1000, country_code=None):
+    def make_snapshot_fetch_batches(self, batch_size=1000, country_code=None,
+                                    min_ad_creation_date=None):
         """
         Add snapshots that need to be fetched into snapshot_fetch_batches in batches of batch_size.
 
         Args:
             batch_size: int size of batches to create.
+            country_code: str 2 letter country code. only ads shown in this country will be batched.
+            min_ad_creation_date: datetime.date or YYYY-MM-DD str. only ads created on or after this
+                date will be batched
         """
         logging.info('About to make batches (size %d) of unfetched archive IDs. Contry code '
-                     'restriction: %s', batch_size, country_code)
-        read_cursor = self.get_cursor()
-        read_cursor.arraysize = batch_size
+                     'restriction: %s. Min ad creation date: %s', batch_size, country_code,
+                     min_ad_creation_date)
+        where_clause = sql.SQL(
+            'ad_snapshot_metadata.needs_scrape = true AND '
+            'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL')
+        if min_ad_creation_date:
+            min_ad_creation_date_condition = sql.SQL(
+                'ads.ad_creation_time >= %(min_ad_creation_date)s')
+            where_clause = sql.SQL(' AND ').join([where_clause, min_ad_creation_date_condition])
         # Get all archive IDs that are unfetched and not part of an existing batch (and reached the
         # specified country_code if provided). Archive IDs are ordered oldest to newest ad_creation
         # time so that larger batch_id roughly corresponds to newer ads.
         if country_code:
-            unbatched_archive_ids_query = (
+            country_code_condition= sql.SQL('country_code ILIKE %(country_code)s')
+            where_clause = sql.SQL(' AND ').join([where_clause, country_code_condition])
+            unbatched_archive_ids_query = sql.SQL(
                 'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
                 'JOIN ads USING(archive_id) JOIN ad_countries USING(archive_id) '
-                'WHERE ad_snapshot_metadata.needs_scrape = true AND '
-                'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL '
-                'AND country_code ILIKE %(country_code)s'
-                'ORDER BY ad_creation_time ASC')
+                'WHERE {where_clause} ORDER BY ad_creation_time ASC')
         else:
-            unbatched_archive_ids_query = (
+            unbatched_archive_ids_query = sql.SQL(
                 'SELECT ad_snapshot_metadata.archive_id FROM ad_snapshot_metadata '
-                'JOIN ads USING(archive_id) WHERE '
-                'ad_snapshot_metadata.needs_scrape = true AND '
-                'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL ORDER BY ad_creation_time ASC')
+                'JOIN ads USING(archive_id) WHERE {where_clause}'
+                'ORDER BY ad_creation_time ASC')
         # This query inserts an empty row and gets back the autoincremented new batch_id.
         get_new_batch_id_query = (
             'INSERT INTO snapshot_fetch_batches (time_started, time_completed) VALUES (NULL, NULL) '
@@ -675,9 +684,15 @@ class DBInterface():
             '(VALUES %s) AS data (batch_id, archive_id) WHERE '
             'ad_snapshot_metadata.archive_id = data.archive_id')
         assign_batch_id_template = '(%s, %s)'
+
+        read_cursor = self.get_cursor()
+        read_cursor.arraysize = batch_size
         write_cursor = self.get_cursor()
         logging.info('Getting unfetched archive IDs.')
-        read_cursor.execute(unbatched_archive_ids_query, {'country_code': country_code})
+        read_cursor.execute(unbatched_archive_ids_query.format(where_clause=where_clause),
+                            {'country_code': country_code,
+                             'min_ad_creation_date': min_ad_creation_date})
+        logging.info('make_snapshot_fetch_batches query: %s', read_cursor.query.decode())
         fetched_rows = read_cursor.fetchmany()
         num_new_batches = 0
         while fetched_rows:
