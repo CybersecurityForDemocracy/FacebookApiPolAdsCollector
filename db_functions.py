@@ -658,7 +658,7 @@ class DBInterface():
             'ad_snapshot_metadata.snapshot_fetch_batch_id IS NULL')
         if min_ad_creation_date:
             min_ad_creation_date_condition = sql.SQL(
-                'ads.ad_creation_time => %(min_ad_creation_date)s')
+                'ads.ad_creation_time >= %(min_ad_creation_date)s')
             where_clause = sql.SQL(' AND ').join([where_clause, min_ad_creation_date_condition])
         # Get all archive IDs that are unfetched and not part of an existing batch (and reached the
         # specified country_code if provided). Archive IDs are ordered oldest to newest ad_creation
