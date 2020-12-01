@@ -178,6 +178,7 @@ CREATE TABLE demo_impression_results (
   min_impressions integer,
   max_impressions integer,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  spend_estimate numeric(10,2),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_demo_results UNIQUE(archive_id, age_group, gender)
 );
