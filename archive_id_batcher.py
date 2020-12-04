@@ -7,7 +7,8 @@ import config_utils
 DEFAULT_BATCH_SIZE = 1000
 DEFAULT_MIN_AD_CREATION_DATE = '2019-01-01'
 
-def main(config):
+def main(config_path):
+    config = config_utils.get_config(config_path)
     country_code = config.get('SEARCH', 'COUNTRY_CODE', fallback=None)
     min_ad_creation_date = config.get('SEARCH', 'MIN_AD_CREATION_DATE',
                                       fallback=DEFAULT_MIN_AD_CREATION_DATE)
@@ -19,5 +20,4 @@ def main(config):
 
 if __name__ == '__main__':
     config_utils.configure_logger('archive_id_batcher.log')
-    config = config_utils.get_config(sys.argv[1])
-    main(config)
+    main(sys.argv[1])
