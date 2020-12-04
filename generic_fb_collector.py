@@ -1,6 +1,4 @@
-import csv
 import datetime
-import json
 import logging
 import operator
 import sys
@@ -10,8 +8,6 @@ from time import sleep
 from urllib.parse import parse_qs, urlparse
 
 import facebook
-import psycopg2
-import psycopg2.extras
 from OpenSSL import SSL
 
 import db_functions
@@ -83,7 +79,6 @@ SearchRunnerParams = namedtuple(
          'facebook_access_token',
          'sleep_time',
          'request_limit',
-         'max_requests',
          'stop_at_datetime',
          ])
 
@@ -167,16 +162,16 @@ def parse_api_result_datetime_with_fallback_to_input(datetime_str):
 
 class SearchRunner():
 
-    def __init__(self, crawl_date, connection, db, search_runner_params):
+    def __init__(self, crawl_date, connection, db_interface, search_runner_params):
         self.crawl_date = crawl_date
         self.country_code = search_runner_params.country_code
         self.connection = connection
-        self.db = db
+        self.db_interface = db_interface
         self.fb_access_token = search_runner_params.facebook_access_token
         self.sleep_time = search_runner_params.sleep_time
         self.request_limit = search_runner_params.request_limit
-        self.max_requests = search_runner_params.max_requests
         self.new_ads = set()
+        self.new_ad_sponsors = set()
         self.new_funding_entities = set()
         self.new_pages = set()
         self.new_page_record_to_max_last_seen_time = dict()
@@ -336,23 +331,22 @@ class SearchRunner():
             logging.info("no region impression information for: %s", curr_ad.archive_id)
 
         regions = set()
-        for region_result in region_distribution: 
+        for region_result in region_distribution:
             # If we get the same region more than once for an ad, the second occurance
             # This is a data losing proposition but can't be helped till FB fixes the results
             # They provide on the API
             try:
                 if region_result['region'] in regions:
                     continue
-                else:
-                    regions.add(region_result['region'])
-                    self.new_ad_region_impressions.append(SnapshotRegionRecord(
-                    curr_ad.archive_id,
-                    region_result['region'],
-                    region_result['percentage'],
-                    float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
-                    float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
-                    float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
-                    float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
+                regions.add(region_result['region'])
+                self.new_ad_region_impressions.append(SnapshotRegionRecord(
+                curr_ad.archive_id,
+                region_result['region'],
+                region_result['percentage'],
+                float(region_result['percentage']) * int(curr_ad.impressions__lower_bound),
+                float(region_result['percentage']) * int(curr_ad.impressions__upper_bound),
+                float(region_result['percentage']) * int(curr_ad.spend__lower_bound),
+                float(region_result['percentage']) * int(curr_ad.spend__upper_bound)))
             except KeyError as key_error:
                 logging.warning(
                         '%s error while processing ad archive ID %s region_distribution: %s',
@@ -363,10 +357,10 @@ class SearchRunner():
         self.crawl_date = datetime.date.today()
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
-        self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_page_ids = self.db.existing_pages()
-        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
-        self.existing_funding_entities = self.db.existing_funding_entities()
+        self.existing_ads_to_end_time_map = self.db_interface.existing_ads()
+        self.existing_page_ids = self.db_interface.existing_pages()
+        self.existing_page_record_to_max_last_seen_time = self.db_interface.page_records_to_max_last_seen()
+        self.existing_funding_entities = self.db_interface.existing_funding_entities()
 
         #get ads
         graph = facebook.GraphAPI(access_token=self.fb_access_token, version='7.0')
@@ -378,10 +372,11 @@ class SearchRunner():
         logging.info("page_name = %s", page_name)
         request_count = 0
         # TODO: Remove the request_count limit
-        #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
+        #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more
+        # frequently? In cases where we query by the empty string, we are high stakes succeeding or
+        # failing.
         curr_ad = None
-        while (has_next and request_count < self.max_requests and
-               self.allowed_execution_time_remaining()):
+        while has_next and self.allowed_execution_time_remaining():
             #structures to hold all the new stuff we find
             self.new_ads = set()
             self.new_ad_sponsors = set()
@@ -421,26 +416,26 @@ class SearchRunner():
                         fields=",".join(FIELDS_TO_REQUEST),
                         after=next_cursor)
                 backoff_multiplier = 1
-            except facebook.GraphAPIError as e:
+            except facebook.GraphAPIError as error:
                 logging.error("Graph Error")
-                logging.error(e.code)
-                logging.error(e)
-                self.graph_error_counts[e.code] += 1
-                logging.error('Error code %d has occured %d times so far', e.code,
-                              self.graph_error_counts[e.code])
+                logging.error(error.code)
+                logging.error(error)
+                self.graph_error_counts[error.code] += 1
+                logging.error('Error code %d has occured %d times so far', error.code,
+                              self.graph_error_counts[error.code])
                 if results:
                     logging.error(results)
                 else:
                     logging.error("No results")
 
-                if e.code == 190:
+                if error.code == 190:
                     logging.error('FACEBOOK ACCESS TOKEN EXPIRED!!!')
                     raise
 
                 # Error 4 is application level throttling
                 # Error 613 is "Custom-level throttling" "Calls to this api have exceeded the rate limit."
                 # https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
-                if e.code == 4 or e.code == 613:
+                if error.code == 4 or error.code == 613:
                     backoff_multiplier *= 4
                     logging.info('Rate liimit exceeded, back off multiplier is now %d.',
                                  backoff_multiplier)
@@ -451,8 +446,8 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except OSError as e:
-                logging.error("OS error: {0}".format(e))
+            except OSError as error:
+                logging.error("OS error: {0}".format(error))
                 logging.error(datetime.datetime.now())
                 # Reset backoff multiplier since this is a local OS issue and not an API issue.
                 backoff_multiplier = 1
@@ -460,8 +455,8 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except SSL.SysCallError as e:
-                logging.error(e)
+            except SSL.SysCallError as error:
+                logging.error(error)
                 backoff_multiplier += backoff_multiplier
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
@@ -510,41 +505,41 @@ class SearchRunner():
 
 
     def write_results(self):
-        #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
-        self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
+        #write new pages, regions, and demo groups to db first so we can update our caches before writing ads
+        self.db_interface.insert_funding_entities(self.new_funding_entities)
+        self.db_interface.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
 
         #write new ads to our database
         num_new_ads = len(self.new_ads)
         logging.info("writing %d new ads to db", num_new_ads)
-        self.db.insert_new_ads(self.new_ads)
+        self.db_interface.insert_new_ads(self.new_ads)
         self.total_ads_added_to_db += num_new_ads
 
         #write new impressions to our database
         num_new_impressions = len(self.new_impressions)
         logging.info("writing %d impressions to db", num_new_impressions)
-        self.db.insert_new_impressions(self.new_impressions)
+        self.db_interface.insert_new_impressions(self.new_impressions)
         self.total_impressions_added_to_db += num_new_impressions
 
         logging.info("writing self.new_ad_demo_impressions to db")
-        self.db.insert_new_impression_demos(self.new_ad_demo_impressions)
+        self.db_interface.insert_new_impression_demos(self.new_ad_demo_impressions)
 
         logging.info("writing self.new_ad_region_impressions to db")
-        self.db.insert_new_impression_regions(self.new_ad_region_impressions)
+        self.db_interface.insert_new_impression_regions(self.new_ad_region_impressions)
         self.connection.commit()
 
     def refresh_state(self):
         # We have to reload these since we rely on the row ids from the database for indexing
-        self.existing_funding_entities = self.db.existing_funding_entities()
-        self.existing_page_ids = self.db.existing_pages()
-        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
+        self.existing_funding_entities = self.db_interface.existing_funding_entities()
+        self.existing_page_ids = self.db_interface.existing_pages()
+        self.existing_page_record_to_max_last_seen_time = self.db_interface.page_records_to_max_last_seen()
         self.connection.commit()
 
     def perfrom_post_collection_actions(self):
         """Do actions after collection loop has terminated. eg cleanup or DB updates that should
         happen after all information collected.
         """
-        self.db.update_page_name_to_latest_seen()
+        self.db_interface.update_page_name_to_latest_seen()
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
         """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
@@ -564,42 +559,6 @@ class SearchRunner():
         return 'GraphAPI error counts %s' % delimiter.join(count_msgs)
 
 
-
-#get page data
-def get_page_data(connection, config):
-    page_ids = {}
-    input_TYPE = config['INPUT']['TYPE']
-    if input_TYPE == 'file':
-        input_FILES = config['INPUT']['FILES']
-        logging.info(input_FILES)
-        file_list = json.loads(input_FILES)
-        for file_name in file_list:
-            with open(file_name) as input:
-                for row in input:
-                    page_ids[row.strip()] = 0
-    else:
-        cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        page_ads_query = "select page_id, count(*) as ad_count from ads group by page_id"
-        cursor.execute(page_ads_query)
-        for row in cursor:
-            page_ids[row['page_id']] = row['ad_count']
-
-    return page_ids
-
-
-def get_pages_from_archive(archive_path):
-    page_ads = {}
-    if not archive_path:
-        return page_ads
-    with open(archive_path) as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            if row["\ufeffPage ID"] in page_ads:
-                page_ads[row["\ufeffPage ID"]] += row["Number of Ads in Library"]
-            else:
-                page_ads[row["\ufeffPage ID"]] = row["Number of Ads in Library"]
-
-    return page_ads
 
 def min_expected_ads_or_impressions_met(num_ads_added, min_expected_new_ads, num_impressions_added,
                                         min_expected_new_impressions):
@@ -649,7 +608,11 @@ def get_stop_at_datetime(stop_at_time_str):
 
 
 
-def main(config):
+def main(config_path):
+    config = config_utils.get_config(config_path)
+    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+
+    config_utils.configure_logger(f"{country_code}_fb_api_collection.log")
     logging.info("starting")
 
     slack_url_info_channel = config.get('LOGGING', 'SLACK_URL_INFO_CHANNEL', fallback='')
@@ -677,47 +640,29 @@ def main(config):
         facebook_access_token=config_utils.get_facebook_access_token(config),
         sleep_time=config.getint('SEARCH', 'SLEEP_TIME'),
         request_limit=config.getint('SEARCH', 'LIMIT'),
-        max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
         stop_at_datetime=stop_at_datetime)
 
     connection = config_utils.get_database_connection_from_config(config)
     logging.info('Established conneciton to %s', connection.dsn)
-    db = db_functions.DBInterface(connection)
+    db_interface = db_functions.DBInterface(connection)
     search_runner = SearchRunner(
         datetime.date.today(),
         connection,
-        db,
+        db_interface,
         search_runner_params)
-    page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
-    page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
     notify_slack(slack_url_info_channel,
                  f"Starting UNIFIED collection at {start_time} for "
-                 f"{country_code_uppercase} for {page_string}")
+                 f"{country_code_uppercase}")
     completion_status = 'Failure'
     slack_url_for_completion_msg = slack_url_error_channel
     try:
-        if page_ids:
-            curr_page_ids = get_page_data(connection, config)
-            for page_id, ad_count in page_ids.items():
-                if page_id in curr_page_ids:
-                    curr_ad_count = curr_page_ids[page_id]
-                    if ad_count > curr_ad_count:
-                        page_delta[page_id] = ad_count - curr_ad_count
-                else:
-                    page_delta[page_id] = ad_count
-
-            prioritized_page_ids = [x for x in sorted(page_delta, key=d.get, reverse=True)]
-            #LAE - alter this to work for up to 10 page ids at a time
-            for page_id in prioritized_page_ids:
-                search_runner.run_search(page_id=page_id)
-        else:
-            search_runner.run_search(page_name="''")
+        search_runner.run_search(page_name="''")
         completion_status = 'Success'
         slack_url_for_completion_msg = slack_url_info_channel
-    except Exception as e:
-        completion_status = f'Uncaught exception: {e}'
+    except Exception as error:
+        completion_status = f'Uncaught exception: {error}'
         logging.error(completion_status, exc_info=True)
     finally:
         connection.close()
@@ -738,10 +683,6 @@ def main(config):
             search_runner.get_formatted_graph_error_counts())
 
 if __name__ == '__main__':
-    config = config_utils.get_config(sys.argv[1])
-    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-
-    config_utils.configure_logger(f"{country_code}_fb_api_collection.log")
     if len(sys.argv) < 2:
-        exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
-    main(config)
+        sys.exit(f"Usage:python3 {sys.argv[0]} generic_fb_collector.cfg")
+    main(sys.argv[1])

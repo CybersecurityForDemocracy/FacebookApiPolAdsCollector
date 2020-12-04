@@ -20,21 +20,19 @@ SearchRunnerParams = namedtuple(
          'facebook_access_token',
          'sleep_time',
          'request_limit',
-         'max_requests',
          'stop_at_datetime',
          ])
 
 
 class SearchRunner():
 
-    def __init__(self, connection, db, search_runner_params):
+    def __init__(self, db_connection, db_interface, search_runner_params):
         self.country_code = search_runner_params.country_code
-        self.connection = connection
-        self.db = db
+        self.db_connection = db_connection
+        self.db_interface = db_interface
         self.fb_access_token = search_runner_params.facebook_access_token
         self.sleep_time = search_runner_params.sleep_time
         self.request_limit = search_runner_params.request_limit
-        self.max_requests = search_runner_params.max_requests
         self.active_ads = []
         self.total_ads_marked_active = 0
         self.graph_error_counts = defaultdict(int)
@@ -54,14 +52,13 @@ class SearchRunner():
         logging.info(datetime.datetime.now())
         request_count = 0
         ad_delivery_date_arg_isoformat = self.ad_delivery_date_arg.isoformat()
-        while (has_next and request_count < self.max_requests and
-               self.allowed_execution_time_remaining()):
+        while has_next and self.allowed_execution_time_remaining():
             request_count += 1
             total_ad_count = 0
             try:
                 results = None
-                logging.info(f"making active ads request")
-                logging.info(f"making request {request_count}")
+                logging.info("making active ads request")
+                logging.info("making request %s", request_count)
                 results = graph.get_object(
                     id='ads_archive',
                     ad_reached_countries=self.country_code,
@@ -74,26 +71,27 @@ class SearchRunner():
                     fields="id",
                     after=next_cursor)
                 backoff_multiplier = 1
-            except facebook.GraphAPIError as e:
+            except facebook.GraphAPIError as error:
                 logging.error("Graph Error")
-                logging.error(e.code)
-                logging.error(e)
-                self.graph_error_counts[e.code] += 1
-                logging.error('Error code %d has occured %d times so far', e.code,
-                              self.graph_error_counts[e.code])
+                logging.error(error.code)
+                logging.error(error)
+                self.graph_error_counts[error.code] += 1
+                logging.error('Error code %d has occured %d times so far', error.code,
+                              self.graph_error_counts[error.code])
                 if results:
                     logging.error(results)
                 else:
                     logging.error("No results")
 
-                if e.code == 190:
+                if error.code == 190:
                     logging.error('FACEBOOK ACCESS TOKEN EXPIRED!!!')
                     raise
 
                 # Error 4 is application level throttling
-                # Error 613 is "Custom-level throttling" "Calls to this api have exceeded the rate limit."
+                # Error 613 is "Custom-level throttling"
+                #     "Calls to this api have exceeded the rate limit."
                 # https://developers.facebook.com/docs/graph-api/using-graph-api/error-handling/
-                if e.code == 4 or e.code == 613:
+                if error.code == 4 or error.code == 613:
                     backoff_multiplier *= 4
                     logging.info('Rate liimit exceeded, back off multiplier is now %d.',
                                  backoff_multiplier)
@@ -104,8 +102,8 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except OSError as e:
-                logging.error("OS error: {0}".format(e))
+            except OSError as error:
+                logging.error("OS error: %s", error)
                 logging.error(datetime.datetime.now())
                 # Reset backoff multiplier since this is a local OS issue and not an API issue.
                 backoff_multiplier = 1
@@ -113,8 +111,8 @@ class SearchRunner():
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
                 continue
 
-            except SSL.SysCallError as e:
-                logging.error(e)
+            except SSL.SysCallError as error:
+                logging.error(error)
                 backoff_multiplier += backoff_multiplier
                 logging.error("resetting graph")
                 graph = facebook.GraphAPI(access_token=self.fb_access_token)
@@ -122,7 +120,7 @@ class SearchRunner():
 
             finally:
                 sleep_time = self.sleep_time * backoff_multiplier
-                logging.info(f"waiting for {sleep_time} seconds before next query.")
+                logging.info("waiting for %s seconds before next query.", sleep_time)
                 sleep(sleep_time)
 
             for result in results['data']:
@@ -161,10 +159,10 @@ class SearchRunner():
         #write new ads to our database
         num_active_ads = len(self.active_ads)
         logging.info("marking %d ads as active %s", num_active_ads, self.ad_delivery_date_arg)
-        self.db.update_ad_last_active_date(self.ad_delivery_date_arg, self.active_ads)
+        self.db_interface.update_ad_last_active_date(self.ad_delivery_date_arg, self.active_ads)
         self.total_ads_marked_active += num_active_ads
         self.active_ads = []
-        self.connection.commit()
+        self.db_connection.commit()
 
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
@@ -193,7 +191,7 @@ def min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
     return num_ads_marked_active >= min_expected_active_ads
 
 def send_completion_slack_notification(
-        slack_url, country_code, completion_status, start_time, end_time,
+        slack_url, country, completion_status, start_time, end_time,
         num_ads_marked_active, min_expected_active_ads,
         graph_error_count_string):
     duration_minutes = (end_time - start_time).seconds / 60
@@ -210,7 +208,7 @@ def send_completion_slack_notification(
 
     completion_message = (
         f"{slack_msg_error_prefix} Collection started at {start_time} for "
-        f"{country_code} completed in {duration_minutes} minutes. Added "
+        f"{country} completed in {duration_minutes} minutes. Added "
         f" active {num_ads_marked_active} ads. "
         f"Completion status {completion_status}. {graph_error_count_string}")
     notify_slack(slack_url, completion_message)
@@ -219,8 +217,8 @@ def get_stop_at_datetime(stop_at_time_str):
     """Get datetime for today at the clock time in ISO format.
 
     Args:
-        stop_at_time_str: str time to stop in ISO format. only hours, minutes, seconds used (all other
-            info ignored).
+        stop_at_time_str: str time to stop in ISO format. only hours, minutes, seconds used (all
+            other info ignored).
     Returns:
         datetime.datetime of today at the specified time.
     """
@@ -231,7 +229,11 @@ def get_stop_at_datetime(stop_at_time_str):
                              second=stop_at_time.second)
 
 
-def main(config):
+def main(config_path):
+    config = config_utils.get_config(config_path)
+    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
+
+    config_utils.configure_logger(f"{country_code}_active_ads_fb_api_collection.log")
     logging.info("starting")
 
     slack_url_info_channel = config.get('LOGGING', 'SLACK_URL_INFO_CHANNEL', fallback='')
@@ -248,13 +250,12 @@ def main(config):
         facebook_access_token=config_utils.get_facebook_access_token(config),
         sleep_time=config.getint('SEARCH', 'SLEEP_TIME'),
         request_limit=config.getint('SEARCH', 'LIMIT'),
-        max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
         stop_at_datetime=stop_at_datetime)
 
-    connection = config_utils.get_database_connection_from_config(config)
-    logging.info('Established conneciton to %s', connection.dsn)
-    db = DBInterface(connection)
-    search_runner = SearchRunner(connection, db, search_runner_params)
+    db_connection = config_utils.get_database_connection_from_config(config)
+    logging.info('Established conneciton to %s', db_connection.dsn)
+    db_interface = DBInterface(db_connection)
+    search_runner = SearchRunner(db_connection, db_interface, search_runner_params)
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
     notify_slack(slack_url_info_channel,
@@ -266,11 +267,11 @@ def main(config):
         search_runner.run_search()
         completion_status = 'Success'
         slack_url_for_completion_msg = slack_url_info_channel
-    except Exception as e:
-        completion_status = f'Uncaught exception: {e}'
+    except Exception as error:
+        completion_status = f'Uncaught exception: {error}'
         logging.error(completion_status, exc_info=True)
     finally:
-        connection.close()
+        db_connection.close()
         end_time = datetime.datetime.now()
         num_ads_marked_active = search_runner.num_ads_marked()
         if not min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
@@ -283,10 +284,6 @@ def main(config):
             search_runner.get_formatted_graph_error_counts())
 
 if __name__ == '__main__':
-    config = config_utils.get_config(sys.argv[1])
-    country_code = config['SEARCH']['COUNTRY_CODE'].lower()
-
-    config_utils.configure_logger(f"{country_code}_active_ads_fb_api_collection.log")
     if len(sys.argv) < 2:
-        exit(f"Usage:python3 {sys.argv[0]} active_ads_fb_collector.cfg")
-    main(config)
+        sys.exit(f"Usage:python3 {sys.argv[0]} active_ads_fb_collector.cfg")
+    main(sys.argv[1])
