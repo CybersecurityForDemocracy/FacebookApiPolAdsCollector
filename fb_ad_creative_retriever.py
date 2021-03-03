@@ -302,7 +302,7 @@ class FacebookAdCreativeRetriever:
                                                TOO_MANY_REQUESTS_SLEEP_TIME)
                 slack_msg = (
                     ':rotating_light: :rotating_light: :rotating_light: '
-                    'fb_ad_creative_retriever.py raised %s on host %s. Sleeping %d seconds! '
+                    'fb_ad_creative_retriever.py raised %r on host %s. Sleeping %d seconds! '
                     ':rotating_light: :rotating_light: :rotating_light:' % (
                         error, socket.getfqdn(), suggested_sleep_time))
                 send_slack_message(self.slack_url, slack_msg,
