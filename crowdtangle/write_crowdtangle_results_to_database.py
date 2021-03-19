@@ -3,7 +3,7 @@ import itertools
 import apache_beam as beam
 
 import config_utils
-import db_functions
+from crowdtangle import db_functions
 
 def dedupe_account_records_by_max_updated_field(account_records):
     """Return list of account records deduped by ID. If multiple records with the same ID are found
