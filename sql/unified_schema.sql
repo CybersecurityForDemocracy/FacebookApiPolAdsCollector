@@ -302,3 +302,173 @@ EXECUTE PROCEDURE moddatetime(last_modified_time);
 
 CREATE INDEX ads_page_id_idx ON public.ads USING btree (page_id);
 CREATE INDEX ads_page_id_ad_delivery_start_time_idx ON public.ads USING btree (page_id, ad_delivery_start_time ASC);
+
+-- Crowdtangle database
+
+CREATE TABLE public.accounts (
+  id bigint PRIMARY KEY,
+  account_type character varying NOT NULL,
+  handle character varying,
+  name character varying NOT NULL,
+  page_admin_top_country character varying,
+  platform character varying NOT NULL,
+  platform_id character varying,
+  profile_image character varying,
+  subscriber_count bigint,
+  url character varying,
+  verified boolean NOT NULL,
+  updated timestamp with time zone NOT NULL,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE TABLE public.posts (
+  id character varying PRIMARY KEY,
+  account_id bigint NOT NULL,
+  branded_content_sponsor_account_id bigint,
+  message character varying,
+  title character varying,
+  platform character varying NOT NULL,
+  platform_id character varying NOT NULL,
+  post_url character varying NOT NULL,
+  subscriber_count bigint,
+  type character varying NOT NULL,
+  updated timestamp with time zone NOT NULL,
+  video_length_ms bigint,
+  image_text character varying,
+  legacy_id bigint,
+  caption character varying,
+  link character varying,
+  date timestamp with time zone,
+  description character varying,
+  score double precision,
+  live_video_status character varying,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT account_id_fk FOREIGN KEY (account_id) REFERENCES public.accounts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT branded_content_sponsor_account_id_fk FOREIGN KEY (branded_content_sponsor_account_id) REFERENCES public.accounts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+
+CREATE INDEX posts_post_id_updated_idx ON public.posts USING btree (id, updated);
+
+CREATE TABLE public.post_statistics_actual (
+  post_id character varying PRIMARY KEY,
+  updated timestamp with time zone NOT NULL,
+  angry_count bigint,
+  comment_count bigint,
+  favorite_count bigint,
+  haha_count bigint,
+  like_count bigint,
+  love_count bigint,
+  sad_count bigint,
+  share_count bigint,
+  up_count bigint,
+  wow_count bigint,
+  thankful_count bigint,
+  care_count bigint,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+CREATE TABLE public.post_statistics_expected (
+  post_id character varying PRIMARY KEY,
+  updated timestamp with time zone NOT NULL,
+  angry_count bigint,
+  comment_count bigint,
+  favorite_count bigint,
+  haha_count bigint,
+  like_count bigint,
+  love_count bigint,
+  sad_count bigint,
+  share_count bigint,
+  up_count bigint,
+  wow_count bigint,
+  thankful_count bigint,
+  care_count bigint,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+CREATE TABLE public.expanded_links (
+  post_id character varying NOT NULL,
+  expanded character varying,
+  original character varying,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+CREATE TABLE public.media (
+  post_id character varying NOT NULL,
+  url_full character varying,
+  url character varying,
+  width bigint,
+  height bigint,
+  type character varying,
+  last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
+);
+COMMENT ON COLUMN public.accounts.id IS 'The unique identifier of the account in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform on which the account exists.';
+COMMENT ON COLUMN public.accounts.account_type IS 'For Facebook only. Options are facebook_page, facebook_profile, facebook_group.';
+COMMENT ON COLUMN public.accounts.handle IS 'The handle or vanity URL of the account.';
+COMMENT ON COLUMN public.accounts.name IS 'The name of the account.';
+COMMENT ON COLUMN public.accounts.page_admin_top_country IS 'The ISO country code of the the country from where the plurality of page administrators operate.';
+COMMENT ON COLUMN public.accounts.platform IS 'The platform on which the account exists. enum (facebook, instagram, reddit)';
+COMMENT ON COLUMN public.accounts.platform_id IS 'The platform''s ID for the account. This is not shown for Facebook public users.';
+COMMENT ON COLUMN public.accounts.profile_image IS 'A URL pointing at the profile image.';
+COMMENT ON COLUMN public.accounts.subscriber_count IS 'The number of subscribers/likes/followers the account has. By default, the subscriberCount property will show page Followers (as of January 26, 2021). You can select either Page Likes or Followers in your Dashboard settings. https://help.crowdtangle.com/en/articles/4797890-faq-measuring-followers.';
+COMMENT ON COLUMN public.accounts.url IS 'A link to the account on its platform.';
+COMMENT ON COLUMN public.accounts.verified IS 'Whether or not the account is verified by the platform, if supported by the platform. If not supported, will return false.';
+
+COMMENT ON COLUMN public.posts.id IS 'format ("account.id|postExternalId")   The unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.posts.account_id IS 'See account https://github.com/CrowdTangle/API/wiki/Account';
+COMMENT ON COLUMN public.posts.branded_content_sponsor_account_id IS 'See account https://github.com/CrowdTangle/API/wiki/Account . This field is only present for Facebook Page posts where there is a sponsoring Page.';
+COMMENT ON COLUMN public.posts.message IS 'The user-submitted text on a post.';
+COMMENT ON COLUMN public.posts.platform IS 'The platform on which the post was posted. E.g., Facebook, Instagram, etc. enum (facebook, instagram, reddit)';
+COMMENT ON COLUMN public.posts.platform_id IS 'The platform''s ID for the post.';
+COMMENT ON COLUMN public.posts.post_url IS 'The URL to access the post on its platform.';
+COMMENT ON COLUMN public.posts.subscriber_count IS 'The number of subscriber the account had when the post was published. This is in contrast to the subscriberCount found on the account, which represents the current number of subscribers an account has.';
+COMMENT ON COLUMN public.posts.type IS 'The type of the post. enum (album, igtv, link, live_video, live_video_complete, live_video_scheduled, native_video, photo, status, video, vine, youtube)';
+COMMENT ON COLUMN public.posts.updated IS 'The date and time the post was most recently updated in CrowdTangle, which is most often via getting new scores from the platform. Time zone is UTC. "yyyy-mm-dd hh:mm:ss")';
+COMMENT ON COLUMN public.posts.video_length_ms IS 'The length of the video in milliseconds.';
+COMMENT ON COLUMN public.posts.image_text IS 'string  The text, if it exists, within an image.';
+COMMENT ON COLUMN public.posts.legacy_id IS 'The legacy version of the unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.posts.caption IS 'The caption to a photo, if available.';
+COMMENT ON COLUMN public.posts.link IS 'An external URL that the post links to, if available. (Facebook only)';
+COMMENT ON COLUMN public.posts.date IS 'date ("yyyy‑mm‑dd hh:mm:ss")  The date and time the post was published. Time zone is UTC.';
+COMMENT ON COLUMN public.posts.description IS 'Further details, if available. Associated with links or images across different platforms.';
+COMMENT ON COLUMN public.posts.score IS 'The score of a post as measured by the request. E.g. it will represent the overperforming score if the request sortBy specifies overperforming, the interaction rate if the request specifies interaction_rate, etc.';
+COMMENT ON COLUMN public.posts.live_video_status IS 'The status of the live video. ("live", "completed", "upcoming")';
+
+COMMENT ON COLUMN public.post_statistics_actual.post_id IS 'format ("account.id|postExternalId")   The unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.post_statistics_actual.angry_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.comment_count IS 'Facebook, Instagram, Reddit';
+COMMENT ON COLUMN public.post_statistics_actual.favorite_count IS 'Instagram';
+COMMENT ON COLUMN public.post_statistics_actual.haha_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.like_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.love_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.sad_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.share_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.up_count IS 'Reddit';
+COMMENT ON COLUMN public.post_statistics_actual.wow_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.thankful_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_actual.care_count IS 'Facebook';
+
+COMMENT ON COLUMN public.post_statistics_expected.post_id IS 'format ("account.id|postExternalId")   The unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.post_statistics_expected.angry_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.comment_count IS 'Facebook, Instagram, Reddit';
+COMMENT ON COLUMN public.post_statistics_expected.favorite_count IS 'Instagram';
+COMMENT ON COLUMN public.post_statistics_expected.haha_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.like_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.love_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.sad_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.share_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.up_count IS 'Reddit';
+COMMENT ON COLUMN public.post_statistics_expected.wow_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.thankful_count IS 'Facebook';
+COMMENT ON COLUMN public.post_statistics_expected.care_count IS 'Facebook';
+
+COMMENT ON COLUMN public.expanded_links.post_id IS 'format ("account.id|postExternalId")   The unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.expanded_links.expanded IS 'Expanded version of original link';
+COMMENT ON COLUMN public.expanded_links.original IS 'original link that came in the post (which are often shortened),';
+
+COMMENT ON COLUMN public.media.post_id IS 'format ("account.id|postExternalId")   The unique identifier of the post in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform from which the post originated.';
+COMMENT ON COLUMN public.media.url_full IS 'The source of the full-sized version of the media. API returns this as |full| but that is a reserved word in postgres';
+COMMENT ON COLUMN public.media.url IS 'The source of the media.';
+COMMENT ON COLUMN public.media.width IS 'The width of the media.';
+COMMENT ON COLUMN public.media.height IS 'The height of the media.';
+COMMENT ON COLUMN public.media.type IS 'The type of the media. enum (photo or video)';
+
