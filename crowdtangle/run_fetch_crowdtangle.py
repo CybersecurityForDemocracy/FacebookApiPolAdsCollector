@@ -40,7 +40,7 @@ def run(argv=None, save_main_session=True):
     api_token = config['CROWDTANGLE'].get('API_TOKEN')
     list_ids = config['CROWDTANGLE'].get('LIST_IDS', None)
     if list_ids:
-        list_ids = list_ids.strip(',')
+        list_ids = list_ids.split(',')
 
     fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
                 list_ids=list_ids,
