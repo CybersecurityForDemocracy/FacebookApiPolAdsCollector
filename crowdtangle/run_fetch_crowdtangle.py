@@ -5,8 +5,6 @@ import logging
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
-from apache_beam.transforms.trigger import AccumulationMode, AfterCount, Repeatedly
-from apache_beam.utils.timestamp import Duration
 
 from crowdtangle import fetch_crowdtangle
 from crowdtangle import process_crowdtangle_posts
@@ -47,6 +45,7 @@ def run(argv=None, save_main_session=True):
                 end_date=end_date,
                 max_results_to_fetch=max_results_to_fetch)
 
+    logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_crowdtangle_args)
     with beam.Pipeline(options=pipeline_options) as pipeline:
         results, errors = (
             pipeline | beam.Create([fetch_crowdtangle_args])
