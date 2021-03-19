@@ -38,9 +38,12 @@ def run(argv=None, save_main_session=True):
         start_date = config['CROWDTANGLE'].get('START_DATE')
         end_date = config['CROWDTANGLE'].get('END_DATE', None)
     api_token = config['CROWDTANGLE'].get('API_TOKEN')
+    list_ids = config['CROWDTANGLE'].get('LIST_IDS', None)
+    if list_ids:
+        list_ids = list_ids.strip(',')
 
     fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
-                list_ids=None,
+                list_ids=list_ids,
                 start_date=start_date,
                 end_date=end_date,
                 max_results_to_fetch=max_results_to_fetch)
