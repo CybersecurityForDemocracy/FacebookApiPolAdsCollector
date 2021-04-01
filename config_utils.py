@@ -39,7 +39,7 @@ def get_database_connection(database_connection_params):
         psycopg2.connection ready to be used.
     """
     db_authorize = ("host=%(host)s dbname=%(database_name)s user=%(username)s "
-                    "password=%(password)s port=%(port)s") % database_connection_params._asdict()
+                    "password=%(password)s port=%(port)s sslmode=require") % database_connection_params._asdict()
     connection = psycopg2.connect(db_authorize)
     logging.info('Established connecton to %s', connection.dsn)
     return connection
