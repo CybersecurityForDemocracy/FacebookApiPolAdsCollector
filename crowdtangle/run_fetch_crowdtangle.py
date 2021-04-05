@@ -39,6 +39,7 @@ def run(argv=None, save_main_session=True):
         end_date = config['CROWDTANGLE'].get('END_DATE', None)
     api_token = config['CROWDTANGLE'].get('API_TOKEN')
     list_ids = config['CROWDTANGLE'].get('LIST_IDS', None)
+    dashboard_name = config['CROWDTANGLE'].get('DASHBOARD_NAME')
     if list_ids:
         list_ids = list_ids.split(',')
 
@@ -46,6 +47,7 @@ def run(argv=None, save_main_session=True):
                 list_ids=list_ids,
                 start_date=start_date,
                 end_date=end_date,
+                dashboard_name=dashboard_name,
                 max_results_to_fetch=max_results_to_fetch)
 
     logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_crowdtangle_args)
@@ -66,7 +68,8 @@ def run(argv=None, save_main_session=True):
         (processed_results
          | 'Write processed results to Database' >> beam.ParDo(
              write_crowdtangle_results_to_database.WriteCrowdTangleResultsToDatabase(
-                     config_utils.get_database_connection_params_from_config(config))))
+                     config_utils.get_database_connection_params_from_config(config),
+                     dashboard_name=fetch_crowdtangle_args.dashboard_name)))
 
 
 if __name__ == '__main__':

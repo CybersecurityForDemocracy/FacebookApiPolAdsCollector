@@ -10,6 +10,7 @@ from minet.crowdtangle.exceptions import CrowdTangleError
 FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['start_date',
                                                            'end_date',
                                                            'list_ids',
+                                                           'dashboard_name',
                                                            'max_results_to_fetch'])
 
 

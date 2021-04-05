@@ -401,6 +401,20 @@ CREATE TABLE public.media (
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
+
+CREATE TABLE public.dashboards (
+  dashboard_id bigserial PRIMARY KEY,
+  dashboard_name text NOT NULL
+);
+
+CREATE TABLE public.post_dashboards (
+  post_id character varying NOT NULL,
+  dashboard_id bigint NOT NULL,
+  CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  CONSTRAINT dashboard_id_fk FOREIGN KEY (dashboard_id) REFERENCES public.dashboards (dashboard_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
+  PRIMARY KEY(post_id, dashboard_id)
+);
+
 COMMENT ON COLUMN public.accounts.id IS 'The unique identifier of the account in the CrowdTangle system. This ID is specific to CrowdTangle, not the platform on which the account exists.';
 COMMENT ON COLUMN public.accounts.account_type IS 'For Facebook only. Options are facebook_page, facebook_profile, facebook_group.';
 COMMENT ON COLUMN public.accounts.handle IS 'The handle or vanity URL of the account.';
