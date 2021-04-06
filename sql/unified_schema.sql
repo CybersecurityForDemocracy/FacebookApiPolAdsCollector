@@ -307,7 +307,7 @@ CREATE INDEX ads_page_id_ad_delivery_start_time_idx ON public.ads USING btree (p
 
 CREATE TABLE public.accounts (
   id bigint PRIMARY KEY,
-  account_type character varying NOT NULL,
+  account_type character varying,
   handle character varying,
   name character varying NOT NULL,
   page_admin_top_country character varying,
