@@ -328,7 +328,7 @@ CREATE TABLE public.posts (
   title character varying,
   platform character varying NOT NULL,
   platform_id character varying NOT NULL,
-  post_url character varying NOT NULL,
+  post_url character varying,
   subscriber_count bigint,
   type character varying NOT NULL,
   updated timestamp with time zone NOT NULL,
