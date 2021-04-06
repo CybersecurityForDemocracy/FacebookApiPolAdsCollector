@@ -1,10 +1,13 @@
 """Encapsulation of database read, write, and update logic."""
 from collections import defaultdict, namedtuple
+from contextlib import contextmanager
 import logging
 
 import psycopg2
 import psycopg2.extras
 from psycopg2 import sql
+
+import config_utils
 
 EntityRecord = namedtuple('EntityRecord', ['name', 'type'])
 PageAgeAndMinImpressionSum = namedtuple('PageAgeAndMinImpressionSum',
@@ -14,6 +17,11 @@ PageSnapshotFetchInfo = namedtuple('PageSnapshotFetchInfo',
 PageRecord = namedtuple("PageRecord", ["id", "name"])
 
 _DEFAULT_PAGE_SIZE = 250
+
+@contextmanager
+def db_interface_context(database_connection_params):
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
+        yield DBInterface(db_connection)
 
 class DBInterface():
 
