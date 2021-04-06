@@ -158,10 +158,11 @@ def send_slack_message(slack_url, msg, slack_user_id_to_include=None):
 
 class FacebookAdCreativeRetriever:
 
-    def __init__(self, db_connection, creative_retriever_factory, browser_context_factory,
-                 ad_creative_images_bucket_client, ad_creative_videos_bucket_client,
-                 archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-                 slack_user_id_to_include, max_video_download_size=DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE):
+    def __init__(self, database_connection_params, creative_retriever_factory,
+                 browser_context_factory, ad_creative_images_bucket_client,
+                 ad_creative_videos_bucket_client, archive_screenshots_bucket_client,
+                 commit_to_db_every_n_processed, slack_url, slack_user_id_to_include,
+                 max_video_download_size=DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE):
         self.ad_creative_images_bucket_client = ad_creative_images_bucket_client
         self.ad_creative_videos_bucket_client = ad_creative_videos_bucket_client
         self.archive_screenshots_bucket_client = archive_screenshots_bucket_client
@@ -177,8 +178,7 @@ class FacebookAdCreativeRetriever:
         self.num_video_download_failure = 0
         self.num_video_uploade_to_gcs_bucket = 0
         self.current_batch_id = None
-        self.db_connection = db_connection
-        self.db_interface = db_functions.DBInterface(db_connection)
+        self.database_connection_params = database_connection_params
         self.commit_to_db_every_n_processed = commit_to_db_every_n_processed
         self.start_time = None
         self.slack_url = slack_url
@@ -227,7 +227,9 @@ class FacebookAdCreativeRetriever:
     def get_archive_id_batch_or_wait_until_available(self):
         """Get batch of archive IDs to fetch. Block until results are available."""
         while True:
-            batch_and_archive_ids = self.db_interface.get_archive_id_batch_to_fetch()
+            with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+                batch_and_archive_ids = db_interface.get_archive_id_batch_to_fetch()
+
             if batch_and_archive_ids:
                 return batch_and_archive_ids
 
@@ -271,7 +273,7 @@ class FacebookAdCreativeRetriever:
                     for archive_id_chunk in chunks(archive_id_batch,
                                                    self.commit_to_db_every_n_processed):
                         self.process_archive_ids(archive_id_chunk)
-                        self.db_connection.commit()
+                        #  self.db_connection.commit()
                         num_snapshots_processed_in_current_batch += len(archive_id_chunk)
                         logging.info('Processed %d of %d archive snapshots.',
                                      num_snapshots_processed_in_current_batch,
@@ -281,13 +283,15 @@ class FacebookAdCreativeRetriever:
                     logging.info(
                         'Releasing snapshot_fetch_batch_id %s due to unhandled exception: '
                         '%s', self.current_batch_id, error)
-                    self.db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
-                    self.db_connection.commit()
+                    with db_functions.db_interface_context(self.database_connection_params) \
+                        as db_interface:
+                        db_interface.release_uncompleted_fetch_batch(self.current_batch_id)
                     raise
                 num_snapshots_processed_since_chromedriver_reset += len(archive_id_batch)
 
-                self.db_interface.mark_fetch_batch_completed(self.current_batch_id)
-                self.db_connection.commit()
+                with db_functions.db_interface_context(self.database_connection_params) \
+                    as db_interface:
+                    db_interface.mark_fetch_batch_completed(self.current_batch_id)
 
                 if (num_snapshots_processed_since_chromedriver_reset >=
                     RESET_BROWSER_AFTER_PROCESSING_N_SNAPSHOTS):
@@ -422,9 +426,11 @@ class FacebookAdCreativeRetriever:
                      len(ad_creative_records))
         logging.debug('Inserting AdCreativeRecords to DB: %r',
                       ad_creative_records)
-        self.db_interface.insert_ad_creative_records(ad_creative_records)
-        logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
-        self.db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
+
+        with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+            db_interface.insert_ad_creative_records(ad_creative_records)
+            logging.info('Updating %d snapshot metadata records.', len(snapshot_metadata_records))
+            db_interface.update_ad_snapshot_metadata(snapshot_metadata_records)
 
     def download_video(self, archive_id, video_url):
         video_bytes = None
@@ -595,32 +601,31 @@ def main(argv):
     creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
     browser_context_factory = browser_context.DockerSeleniumBrowserContextFactory(config)
 
-    with config_utils.get_database_connection(database_connection_params) as db_connection:
-        ad_creative_images_bucket_client = make_gcs_bucket_client(AD_CREATIVE_IMAGES_BUCKET,
-                                                                  GCS_CREDENTIALS_FILE)
-        ad_creative_video_bucket_client = make_gcs_bucket_client(AD_CREATIVE_VIDEOS_BUCKET,
-                                                                 GCS_CREDENTIALS_FILE)
-        archive_screenshots_bucket_client = make_gcs_bucket_client(ARCHIVE_SCREENSHOTS_BUCKET,
-                                                                   GCS_CREDENTIALS_FILE)
-        image_retriever = FacebookAdCreativeRetriever(
-            db_connection, creative_retriever_factory, browser_context_factory,
-            ad_creative_images_bucket_client, ad_creative_video_bucket_client,
-            archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
-            slack_user_id_to_include, max_video_download_size=max_video_download_size)
-        try:
-            image_retriever.retreive_and_store_ad_creatives()
-        except KeyboardInterrupt:
-            # don't log about Ctrl-C
-            raise
-        except BaseException as error:
-            slack_msg = (
-                ':rotating_light: :rotating_light: :rotating_light: '
-                'fb_ad_creative_retriever.py raised |%r| on host %s.'
-                ':rotating_light: :rotating_light: :rotating_light:' % (
-                    error, socket.getfqdn()))
-            send_slack_message(slack_url, slack_msg,
-                               slack_user_id_to_include=slack_user_id_to_include)
-            raise
+    ad_creative_images_bucket_client = make_gcs_bucket_client(AD_CREATIVE_IMAGES_BUCKET,
+                                                              GCS_CREDENTIALS_FILE)
+    ad_creative_video_bucket_client = make_gcs_bucket_client(AD_CREATIVE_VIDEOS_BUCKET,
+                                                             GCS_CREDENTIALS_FILE)
+    archive_screenshots_bucket_client = make_gcs_bucket_client(ARCHIVE_SCREENSHOTS_BUCKET,
+                                                               GCS_CREDENTIALS_FILE)
+    image_retriever = FacebookAdCreativeRetriever(
+        database_connection_params, creative_retriever_factory, browser_context_factory,
+        ad_creative_images_bucket_client, ad_creative_video_bucket_client,
+        archive_screenshots_bucket_client, commit_to_db_every_n_processed, slack_url,
+        slack_user_id_to_include, max_video_download_size=max_video_download_size)
+    try:
+        image_retriever.retreive_and_store_ad_creatives()
+    except KeyboardInterrupt:
+        # don't log about Ctrl-C
+        raise
+    except BaseException as error:
+        slack_msg = (
+            ':rotating_light: :rotating_light: :rotating_light: '
+            'fb_ad_creative_retriever.py raised |%r| on host %s.'
+            ':rotating_light: :rotating_light: :rotating_light:' % (
+                error, socket.getfqdn()))
+        send_slack_message(slack_url, slack_msg,
+                           slack_user_id_to_include=slack_user_id_to_include)
+        raise
 
 
 if __name__ == '__main__':
