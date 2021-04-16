@@ -10,7 +10,7 @@ from time import sleep
 from OpenSSL import SSL
 import facebook
 
-from db_functions import DBInterface
+from db_functions import db_interface_context
 from slack_notifier import notify_slack
 import config_utils
 
@@ -27,10 +27,9 @@ SearchRunnerParams = namedtuple(
 
 class SearchRunner():
 
-    def __init__(self, connection, db, search_runner_params):
+    def __init__(self, database_connection_params, search_runner_params):
         self.country_code = search_runner_params.country_code
-        self.connection = connection
-        self.db = db
+        self.database_connection_params = database_connection_params
         self.fb_access_token = search_runner_params.facebook_access_token
         self.sleep_time = search_runner_params.sleep_time
         self.request_limit = search_runner_params.request_limit
@@ -161,10 +160,10 @@ class SearchRunner():
         #write new ads to our database
         num_active_ads = len(self.active_ads)
         logging.info("marking %d ads as active %s", num_active_ads, self.ad_delivery_date_arg)
-        self.db.update_ad_last_active_date(self.ad_delivery_date_arg, self.active_ads)
+        with db_interface_context(self.database_connection_params) as db_interface:
+            db_interface.update_ad_last_active_date(self.ad_delivery_date_arg, self.active_ads)
         self.total_ads_marked_active += num_active_ads
         self.active_ads = []
-        self.connection.commit()
 
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
@@ -251,10 +250,8 @@ def main(config):
         max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
         stop_at_datetime=stop_at_datetime)
 
-    connection = config_utils.get_database_connection_from_config(config)
-    logging.info('Established conneciton to %s', connection.dsn)
-    db = DBInterface(connection)
-    search_runner = SearchRunner(connection, db, search_runner_params)
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    search_runner = SearchRunner(database_connection_params, search_runner_params)
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
     notify_slack(slack_url_info_channel,
@@ -270,7 +267,6 @@ def main(config):
         completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
     finally:
-        connection.close()
         end_time = datetime.datetime.now()
         num_ads_marked_active = search_runner.num_ads_marked()
         if not min_expected_active_ads_met(num_ads_marked_active, min_expected_active_ads):
