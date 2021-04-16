@@ -167,11 +167,10 @@ def parse_api_result_datetime_with_fallback_to_input(datetime_str):
 
 class SearchRunner():
 
-    def __init__(self, crawl_date, connection, db, search_runner_params):
+    def __init__(self, crawl_date, database_connection_params, search_runner_params):
         self.crawl_date = crawl_date
         self.country_code = search_runner_params.country_code
-        self.connection = connection
-        self.db = db
+        self.database_connection_params = database_connection_params
         self.fb_access_token = search_runner_params.facebook_access_token
         self.sleep_time = search_runner_params.sleep_time
         self.request_limit = search_runner_params.request_limit
@@ -363,10 +362,11 @@ class SearchRunner():
         self.crawl_date = datetime.date.today()
 
         #cache of ads/pages/regions/demo_groups we've already seen so we don't reinsert them
-        self.existing_ads_to_end_time_map = self.db.existing_ads()
-        self.existing_page_ids = self.db.existing_pages()
-        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
-        self.existing_funding_entities = self.db.existing_funding_entities()
+        with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+            self.existing_ads_to_end_time_map = db_interface.existing_ads()
+            self.existing_page_ids = db_interface.existing_pages()
+            self.existing_page_record_to_max_last_seen_time = db_interface.page_records_to_max_last_seen()
+            self.existing_funding_entities = db_interface.existing_funding_entities()
 
         #get ads
         graph = facebook.GraphAPI(access_token=self.fb_access_token, version='7.0')
@@ -510,41 +510,42 @@ class SearchRunner():
 
 
     def write_results(self):
-        #write new pages, regions, and demo groups to self.db first so we can update our caches before writing ads
-        self.db.insert_funding_entities(self.new_funding_entities)
-        self.db.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
+        with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+            # write new pages, regions, and demo groups to database first so we can update our caches before writing ads
+            db_interface.insert_funding_entities(self.new_funding_entities)
+            db_interface.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
 
-        #write new ads to our database
-        num_new_ads = len(self.new_ads)
-        logging.info("writing %d new ads to db", num_new_ads)
-        self.db.insert_new_ads(self.new_ads)
-        self.total_ads_added_to_db += num_new_ads
+            #write new ads to our database
+            num_new_ads = len(self.new_ads)
+            logging.info("writing %d new ads to db", num_new_ads)
+            db_interface.insert_new_ads(self.new_ads)
+            self.total_ads_added_to_db += num_new_ads
 
-        #write new impressions to our database
-        num_new_impressions = len(self.new_impressions)
-        logging.info("writing %d impressions to db", num_new_impressions)
-        self.db.insert_new_impressions(self.new_impressions)
-        self.total_impressions_added_to_db += num_new_impressions
+            #write new impressions to our database
+            num_new_impressions = len(self.new_impressions)
+            logging.info("writing %d impressions to db", num_new_impressions)
+            db_interface.insert_new_impressions(self.new_impressions)
+            self.total_impressions_added_to_db += num_new_impressions
 
-        logging.info("writing self.new_ad_demo_impressions to db")
-        self.db.insert_new_impression_demos(self.new_ad_demo_impressions)
+            logging.info("writing self.new_ad_demo_impressions to db")
+            db_interface.insert_new_impression_demos(self.new_ad_demo_impressions)
 
-        logging.info("writing self.new_ad_region_impressions to db")
-        self.db.insert_new_impression_regions(self.new_ad_region_impressions)
-        self.connection.commit()
+            logging.info("writing self.new_ad_region_impressions to db")
+            db_interface.insert_new_impression_regions(self.new_ad_region_impressions)
 
     def refresh_state(self):
-        # We have to reload these since we rely on the row ids from the database for indexing
-        self.existing_funding_entities = self.db.existing_funding_entities()
-        self.existing_page_ids = self.db.existing_pages()
-        self.existing_page_record_to_max_last_seen_time = self.db.page_records_to_max_last_seen()
-        self.connection.commit()
+        with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+            # We have to reload these since we rely on the row ids from the database for indexing
+            self.existing_funding_entities = db_interface.existing_funding_entities()
+            self.existing_page_ids = db_interface.existing_pages()
+            self.existing_page_record_to_max_last_seen_time = db_interface.page_records_to_max_last_seen()
 
     def perfrom_post_collection_actions(self):
         """Do actions after collection loop has terminated. eg cleanup or DB updates that should
         happen after all information collected.
         """
-        self.db.update_page_name_to_latest_seen()
+        with db_functions.db_interface_context(self.database_connection_params) as db_interface:
+            db_interface.update_page_name_to_latest_seen()
 
     def get_formatted_graph_error_counts(self, delimiter='\n'):
         """Get GraphAPI error counts (sorted by count descending) string with specified delimiter.
@@ -566,7 +567,7 @@ class SearchRunner():
 
 
 #get page data
-def get_page_data(connection, config):
+def get_page_data(database_connection_params, config):
     page_ids = {}
     input_TYPE = config['INPUT']['TYPE']
     if input_TYPE == 'file':
@@ -578,11 +579,12 @@ def get_page_data(connection, config):
                 for row in input:
                     page_ids[row.strip()] = 0
     else:
-        cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        page_ads_query = "select page_id, count(*) as ad_count from ads group by page_id"
-        cursor.execute(page_ads_query)
-        for row in cursor:
-            page_ids[row['page_id']] = row['ad_count']
+        with config_utils.get_database_connection(database_connection_params) as db_connection:
+            cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            page_ads_query = "select page_id, count(*) as ad_count from ads group by page_id"
+            cursor.execute(page_ads_query)
+            for row in cursor:
+                page_ids[row['page_id']] = row['ad_count']
 
     return page_ids
 
@@ -680,13 +682,10 @@ def main(config):
         max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
         stop_at_datetime=stop_at_datetime)
 
-    connection = config_utils.get_database_connection_from_config(config)
-    logging.info('Established conneciton to %s', connection.dsn)
-    db = db_functions.DBInterface(connection)
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
     search_runner = SearchRunner(
         datetime.date.today(),
-        connection,
-        db,
+        database_connection_params,
         search_runner_params)
     page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
     page_string = page_ids or 'all pages'
@@ -699,7 +698,7 @@ def main(config):
     slack_url_for_completion_msg = slack_url_error_channel
     try:
         if page_ids:
-            curr_page_ids = get_page_data(connection, config)
+            curr_page_ids = get_page_data(database_connection_params, config)
             for page_id, ad_count in page_ids.items():
                 if page_id in curr_page_ids:
                     curr_ad_count = curr_page_ids[page_id]
@@ -720,7 +719,6 @@ def main(config):
         completion_status = f'Uncaught exception: {e}'
         logging.error(completion_status, exc_info=True)
     finally:
-        connection.close()
         end_time = datetime.datetime.now()
         num_ads_added = search_runner.num_ads_added_to_db()
         num_impressions_added = search_runner.num_impressions_added_to_db()
