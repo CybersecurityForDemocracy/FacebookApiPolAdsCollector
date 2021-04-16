@@ -512,7 +512,8 @@ class SearchRunner():
 
     def write_results(self):
         with db_functions.db_interface_context(self.database_connection_params) as db_interface:
-            # write new pages, regions, and demo groups to database first so we can update our caches before writing ads
+            # write new pages, regions, and demo groups to database first so we can update our
+            # caches before writing ads
             db_interface.insert_funding_entities(self.new_funding_entities)
             db_interface.insert_pages(self.new_pages, self.new_page_record_to_max_last_seen_time)
 
@@ -539,7 +540,8 @@ class SearchRunner():
             # We have to reload these since we rely on the row ids from the database for indexing
             self.existing_funding_entities = db_interface.existing_funding_entities()
             self.existing_page_ids = db_interface.existing_pages()
-            self.existing_page_record_to_max_last_seen_time = db_interface.page_records_to_max_last_seen()
+            self.existing_page_record_to_max_last_seen_time = (
+                db_interface.page_records_to_max_last_seen())
 
     def perfrom_post_collection_actions(self):
         """Do actions after collection loop has terminated. eg cleanup or DB updates that should
