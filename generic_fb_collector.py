@@ -335,7 +335,7 @@ class SearchRunner():
             logging.info("no region impression information for: %s", curr_ad.archive_id)
 
         regions = set()
-        for region_result in region_distribution: 
+        for region_result in region_distribution:
             # If we get the same region more than once for an ad, the second occurance
             # This is a data losing proposition but can't be helped till FB fixes the results
             # They provide on the API
@@ -365,7 +365,8 @@ class SearchRunner():
         with db_functions.db_interface_context(self.database_connection_params) as db_interface:
             self.existing_ads_to_end_time_map = db_interface.existing_ads()
             self.existing_page_ids = db_interface.existing_pages()
-            self.existing_page_record_to_max_last_seen_time = db_interface.page_records_to_max_last_seen()
+            self.existing_page_record_to_max_last_seen_time = (
+                db_interface.page_records_to_max_last_seen())
             self.existing_funding_entities = db_interface.existing_funding_entities()
 
         #get ads
