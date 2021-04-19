@@ -77,6 +77,7 @@ CREATE TABLE ad_metadata (
   archive_id bigint,
   funder_id bigint,
   ad_id bigint,
+  ad_score decimal(8, 6),
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (archive_id),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
