@@ -24,7 +24,7 @@ pycparser==2.20
 pyOpenSSL==20.0.0
 pytz==2020.4
 requests==2.25.1
-rsa==4.6
+rsa==4.7
 selenium==3.141.0
 simhash==2.0.0
 six==1.15.0
