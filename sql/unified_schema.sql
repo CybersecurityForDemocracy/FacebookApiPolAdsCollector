@@ -342,6 +342,7 @@ CREATE TABLE public.posts (
   description character varying,
   score double precision,
   live_video_status character varying,
+  language_code character varying,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT account_id_fk FOREIGN KEY (account_id) REFERENCES public.accounts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT branded_content_sponsor_account_id_fk FOREIGN KEY (branded_content_sponsor_account_id) REFERENCES public.accounts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION

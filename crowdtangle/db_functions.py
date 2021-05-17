@@ -25,7 +25,7 @@ class CrowdTangleDBInterface:
             '%(title)s,%(platform)s, %(platform_id)s, %(post_url)s, %(subscriber_count)s, '
             '%(type)s, %(updated)s, %(video_length_ms)s, %(image_text)s, %(legacy_id)s, '
             '%(caption)s, %(link)s, %(date)s, %(description)s, %(score)s, %(live_video_status)s, '
-            'CURRENT_TIMESTAMP)')
+            '%(language_code)s, CURRENT_TIMESTAMP)')
         insert_posts_query = (
             '''INSERT INTO posts(id, account_id, branded_content_sponsor_account_id, message, title,
             platform, platform_id, post_url, subscriber_count, type, updated, video_length_ms,
@@ -40,7 +40,8 @@ class CrowdTangleDBInterface:
             image_text = EXCLUDED.image_text, legacy_id = EXCLUDED.legacy_id,
             caption = EXCLUDED.caption, link = EXCLUDED.link, date = EXCLUDED.date,
             description = EXCLUDED.description, score = EXCLUDED.score,
-            live_video_status = EXCLUDED.live_video_status, last_modified_time = CURRENT_TIMESTAMP
+            live_video_status = EXCLUDED.live_video_status, language_code = EXCLUDED.language_code,
+            last_modified_time = CURRENT_TIMESTAMP
             WHERE posts.id = EXCLUDED.id AND posts.updated < EXCLUDED.updated;''')
         psycopg2.extras.execute_values(cursor,
                                        insert_posts_query,
