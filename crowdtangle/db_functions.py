@@ -30,8 +30,8 @@ class CrowdTangleDBInterface:
             '''INSERT INTO posts(id, account_id, branded_content_sponsor_account_id, message, title,
             platform, platform_id, post_url, subscriber_count, type, updated, video_length_ms,
             image_text, legacy_id, caption, link, date, description, score, live_video_status,
-            last_modified_time) VALUES %s ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id,
-            account_id = EXCLUDED.account_id,
+            language_code, last_modified_time) VALUES %s
+            ON CONFLICT (id) DO UPDATE SET id = EXCLUDED.id, account_id = EXCLUDED.account_id,
             branded_content_sponsor_account_id = EXCLUDED.branded_content_sponsor_account_id,
             message = EXCLUDED.message, title = EXCLUDED.title, platform = EXCLUDED.platform,
             platform_id = EXCLUDED.platform_id, post_url = EXCLUDED.post_url,
