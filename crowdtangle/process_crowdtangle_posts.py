@@ -36,7 +36,7 @@ PostRecord = namedtuple('PostRecord',
                          'date',
                          'description',
                          'score',
-                         'live_video_status'
+                         'live_video_status',
                          'language_code'])
 AccountRecord = namedtuple('AccountRecord',
                            ['id',
