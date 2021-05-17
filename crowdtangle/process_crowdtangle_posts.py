@@ -36,7 +36,8 @@ PostRecord = namedtuple('PostRecord',
                          'date',
                          'description',
                          'score',
-                         'live_video_status'])
+                         'live_video_status',
+                         'language_code'])
 AccountRecord = namedtuple('AccountRecord',
                            ['id',
                             'account_type',
@@ -141,7 +142,8 @@ class ProcessCrowdTanglePosts(beam.DoFn):
             date=item.get('date'),
             description=item.get('description'),
             score=item.get('score'),
-            live_video_status=item.get('liveVideoStatus'))
+            live_video_status=item.get('liveVideoStatus'),
+            language_code=item.get('languageCode'))
 
         account_list = [self.make_account_record(item['account'], post_updated)]
 
