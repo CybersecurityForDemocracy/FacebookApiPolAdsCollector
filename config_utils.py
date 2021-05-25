@@ -10,7 +10,12 @@ DatabaseConnectionParams = collections.namedtuple('DatabaseConnectionParams',
                                                    'database_name',
                                                    'username',
                                                    'password',
-                                                   'port'])
+                                                   'port',
+                                                   'default_schema',
+                                                   'sslrootcert',
+                                                   'sslcert',
+                                                   'sslkey',
+                                                   ])
 
 
 def get_database_connection_params_from_config(config):
@@ -26,7 +31,11 @@ def get_database_connection_params_from_config(config):
         database_name=config['POSTGRES']['DBNAME'],
         username=config['POSTGRES']['USER'],
         password=config['POSTGRES']['PASSWORD'],
-        port=config['POSTGRES']['PORT'])
+        port=config['POSTGRES']['PORT'],
+        default_schema=config.get('POSTGRES', 'SCHEMA', fallback=None),
+        sslrootcert=config.get('POSTGRES', 'SERVER_CA', fallback=None),
+        sslcert=config.get('POSTGRES', 'CLIENT_CERT', fallback=None),
+        sslkey=config.get('POSTGRES', 'CLIENT_KEY', fallback=None))
 
 
 def get_database_connection(database_connection_params):
@@ -38,8 +47,17 @@ def get_database_connection(database_connection_params):
     Returns:
         psycopg2.connection ready to be used.
     """
-    db_authorize = ("host=%(host)s dbname=%(database_name)s user=%(username)s "
-                    "password=%(password)s port=%(port)s sslmode=require") % database_connection_params._asdict()
+    db_authorize = (
+        "host=%(host)s dbname=%(database_name)s user=%(username)s password=%(password)s "
+        "port=%(port)s sslmode=require") % database_connection_params._asdict()
+    if database_connection_params.default_schema:
+        db_authorize += (
+            ' options=-csearch_path=%(default_schema)s' % database_connection_params._asdict())
+    if any([database_connection_params.sslrootcert, database_connection_params.sslcert,
+           database_connection_params.sslkey]):
+        db_authorize += (
+            " sslmode=verify-ca sslrootcert=%(sslrootcert)s sslcert=%(sslcert)s sslkey=%(sslkey)s"
+            ) % database_connection_params._asdict()
     connection = psycopg2.connect(db_authorize)
     logging.info('Established connecton to %s', connection.dsn)
     return connection

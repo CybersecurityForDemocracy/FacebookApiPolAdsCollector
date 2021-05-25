@@ -17,6 +17,10 @@ DBNAME=polads
 USER=postgres
 PASSWORD=XXX
 PORT=5432
+SCHEMA=<name of schema, leave blank for default>
+SERVER_CA=<path to server CA, leave blank if not used>
+CLIENT_CERT=<path to client cert, leave blank if not used>
+CLIENT_KEY=<path to client key, leave blank if not used>
 
 [INPUT]
 ARCHIVE_ADVERTISERS_FILE=advertiser_pages.csv
