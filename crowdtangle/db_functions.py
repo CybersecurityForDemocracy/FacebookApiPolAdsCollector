@@ -43,13 +43,16 @@ class CrowdTangleDBInterface:
             live_video_status = EXCLUDED.live_video_status, language_code = EXCLUDED.language_code,
             last_modified_time = CURRENT_TIMESTAMP
             WHERE posts.id = EXCLUDED.id AND posts.updated < EXCLUDED.updated;''')
-        psycopg2.extras.execute_values(cursor,
-                                       insert_posts_query,
-                                       [x._asdict() for x in posts],
-                                       template=insert_template,
-                                       page_size=_DEFAULT_CROWDTANGLE_PAGE_SIZE)
-        logging.debug('upsert_posts statusmessage: %s', cursor.statusmessage)
-        logging.debug('upsert_posts query: %s', cursor.query)
+        try:
+            psycopg2.extras.execute_values(cursor,
+                                           insert_posts_query,
+                                           [x._asdict() for x in posts],
+                                           template=insert_template,
+                                           page_size=_DEFAULT_CROWDTANGLE_PAGE_SIZE)
+            logging.debug('upsert_posts statusmessage: %s', cursor.statusmessage)
+            logging.debug('upsert_posts query: %s', cursor.query)
+        except ValueError as e:
+            logging.error('%r while trying to upsert posts:\n%s', posts)
 
     def upsert_accounts(self, accounts):
         cursor = self.get_cursor()
