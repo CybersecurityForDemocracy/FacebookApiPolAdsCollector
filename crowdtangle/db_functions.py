@@ -52,7 +52,7 @@ class CrowdTangleDBInterface:
             logging.debug('upsert_posts statusmessage: %s', cursor.statusmessage)
             logging.debug('upsert_posts query: %s', cursor.query)
         except ValueError as e:
-            logging.error('%r while trying to upsert posts:\n%s', posts)
+            logging.error('%r while trying to upsert posts:\n%s', e, posts)
 
     def upsert_accounts(self, accounts):
         cursor = self.get_cursor()
