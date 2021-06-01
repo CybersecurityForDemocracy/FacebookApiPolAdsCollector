@@ -148,7 +148,7 @@ def get_image_dhash(image_bytes):
 def upload_blob(bucket_client, blob_path, blob_data):
     blob = bucket_client.blob(blob_path)
     if blob.exists():
-        logging.info('Blob path %s already exists, skipping upload', blob_path)
+        logging.debug('Blob path %s already exists, skipping upload', blob_path)
     else:
         blob.upload_from_string(blob_data)
     return blob.id
