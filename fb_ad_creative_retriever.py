@@ -147,7 +147,10 @@ def get_image_dhash(image_bytes):
                 before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
 def upload_blob(bucket_client, blob_path, blob_data):
     blob = bucket_client.blob(blob_path)
-    blob.upload_from_string(blob_data)
+    if blob.exists():
+        logging.info('Blob path %s already exists, skipping upload', blob_path)
+    else
+        blob.upload_from_string(blob_data)
     return blob.id
 
 def send_slack_message(slack_url, msg, slack_user_id_to_include=None):
