@@ -11,7 +11,7 @@ from crowdtangle import process_crowdtangle_posts
 from crowdtangle import write_crowdtangle_results_to_database
 
 import config_utils
-import db_functions
+from crowdtangle import db_functions
 
 def run(argv=None, save_main_session=True):
     """Main entry point; defines and runs the wordcount pipeline."""
