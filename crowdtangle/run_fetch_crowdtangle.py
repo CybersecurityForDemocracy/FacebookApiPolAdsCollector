@@ -50,6 +50,12 @@ def run(argv=None, save_main_session=True):
         dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
         logging.info('Dashboard Names -> IDs: %s', dashboard_name_to_id)
 
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
+        db_interface = db_functions.CrowdTangleDBInterface(db_connection)
+        dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
+        logging.info('Dashboard Names -> IDs: %s', dashboard_name_to_id)
+
     fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
                 list_ids=list_ids,
                 start_date=start_date,
