@@ -152,18 +152,19 @@ class CrowdTangleDBInterface:
         logging.debug('upsert_media statusmessage: %s', cursor.statusmessage)
         logging.debug('upsert_media query: %s', cursor.query)
 
-    def insert_post_dashboards(self, dashboard_name, post_ids):
+    def all_dashboards_name_to_id(self):
         cursor = self.get_cursor()
-        cursor.execute('SELECT dashboard_id FROM dashboards WHERE dashboard_name = %s',
-                       (dashboard_name,))
-        logging.debug('insert_post_dashboards dashboard_id lookup query: %s', cursor.query.decode())
-        dashboard_id = cursor.fetchone()['dashboard_id']
+        cursor.execute('SELECT dashboard_name, dashboard_id FROM dashboards')
+        logging.debug('get_dashboard_name_to_id query: %s', cursor.query.decode())
+        return {row['dashboard_name']: row['dashboard_id'] for row in cursor}
+
+    def insert_post_dashboards(self, post_id_to_dashboard_id):
+        cursor = self.get_cursor()
         insert_template = '(%(post_id)s, %(dashboard_id)s)'
-        # TODO(macpd): use a WITH statement to get the dashboard ID insame query as insert
         insert_query = (
             'INSERT INTO post_dashboards (post_id, dashboard_id) VALUES %s ON CONFLICT DO NOTHING')
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
-                                       [{'post_id': post_id, 'dashboard_id': dashboard_id} for post_id in post_ids],
+                                       [{'post_id': k, 'dashboard_id': v} for k, v in post_id_to_dashboard_id.items()],
                                        template=insert_template,
                                        page_size=_DEFAULT_CROWDTANGLE_PAGE_SIZE)

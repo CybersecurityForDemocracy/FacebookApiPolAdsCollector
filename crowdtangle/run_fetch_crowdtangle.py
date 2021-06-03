@@ -11,6 +11,7 @@ from crowdtangle import process_crowdtangle_posts
 from crowdtangle import write_crowdtangle_results_to_database
 
 import config_utils
+import db_functions
 
 def run(argv=None, save_main_session=True):
     """Main entry point; defines and runs the wordcount pipeline."""
@@ -42,12 +43,17 @@ def run(argv=None, save_main_session=True):
     dashboard_name = config['CROWDTANGLE'].get('DASHBOARD_NAME')
     if list_ids:
         list_ids = list_ids.split(',')
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
+    with config_utils.get_database_connection(database_connection_params) as db_connection:
+
+        db_interface = db_functions.CrowdTangleDBInterface(db_connection)
+        dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
 
     fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
                 list_ids=list_ids,
                 start_date=start_date,
                 end_date=end_date,
-                dashboard_name=dashboard_name,
+                dashboard_id=dashboard_name_to_id[dashboard_name],
                 max_results_to_fetch=max_results_to_fetch)
 
     logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_crowdtangle_args)
@@ -68,8 +74,7 @@ def run(argv=None, save_main_session=True):
         (processed_results
          | 'Write processed results to Database' >> beam.ParDo(
              write_crowdtangle_results_to_database.WriteCrowdTangleResultsToDatabase(
-                     config_utils.get_database_connection_params_from_config(config),
-                     dashboard_name=fetch_crowdtangle_args.dashboard_name)))
+                     database_connection_params)))
 
 
 if __name__ == '__main__':

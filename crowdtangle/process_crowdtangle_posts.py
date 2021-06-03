@@ -15,7 +15,8 @@ EncapsulatedPost = namedtuple('EncapsulatedPost',
                                'statistics_actual',
                                'statistics_expected',
                                'expanded_links',
-                               'media_list'])
+                               'media_list',
+                               'dashboard_id'])
 PostRecord = namedtuple('PostRecord',
                         ['id',
                          'account_id',
@@ -179,6 +180,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
                 for link in item[_EXPANDED_LINKS_KEY]]
 
         yield EncapsulatedPost(post=post_record, account_list=account_list,
-                                 statistics_actual=statistics_actual,
-                                 statistics_expected=statistics_expected,
-                                 expanded_links=expanded_links, media_list=media_records)
+                               statistics_actual=statistics_actual,
+                               statistics_expected=statistics_expected,
+                               expanded_links=expanded_links, media_list=media_records,
+                               dashboard_id=item['dashboard_id'])
