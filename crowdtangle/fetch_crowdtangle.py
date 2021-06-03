@@ -10,7 +10,7 @@ from minet.crowdtangle.exceptions import CrowdTangleError
 FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['start_date',
                                                            'end_date',
                                                            'list_ids',
-                                                           'dashboard_name',
+                                                           'dashboard_id',
                                                            'max_results_to_fetch'])
 
 
@@ -65,6 +65,7 @@ class FetchCrowdTangle(PTransform):
                                                  sort_by=sort_by, format=format_val,
                                                  limit=max_results_to_fetch, list_ids=list_ids):
                 num_posts += 1
+                post['dashboard_id'] = input_args.dashboard_id
                 yield beam.pvalue.TaggedOutput('api_results', post)
 
             logging.info('CrowdTangle fetch complete. Got %d api_results. query info: %s',
