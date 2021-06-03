@@ -45,6 +45,4 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
                     map(attrgetter('expanded_links'), pcoll)))
             db_interface.upsert_media(itertools.chain.from_iterable(
                     map(attrgetter('media_list'), pcoll)))
-            db_interface.insert_post_dashboards(
-                    {item.post.id: item.dashboard_id for item in pcoll})
-                #  itertools.chain(map(attrgetter('dashboard_id', 'post.id'), pcoll)))
+            db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})
