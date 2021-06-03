@@ -48,6 +48,7 @@ def run(argv=None, save_main_session=True):
 
         db_interface = db_functions.CrowdTangleDBInterface(db_connection)
         dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
+        logging.info('Dashboard Names -> IDs: %s', dashboard_name_to_id)
 
     fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
                 list_ids=list_ids,
