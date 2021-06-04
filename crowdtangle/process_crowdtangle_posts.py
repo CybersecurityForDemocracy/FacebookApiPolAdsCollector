@@ -172,7 +172,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
                     #  updated=post_updated)
 
         media_records = []
-        if _MEDIA_KEY in item:
+        if item.get(_MEDIA_KEY):
             media_records = [
                 MediaRecord(post_id=post_id, updated=post_updated, url_full=medium.get('full'),
                          url=medium.get('url'), width=medium.get('width'),
@@ -180,7 +180,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
                 for medium in item[_MEDIA_KEY]]
 
         expanded_links = []
-        if _ORIGINAL_LINKS_KEY in item:
+        if item.get(_ORIGINAL_LINKS_KEY):
             zipped_links_iter = itertools.zip_longest(item[_ORIGINAL_LINKS_KEY], item.get(_EXPANDED_LINKS_KEY, []))
             expanded_links = [
                 ExpandedLinkRecord(post_id=post_id, updated=post_updated,
