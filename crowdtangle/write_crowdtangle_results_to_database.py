@@ -27,9 +27,9 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
     """DoFn that expects iterables of process_crowdtangle_posts.EncapsulatedPost and writes the
     contained data to database (in order FK relationships reqire).
     """
-    def __init__(self, database_connection_params, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, database_connection_params, max_batch_size=250):
         self._database_connection_params = database_connection_params
+        self._max_batch_size = max_batch_size
 
     def process(self, pcoll):
         database_connection = config_utils.get_database_connection(self._database_connection_params)
