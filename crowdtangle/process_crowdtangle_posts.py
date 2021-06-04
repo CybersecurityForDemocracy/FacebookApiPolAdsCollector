@@ -130,6 +130,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
             # TODO(macpd): figure out how new minet CrowdTangleAPIClient handles
             # brandeeContentSponsor
             #  branded_content_sponsor_account_id=item.get('branded_content_sponsor', {}).get('ct_id'),
+            branded_content_sponsor_account_id=None,
             message=item.get('message'),
             title=item.get('title'),
             platform=item.get('platform'),
