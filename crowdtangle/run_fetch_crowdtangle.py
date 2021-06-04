@@ -9,14 +9,15 @@ import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
+import config_utils
 from crowdtangle import fetch_crowdtangle
 from crowdtangle import process_crowdtangle_posts
 from crowdtangle import write_crowdtangle_results_to_database
-
-import config_utils
 from crowdtangle import db_functions
 
-def get_dashboards_fetch_args(config: configparser.ConfigParser) -> Sequence[fetch_crowdtangle.FetchCrowdTangleArgs]:
+
+def get_dashboards_fetch_args(config: configparser.ConfigParser,
+                              database_connection_params: config_utils.DatabaseConnectionParams) -> Sequence[fetch_crowdtangle.FetchCrowdTangleArgs]:
     """Gets list of config section names from ['CROWDTANGLE']['DASHBOARD_CONFIG_SECTION_NAMES'],
     parses API_TOKEN, DASHBOARD_NAME, LIST_IDS from those named config sections, and returns
     FetchCrowdTangleArgs for each named config section.
@@ -24,7 +25,6 @@ def get_dashboards_fetch_args(config: configparser.ConfigParser) -> Sequence[fet
     dashboard_config_section_names = (
         config['CROWDTANGLE']['DASHBOARD_CONFIG_SECTION_NAMES'].split(','))
 
-    database_connection_params = config_utils.get_database_connection_params_from_config(config)
     with config_utils.get_database_connection(database_connection_params) as db_connection:
         db_interface = db_functions.CrowdTangleDBInterface(db_connection)
         dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
@@ -73,6 +73,7 @@ def run(argv=None, save_main_session=True):
     pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
 
     config = config_utils.get_config(known_args.config_path)
+    database_connection_params = config_utils.get_database_connection_params_from_config(config)
     #  max_results_to_fetch = config['CROWDTANGLE'].getint('MAX_RESULTS_TO_FETCH', None)
     #  if 'DAYS_IN_PAST_TO_SYNC' in config['CROWDTANGLE']:
         #  start_date = (datetime.date.today() -
@@ -100,17 +101,17 @@ def run(argv=None, save_main_session=True):
                 #  end_date=end_date,
                 #  dashboard_id=dashboard_name_to_id[dashboard_name],
                 #  max_results_to_fetch=max_results_to_fetch)
-    fetch_args_list = get_dashboards_fetch_args(config)
+    fetch_args_list = get_dashboards_fetch_args(config, database_connection_params)
 
-    logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_crowdtangle_args)
+    logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_args_list)
     with beam.Pipeline(options=pipeline_options) as pipeline:
-        dashboard_crowdtangle_fetchers = []
-        for fetch_args in fetch_args_list:
-            dashboard_crowdtangle_fetchers.append(fetch_crowdtangle.FetchCrowdTangle(fetch_args))
+        #  dashboard_crowdtangle_fetchers = []
+        #  for fetch_args in fetch_args_list:
+            #  dashboard_crowdtangle_fetchers.append(fetch_crowdtangle.FetchCrowdTangle(fetch_args))
 
         results, errors = (
             pipeline | beam.Create(fetch_args_list)
-            | 'Fetch CrowdTangle results' >> fetch_crowdtangle.FetchCrowdTangle(api_token=api_token)
+            | 'Fetch CrowdTangle results' >> fetch_crowdtangle.FetchCrowdTangle()
             )
 
         processed_results = (
