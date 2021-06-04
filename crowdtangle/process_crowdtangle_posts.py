@@ -157,9 +157,9 @@ class ProcessCrowdTanglePosts(beam.DoFn):
                                                          #  post_updated))
 
         statistics_actual = self.make_statistics_record(
-            item, prefix='actual', post_id=post_id, updated=post_updated)
+            item, key_prefix='actual', post_id=post_id, updated=post_updated)
         statistics_expected = self.make_statistics_record(
-            item, prefix='expected', post_id=post_id, updated=post_updated)
+            item, key_prefix='expected', post_id=post_id, updated=post_updated)
         #  if _STATISTICS_KEY in item:
             #  statistics = item[_STATISTICS_KEY]
             #  if 'actual' in statistics:
