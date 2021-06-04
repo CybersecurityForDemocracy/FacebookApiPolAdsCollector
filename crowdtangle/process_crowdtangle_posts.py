@@ -182,7 +182,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
             zipped_links_iter = itertools.zip_longest(item[_ORIGINAL_LINKS_KEY], item.get(_EXPANDED_LINKS_KEY, []))
             expanded_links = [
                 ExpandedLinkRecord(post_id=post_id, updated=post_updated,
-                                   original=original_link, expanded_link)
+                                   original=original_link, expanded=expanded_link)
                 for original_link, expanded_link in zipped_links_iter]
 
         yield EncapsulatedPost(post=post_record, account_list=account_list,
