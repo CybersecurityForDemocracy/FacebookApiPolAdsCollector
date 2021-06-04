@@ -1,4 +1,4 @@
 setuptools
 apache-beam>=2.28.0
-minet>=0.52.8
+minet<0.53,>=0.52.8
 psycopg2<3,>=2.8.6
