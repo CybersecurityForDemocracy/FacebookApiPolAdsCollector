@@ -7,34 +7,16 @@ from minet.crowdtangle import CrowdTangleAPIClient
 from minet.crowdtangle.exceptions import CrowdTangleError
 
 
-FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['start_date',
+FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['api_token',
+                                                           'start_date',
                                                            'end_date',
                                                            'list_ids',
                                                            'dashboard_id',
                                                            'max_results_to_fetch'])
 
-
 class FetchCrowdTangle(PTransform):
-    def __init__(self, *args, api_token=None, crowdtangle_client=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if api_token and crowdtangle_client:
-            raise ValueError('api_token and crowdtangle_client args are mutually exclusive.')
-        self._api_token = api_token
-        self._crowdtangle_client = crowdtangle_client
-
-    def get_crowdtangle_client(self):
-        """Returns the CrowdTangleAPIClient provided in the constructor, or creates a new client
-        from API token stores in GCP secrets manager.
-
-        This is neccessary because CrowdTangleAPIClient hangs when pickled and then depickled (which
-        Apache Beam does sometimes for PTransform objects)
-        """
-        if self._crowdtangle_client:
-            return self._crowdtangle_client
-
-        return CrowdTangleAPIClient(token=self._api_token)
-
     def fetch(self, input_args):
+        logging.info('in FetchCrowdTangle.fetch input_args: %s', input_args)
         try:
             start_date = input_args.start_date
         except KeyError as e:
@@ -59,7 +41,7 @@ class FetchCrowdTangle(PTransform):
         logging.info('Querying CrowdTangle. %s', query_info_message)
         num_posts = 0
         try:
-            crowdtangle_client = self.get_crowdtangle_client()
+            crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token)
             for post in crowdtangle_client.posts(start_date=start_date, end_date=end_date,
                                                  partition_strategy=partition_strategy,
                                                  sort_by=sort_by, format=format_val,
@@ -82,5 +64,5 @@ class FetchCrowdTangle(PTransform):
         (if encountered)
         """
         return (
-            p | "Fetch CrowdTangle results" >> beam.FlatMap(self.fetch).with_outputs('api_results',
+            p | "Fetch CrowdTangle results" >> beam.ParDo(self.fetch).with_outputs('api_results',
                                                                                      'errors'))
