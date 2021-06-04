@@ -153,23 +153,10 @@ class ProcessCrowdTanglePosts(beam.DoFn):
 
         account_list = [self.make_account_record(item, post_updated)]
 
-        #  if _BRANDED_CONTENT_SPONSOR in item:
-            #  account_list.append(self.make_account_record(item[_BRANDED_CONTENT_SPONSOR],
-                                                         #  post_updated))
-
         statistics_actual = self.make_statistics_record(
             item, key_prefix='actual', post_id=post_id, updated=post_updated)
         statistics_expected = self.make_statistics_record(
             item, key_prefix='expected', post_id=post_id, updated=post_updated)
-        #  if _STATISTICS_KEY in item:
-            #  statistics = item[_STATISTICS_KEY]
-            #  if 'actual' in statistics:
-                #  statistics_actual = self.make_statistics_record(
-                    #  item[_STATISTICS_KEY]['actual'], post_id=post_id, updated=post_updated)
-            #  if 'expected' in statistics:
-                #  statistics_expected = self.make_statistics_record(
-                    #  item[_STATISTICS_KEY]['expected'], post_id=post_id,
-                    #  updated=post_updated)
 
         media_records = []
         if item.get(_MEDIA_KEY):
@@ -181,7 +168,8 @@ class ProcessCrowdTanglePosts(beam.DoFn):
 
         expanded_links = []
         if item.get(_ORIGINAL_LINKS_KEY):
-            zipped_links_iter = itertools.zip_longest(item[_ORIGINAL_LINKS_KEY], item.get(_EXPANDED_LINKS_KEY, []))
+            zipped_links_iter = itertools.zip_longest(item[_ORIGINAL_LINKS_KEY],
+                                                      item.get(_EXPANDED_LINKS_KEY, []))
             expanded_links = [
                 ExpandedLinkRecord(post_id=post_id, updated=post_updated,
                                    original=original_link, expanded=expanded_link)
