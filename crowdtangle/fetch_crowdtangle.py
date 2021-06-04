@@ -14,52 +14,6 @@ FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['api_token',
                                                            'dashboard_id',
                                                            'max_results_to_fetch'])
 
-class FetchCrowdTangleDoFn(beam.DoFn):
-    def process(self, input_args, *args, **kwargs):
-        logging.info('in FetchCrowdTangle.fetch input_args: %s', input_args)
-        try:
-            start_date = input_args.start_date
-        except KeyError as e:
-            error_msg = "No start date provided. Unable to fetch crowdtangle results"
-            logging.error(error_msg)
-            yield beam.pvalue.TaggedOutput('errors', error_msg)
-            return
-
-        partition_strategy = 500
-        format_val = 'raw'
-        sort_by = 'date'
-        end_date = input_args.end_date
-        list_ids = input_args.list_ids
-        max_results_to_fetch = input_args.max_results_to_fetch
-        query_info_message = (
-            'start_date: {start_date}, end_date: {end_date}, '
-            'partition_strategy: {partition_strategy}, sort_by: {sort_by}, format: {format}, '
-            'max_results_to_fetch: {max_results_to_fetch}, list_ids: {list_ids}'
-            ).format(start_date=start_date, end_date=end_date,
-                     partition_strategy=partition_strategy, sort_by=sort_by, format=format_val,
-                     max_results_to_fetch=max_results_to_fetch, list_ids=list_ids)
-        logging.info('Querying CrowdTangle. %s', query_info_message)
-        num_posts = 0
-        try:
-            crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token)
-            for post in crowdtangle_client.posts(start_date=start_date, end_date=end_date,
-                                                 partition_strategy=partition_strategy,
-                                                 sort_by=sort_by, format=format_val,
-                                                 limit=max_results_to_fetch, list_ids=list_ids):
-                num_posts += 1
-                post_as_dict = post.as_dict()
-                post_as_dict['dashboard_id'] = input_args.dashboard_id
-                yield beam.pvalue.TaggedOutput('api_results', post_as_dict)
-
-            logging.info('CrowdTangle fetch complete. Got %d api_results. query info: %s',
-                         num_posts, query_info_message)
-
-        except CrowdTangleError as e:
-            error_msg = 'Unable to complete fetch, CrowdTangleError: {!r}'.format(e)
-            logging.error(error_msg)
-            yield beam.pvalue.TaggedOutput('errors', error_msg)
-
-
 class FetchCrowdTangle(PTransform):
     def get_crowdtangle_client(self, api_token=None):
         """Returns the CrowdTangleAPIClient provided in the constructor, or creates a new client
@@ -125,9 +79,6 @@ class FetchCrowdTangle(PTransform):
         """Returns tagged output of fetched crowdtangle api_results, and error messages
         (if encountered)
         """
-        #  return (
-            #  p | "Fetch CrowdTangle results" >> beam.ParDo(FetchCrowdTangleDoFn()).with_outputs('api_results',
-                                                                                     #  'errors'))
         return (
             p | "Fetch CrowdTangle results" >> beam.ParDo(self.fetch).with_outputs('api_results',
                                                                                      'errors'))
