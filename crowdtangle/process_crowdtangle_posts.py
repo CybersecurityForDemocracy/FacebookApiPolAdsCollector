@@ -106,18 +106,18 @@ class ProcessCrowdTanglePosts(beam.DoFn):
         return StatisticsRecord(
             post_id=post_id,
             updated=updated,
-            angry_count=statistics.get(prefix + 'angry_count'),
-            comment_count=statistics.get(prefix + 'comment_count'),
-            favorite_count=statistics.get(prefix + 'favorite_count'),
-            haha_count=statistics.get(prefix + 'haha_count'),
-            like_count=statistics.get(prefix + 'like_count'),
-            love_count=statistics.get(prefix + 'love_count'),
-            sad_count=statistics.get(prefix + 'sad_count'),
-            share_count=statistics.get(prefix + 'share_count'),
-            up_count=statistics.get(prefix + 'up_count'),
-            wow_count=statistics.get(prefix + 'wow_count'),
-            thankful_count=statistics.get(prefix + 'thankful_count'),
-            care_count=statistics.get(prefix + 'care_count'))
+            angry_count=statistics.get(key_prefix + 'angry_count'),
+            comment_count=statistics.get(key_prefix + 'comment_count'),
+            favorite_count=statistics.get(key_prefix + 'favorite_count'),
+            haha_count=statistics.get(key_prefix + 'haha_count'),
+            like_count=statistics.get(key_prefix + 'like_count'),
+            love_count=statistics.get(key_prefix + 'love_count'),
+            sad_count=statistics.get(key_prefix + 'sad_count'),
+            share_count=statistics.get(key_prefix + 'share_count'),
+            up_count=statistics.get(key_prefix + 'up_count'),
+            wow_count=statistics.get(key_prefix + 'wow_count'),
+            thankful_count=statistics.get(key_prefix + 'thankful_count'),
+            care_count=statistics.get(key_prefix + 'care_count'))
 
     def process(self, item):
         post_id = item[_ID_KEY]
