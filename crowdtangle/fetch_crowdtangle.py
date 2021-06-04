@@ -88,5 +88,5 @@ class FetchCrowdTangle(PTransform):
         (if encountered)
         """
         return (
-            p | "Fetch CrowdTangle results" >> beam.FlatMap(self.fetch).with_outputs('api_results',
+            p | "Fetch CrowdTangle results" >> beam.ParDo(self.fetch).with_outputs('api_results',
                                                                                      'errors'))

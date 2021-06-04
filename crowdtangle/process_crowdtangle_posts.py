@@ -1,7 +1,6 @@
 from collections import namedtuple
 import datetime
 import itertools
-import logging
 
 import apache_beam as beam
 
@@ -122,8 +121,6 @@ class ProcessCrowdTanglePosts(beam.DoFn):
             care_count=statistics.get(key_prefix + 'care_count'))
 
     def process(self, item):
-        # TODO(macpd): remove this
-        logging.info('ProcessCrowdTanglePosts.process item: %s', item)
         post_id = item[_ID_KEY]
         post_updated = datetime.datetime.fromisoformat(
             item['updated']).replace(tzinfo=datetime.timezone.utc)
