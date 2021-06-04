@@ -41,7 +41,7 @@ def get_dashboards_fetch_args(config: configparser.ConfigParser,
 
     fetch_args_list = []
     for config_section_name in dashboard_config_section_names:
-        config_section = config_section
+        config_section = config[config_section_name]
         api_token = config_section.get('API_TOKEN')
         dashboard_name = config_section.get('DASHBOARD_NAME')
         max_results_to_fetch = config_section.getint('MAX_RESULTS_TO_FETCH', None)

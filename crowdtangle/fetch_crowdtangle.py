@@ -15,21 +15,6 @@ FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['api_token',
                                                            'max_results_to_fetch'])
 
 class FetchCrowdTangle(PTransform):
-    def get_crowdtangle_client(self, api_token=None):
-        """Returns the CrowdTangleAPIClient provided in the constructor, or creates a new client
-        from API token stores in GCP secrets manager.
-
-        This is neccessary because CrowdTangleAPIClient hangs when pickled and then depickled (which
-        Apache Beam does sometimes for PTransform objects)
-        """
-        if api_token and self._crowdtangle_client:
-            raise ValueError('api_token and crowdtangle_client args are mutually exclusive.')
-
-        if self._crowdtangle_client:
-            return self._crowdtangle_client
-
-        return CrowdTangleAPIClient(token=api_token)
-
     def fetch(self, input_args):
         logging.info('in FetchCrowdTangle.fetch input_args: %s', input_args)
         try:
