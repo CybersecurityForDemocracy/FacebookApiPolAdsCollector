@@ -30,20 +30,22 @@ def get_dashboards_fetch_args(config: configparser.ConfigParser,
         dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
         logging.info('Dashboard Names -> IDs: %s', dashboard_name_to_id)
 
+    if 'DAYS_IN_PAST_TO_SYNC' in config['CROWDTANGLE']:
+        start_date = (datetime.date.today() -
+                      datetime.timedelta(days=config['CROWDTANGLE'].getint('DAYS_IN_PAST_TO_SYNC'))
+                      ).isoformat()
+        end_date = None
+    else:
+        start_date = config['CROWDTANGLE'].get('START_DATE')
+        end_date = config['CROWDTANGLE'].get('END_DATE', None)
+
     fetch_args_list = []
     for config_section_name in dashboard_config_section_names:
-        max_results_to_fetch = config['CROWDTANGLE'].getint('MAX_RESULTS_TO_FETCH', None)
-        if 'DAYS_IN_PAST_TO_SYNC' in config['CROWDTANGLE']:
-            start_date = (datetime.date.today() -
-                          datetime.timedelta(days=config['CROWDTANGLE'].getint('DAYS_IN_PAST_TO_SYNC'))
-                          ).isoformat()
-            end_date = None
-        else:
-            start_date = config['CROWDTANGLE'].get('START_DATE')
-            end_date = config['CROWDTANGLE'].get('END_DATE', None)
-        api_token = config[config_section_name].get('API_TOKEN')
-        dashboard_name = config[config_section_name].get('DASHBOARD_NAME')
-        list_ids = config[config_section_name].get('LIST_IDS', None)
+        config_section = config_section
+        api_token = config_section.get('API_TOKEN')
+        dashboard_name = config_section.get('DASHBOARD_NAME')
+        max_results_to_fetch = config_section.getint('MAX_RESULTS_TO_FETCH', None)
+        list_ids = config_section.get('LIST_IDS', None)
         if list_ids:
             list_ids = list_ids.split(',')
 
