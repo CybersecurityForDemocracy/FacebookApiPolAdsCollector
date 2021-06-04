@@ -1,5 +1,6 @@
 from collections import namedtuple
 import datetime
+import itertools
 
 import apache_beam as beam
 
