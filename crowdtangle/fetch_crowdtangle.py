@@ -47,9 +47,8 @@ class FetchCrowdTangle(PTransform):
                                                  sort_by=sort_by, format=format_val,
                                                  limit=max_results_to_fetch, list_ids=list_ids):
                 num_posts += 1
-                post_as_dict = post.as_dict()
-                post_as_dict['dashboard_id'] = input_args.dashboard_id
-                yield beam.pvalue.TaggedOutput('api_results', post_as_dict)
+                post['dashboard_id'] = input_args.dashboard_id
+                yield beam.pvalue.TaggedOutput('api_results', post)
 
             logging.info('CrowdTangle fetch complete. Got %d api_results. query info: %s',
                          num_posts, query_info_message)
