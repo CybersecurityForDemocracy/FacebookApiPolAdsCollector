@@ -99,7 +99,7 @@ class ProcessCrowdTanglePosts(beam.DoFn):
             profile_image=item.get('account_profile_image'),
             subscriber_count=item.get('account_subscriber_count'),
             url=item.get('accout_url'),
-            verified=item.get('accout_verified'),
+            verified=item.get('accout_verified', False),
             updated=updated)
 
     @staticmethod
