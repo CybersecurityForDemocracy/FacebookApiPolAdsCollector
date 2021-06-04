@@ -74,41 +74,10 @@ def run(argv=None, save_main_session=True):
 
     config = config_utils.get_config(known_args.config_path)
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    #  max_results_to_fetch = config['CROWDTANGLE'].getint('MAX_RESULTS_TO_FETCH', None)
-    #  if 'DAYS_IN_PAST_TO_SYNC' in config['CROWDTANGLE']:
-        #  start_date = (datetime.date.today() -
-                      #  datetime.timedelta(days=config['CROWDTANGLE'].getint('DAYS_IN_PAST_TO_SYNC'))
-                      #  ).isoformat()
-        #  end_date = None
-    #  else:
-        #  start_date = config['CROWDTANGLE'].get('START_DATE')
-        #  end_date = config['CROWDTANGLE'].get('END_DATE', None)
-    #  api_token = config['CROWDTANGLE'].get('API_TOKEN')
-    #  list_ids = config['CROWDTANGLE'].get('LIST_IDS', None)
-    #  dashboard_name = config['CROWDTANGLE'].get('DASHBOARD_NAME')
-    #  if list_ids:
-        #  list_ids = list_ids.split(',')
-
-    #  database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    #  with config_utils.get_database_connection(database_connection_params) as db_connection:
-        #  db_interface = db_functions.CrowdTangleDBInterface(db_connection)
-        #  dashboard_name_to_id = db_interface.all_dashboards_name_to_id()
-        #  logging.info('Dashboard Names -> IDs: %s', dashboard_name_to_id)
-
-    #  fetch_crowdtangle_args = fetch_crowdtangle.FetchCrowdTangleArgs(
-                #  list_ids=list_ids,
-                #  start_date=start_date,
-                #  end_date=end_date,
-                #  dashboard_id=dashboard_name_to_id[dashboard_name],
-                #  max_results_to_fetch=max_results_to_fetch)
     fetch_args_list = get_dashboards_fetch_args(config, database_connection_params)
 
     logging.info('About to start crowdtangle fetch pipline with args: %s', fetch_args_list)
     with beam.Pipeline(options=pipeline_options) as pipeline:
-        #  dashboard_crowdtangle_fetchers = []
-        #  for fetch_args in fetch_args_list:
-            #  dashboard_crowdtangle_fetchers.append(fetch_crowdtangle.FetchCrowdTangle(fetch_args))
-
         results, errors = (
             pipeline | beam.Create(fetch_args_list)
             | 'Fetch CrowdTangle results' >> fetch_crowdtangle.FetchCrowdTangle()
