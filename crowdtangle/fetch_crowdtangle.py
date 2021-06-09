@@ -34,10 +34,10 @@ class FetchCrowdTangle(PTransform):
         query_info_message = (
             'start_date: {start_date}, end_date: {end_date}, '
             'partition_strategy: {partition_strategy}, sort_by: {sort_by}, format: {format}, '
-            'max_results_to_fetch: {max_results_to_fetch}, list_ids: {list_ids}'
+            'max_results_to_fetch: {max_results_to_fetch}, dashboard_id: {dashboard_id}, list_ids: {list_ids}'
             ).format(start_date=start_date, end_date=end_date,
                      partition_strategy=partition_strategy, sort_by=sort_by, format=format_val,
-                     max_results_to_fetch=max_results_to_fetch, list_ids=list_ids)
+                     max_results_to_fetch=max_results_to_fetch, dashboard_id=input_args.dashboard_id, list_ids=list_ids)
         logging.info('Querying CrowdTangle. %s', query_info_message)
         num_posts = 0
         try:
