@@ -1,5 +1,4 @@
 setuptools
 apache-beam>=2.28.0
-minet==0.47.0
-quenouille==0.6.6 # required due to intreface change that breaks minet
+minet<0.53,>=0.52.10
 psycopg2<3,>=2.8.6
