@@ -67,7 +67,17 @@ def run(argv=None, save_main_session=True):
         dest='config_path',
         required=True,
         help='Configuration file path')
+    parser.add_argument(
+        '--dry_run',
+        dest='dry_run',
+        action='store_true',
+        default=False,
+        required=False,
+        help='If true, do not write output to database, and print output instead')
     known_args, pipeline_args = parser.parse_known_args(argv)
+
+    if known_args.dry_run:
+        logging.info('DRY RUN, will not write output to database, and will print output to stdout.')
 
     # We use the save_main_session option because one or more DoFn's in this
     # workflow rely on global context (e.g., a module imported at module level).
@@ -93,10 +103,17 @@ def run(argv=None, save_main_session=True):
             beam.transforms.util.BatchElements(min_batch_size=10, max_batch_size=500)
             )
 
-        (processed_results
-         | 'Write processed results to Database' >> beam.ParDo(
-             write_crowdtangle_results_to_database.WriteCrowdTangleResultsToDatabase(
-                     database_connection_params)))
+        if known_args.dry_run:
+            def print_row(row):
+                print(row)
+                return row
+            processed_results | beam.Map(print_row)
+
+        else:
+            (processed_results
+             | 'Write processed results to Database' >> beam.ParDo(
+                 write_crowdtangle_results_to_database.WriteCrowdTangleResultsToDatabase(
+                         database_connection_params)))
 
 
 if __name__ == '__main__':
