@@ -1,9 +1,14 @@
 from operator import attrgetter
 import itertools
+import logging
 import apache_beam as beam
+import tenacity
+import psycopg2
 
 import config_utils
 from crowdtangle import db_functions
+
+logger = logging.getLogger()
 
 def dedupe_account_records_by_max_updated_field(account_records):
     """Return list of account records deduped by ID. If multiple records with the same ID are found
@@ -31,6 +36,11 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
         super().__init__(*args, **kwargs)
         self._database_connection_params = database_connection_params
 
+    @tenacity.retry(stop=tenacity.stop_after_attempt(3),
+                    reraise=True,
+                    retry=tenacity.retry_if_exception_type(psycopg2.errors.DeadlockDetected),
+                    wait=tenacity.wait_random_exponential(multiplier=1, max=60),
+                    before_sleep=tenacity.before_sleep_log(logger, logging.INFO))
     def process(self, pcoll):
         database_connection = config_utils.get_database_connection(self._database_connection_params)
         with database_connection:
