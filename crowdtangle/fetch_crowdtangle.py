@@ -43,8 +43,8 @@ class FetchCrowdTangle(PTransform):
                      dashboard_id=input_args.dashboard_id)
         logging.info('Querying CrowdTangle. %s', query_info_message)
         num_posts = 0
-        min_seen_updated = datetime.datetime.max
-        max_seen_updated = datetime.datetime.min
+        min_seen_updated = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
+        max_seen_updated = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         try:
             crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token)
             for post in crowdtangle_client.posts(start_date=start_date, end_date=end_date,
