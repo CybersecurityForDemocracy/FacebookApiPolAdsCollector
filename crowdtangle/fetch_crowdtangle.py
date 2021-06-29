@@ -1,4 +1,5 @@
 from collections import namedtuple
+import datetime
 import logging
 
 import apache_beam as beam
@@ -42,6 +43,8 @@ class FetchCrowdTangle(PTransform):
                      dashboard_id=input_args.dashboard_id)
         logging.info('Querying CrowdTangle. %s', query_info_message)
         num_posts = 0
+        min_seen_updated = datetime.datetime.max
+        max_seen_updated = datetime.datetime.min
         try:
             crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token)
             for post in crowdtangle_client.posts(start_date=start_date, end_date=end_date,
@@ -51,13 +54,22 @@ class FetchCrowdTangle(PTransform):
                 num_posts += 1
                 post_as_dict = post.as_dict()
                 post_as_dict['dashboard_id'] = input_args.dashboard_id
+                post_updated = datetime.datetime.fromisoformat(
+                    post_as_dict['updated']).replace(tzinfo=datetime.timezone.utc)
+                min_seen_updated = min(min_seen_updated, post_updated)
+                max_seen_updated = max(max_seen_updated, post_updated)
                 yield beam.pvalue.TaggedOutput('api_results', post_as_dict)
 
             logging.info('CrowdTangle fetch complete. Got %d api_results. query info: %s',
                          num_posts, query_info_message)
 
         except CrowdTangleError as e:
-            error_msg = 'Unable to complete fetch, CrowdTangleError: {!r}'.format(e)
+            error_msg = (
+                'Unable to complete fetch, CrowdTangleError: {exc!r} ({exc!s})\n'
+                'query info: {query_info}\nprocessed {num_posts} posts. '
+                'min post updated: {min_seen_updated}, max post updated: {max_seen_updated}'
+            ).format(exc=e, query_info=query_info_message, num_posts=num_posts,
+                     min_seen_updated=min_seen_updated, max_seen_updated=max_seen_updated)
             logging.error(error_msg)
             yield beam.pvalue.TaggedOutput('errors', error_msg)
 
