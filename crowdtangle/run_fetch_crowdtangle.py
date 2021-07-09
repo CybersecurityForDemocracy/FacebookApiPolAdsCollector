@@ -48,6 +48,7 @@ def get_dashboards_fetch_args(config: configparser.ConfigParser,
         list_ids = config_section.get('LIST_IDS', None)
         if list_ids:
             list_ids = list_ids.split(',')
+        rate_limit = config_section.getint('RATE_LIMIT', None)
 
         fetch_args_list.append(fetch_crowdtangle.FetchCrowdTangleArgs(
                     api_token=api_token,
@@ -55,7 +56,8 @@ def get_dashboards_fetch_args(config: configparser.ConfigParser,
                     start_date=start_date,
                     end_date=end_date,
                     dashboard_id=dashboard_name_to_id[dashboard_name],
-                    max_results_to_fetch=max_results_to_fetch))
+                    max_results_to_fetch=max_results_to_fetch,
+                    rate_limit=rate_limit))
     return fetch_args_list
 
 
