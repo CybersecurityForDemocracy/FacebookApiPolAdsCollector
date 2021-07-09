@@ -13,7 +13,7 @@ FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['api_token',
                                                            'end_date',
                                                            'list_ids',
                                                            'dashboard_id',
-                                                           'max_results_to_fetch'
+                                                           'max_results_to_fetch',
                                                            'rate_limit'])
 
 class FetchCrowdTangle(PTransform):
