@@ -13,7 +13,8 @@ FetchCrowdTangleArgs = namedtuple('FetchCrowdTangleArgs', ['api_token',
                                                            'end_date',
                                                            'list_ids',
                                                            'dashboard_id',
-                                                           'max_results_to_fetch'])
+                                                           'max_results_to_fetch',
+                                                           'rate_limit'])
 
 class FetchCrowdTangle(PTransform):
     def fetch(self, input_args):
@@ -32,21 +33,23 @@ class FetchCrowdTangle(PTransform):
         end_date = input_args.end_date
         list_ids = input_args.list_ids
         max_results_to_fetch = input_args.max_results_to_fetch
+        rate_limit = input_args.rate_limit
         query_info_message = (
             'start_date: {start_date}, end_date: {end_date}, '
             'partition_strategy: {partition_strategy}, sort_by: {sort_by}, format: {format}, '
-            'max_results_to_fetch: {max_results_to_fetch}, list_ids: {list_ids}, '
-            'internal dashboard_id: {dashboard_id}'
+            'max_results_to_fetch: {max_results_to_fetch}, rate_limit: {rate_limit}, '
+            'list_ids: {list_ids}, internal dashboard_id: {dashboard_id}'
             ).format(start_date=start_date, end_date=end_date,
                      partition_strategy=partition_strategy, sort_by=sort_by, format=format_val,
-                     max_results_to_fetch=max_results_to_fetch, list_ids=list_ids,
-                     dashboard_id=input_args.dashboard_id)
+                     max_results_to_fetch=max_results_to_fetch, rate_limit=rate_limit,
+                     list_ids=list_ids, dashboard_id=input_args.dashboard_id)
         logging.info('Querying CrowdTangle. %s', query_info_message)
         num_posts = 0
         min_seen_updated = datetime.datetime.max.replace(tzinfo=datetime.timezone.utc)
         max_seen_updated = datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
         try:
-            crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token)
+            crowdtangle_client = CrowdTangleAPIClient(token=input_args.api_token,
+                                                      rate_limit=rate_limit)
             for post in crowdtangle_client.posts(start_date=start_date, end_date=end_date,
                                                  partition_strategy=partition_strategy,
                                                  sort_by=sort_by, format=format_val,
