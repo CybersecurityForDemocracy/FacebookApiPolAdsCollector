@@ -5,7 +5,7 @@ chardet==4.0.0
 cryptography>=3.3.2
 dhash==1.3
 docker==4.4.0
--e git+https://github.com/mobolic/facebook-sdk.git@1b92aafa010b88ef511f2f04fc53715f0c3a596b#egg=facebook_sdk
+-e git+https://github.com/mobolic/facebook-sdk.git#egg=facebook-sdk
 google-api-core<2,>=1.23.0
 google-auth<2,>=1.23.0
 google-cloud-core<2,>=1.4.4
