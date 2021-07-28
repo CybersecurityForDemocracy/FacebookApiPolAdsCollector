@@ -6,6 +6,7 @@ import logging
 import psycopg2
 import tenacity
 
+LOGGER = logging.getLogger(__name__)
 DatabaseConnectionParams = collections.namedtuple('DatabaseConnectionParams',
                                                   ['host',
                                                    'database_name',
@@ -43,7 +44,8 @@ def get_database_connection_params_from_config(config):
 @tenacity.retry(stop=tenacity.stop_after_attempt(4),
                 wait=tenacity.wait_random_exponential(multiplier=1, max=120),
                 retry=tenacity.retry_if_exception_type(psycopg2.OperationalError),
-                reraise=True)
+                reraise=True,
+                before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
 def _get_database_connection_with_retry(db_authorize):
     return psycopg2.connect(db_authorize)
 
