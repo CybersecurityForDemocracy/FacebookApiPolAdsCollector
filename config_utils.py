@@ -4,6 +4,7 @@ import configparser
 import logging
 
 import psycopg2
+import tenacity
 
 DatabaseConnectionParams = collections.namedtuple('DatabaseConnectionParams',
                                                   ['host',
@@ -38,12 +39,21 @@ def get_database_connection_params_from_config(config):
         sslkey=config.get('POSTGRES', 'CLIENT_KEY', fallback=None))
 
 
-def get_database_connection(database_connection_params):
+
+@tenacity.retry(stop=tenacity.stop_after_attempt(4),
+                wait=tenacity.wait_random_exponential(multiplier=1, max=120),
+                retry=tenacity.retry_if_exception_type(psycopg2.OperationalError),
+                reraise=True)
+def _get_database_connection_with_retry(db_authorize):
+    return psycopg2.connect(db_authorize)
+
+def get_database_connection(database_connection_params, retry=True):
     """Get pyscopg2 database connection using the provided params.
 
     Args:
         database_connection_params: DatabaseConnectionParams object from which to pull connection
-        params.
+            params.
+        retry: If connection fails due to operational error retry upto 2 additional times.
     Returns:
         psycopg2.connection ready to be used.
     """
@@ -58,7 +68,10 @@ def get_database_connection(database_connection_params):
         db_authorize += (
             " sslmode=verify-ca sslrootcert=%(sslrootcert)s sslcert=%(sslcert)s sslkey=%(sslkey)s"
             ) % database_connection_params._asdict()
-    connection = psycopg2.connect(db_authorize)
+    if retry:
+        connection = _get_database_connection_with_retry(db_authorize)
+    else:
+        connection = psycopg2.connect(db_authorize)
     logging.info('Established connecton to %s', connection.dsn)
     return connection
 
