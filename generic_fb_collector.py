@@ -357,6 +357,11 @@ class SearchRunner():
                         '%s error while processing ad archive ID %s region_distribution: %s',
                         key_error, curr_ad.archive_id, region_result)
 
+    def request_count_below_threshold(self, request_count):
+        if self.max_requests:
+            return request_count < self.max_requests
+        # self.max_requests of 0 or None is considered no threshold
+        return True
 
     def run_search(self, page_id=None, page_name=None):
         self.crawl_date = datetime.date.today()
@@ -381,7 +386,7 @@ class SearchRunner():
         # TODO: Remove the request_count limit
         #LAE - this is more of a conceptual thing, but perhaps we should be writing to DB more frequently? In cases where we query by the empty string, we are high stakes succeeding or failing.
         curr_ad = None
-        while (has_next and request_count < self.max_requests and
+        while (has_next and self.request_count_below_threshold(request_count) and
                self.allowed_execution_time_remaining()):
             #structures to hold all the new stuff we find
             self.new_ads = set()
@@ -682,7 +687,7 @@ def main(config):
         facebook_access_token=config_utils.get_facebook_access_token(config),
         sleep_time=config.getint('SEARCH', 'SLEEP_TIME'),
         request_limit=config.getint('SEARCH', 'LIMIT'),
-        max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
+        max_requests=config.getint('SEARCH', 'MAX_REQUESTS', fallback=0),
         stop_at_datetime=stop_at_datetime)
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
@@ -690,7 +695,8 @@ def main(config):
         datetime.date.today(),
         database_connection_params,
         search_runner_params)
-    page_ids = get_pages_from_archive(config['INPUT']['ARCHIVE_ADVERTISERS_FILE'])
+    page_ids = get_pages_from_archive(
+        config.get('INPUT', 'ARCHIVE_ADVERTISERS_FILE', fallback=None))
     page_string = page_ids or 'all pages'
     start_time = datetime.datetime.now()
     country_code_uppercase = search_runner_params.country_code.upper()
