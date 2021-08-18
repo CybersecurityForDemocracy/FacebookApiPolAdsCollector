@@ -44,6 +44,12 @@ class SearchRunner():
             logging.info('Will cease execution at %s (timestamp: %s)',
                          search_runner_params.stop_at_datetime, self.stop_time)
 
+    def request_count_below_threshold(self, request_count):
+        if self.max_requests:
+            return request_count < self.max_requests
+        # self.max_requests of 0 or None is considered no threshold
+        return True
+
     def run_search(self):
         #get ads
         graph = facebook.GraphAPI(access_token=self.fb_access_token, version='7.0')
@@ -53,7 +59,7 @@ class SearchRunner():
         logging.info(datetime.datetime.now())
         request_count = 0
         ad_delivery_date_arg_isoformat = self.ad_delivery_date_arg.isoformat()
-        while (has_next and request_count < self.max_requests and
+        while (has_next and self.request_count_below_threshold(request_count) and
                self.allowed_execution_time_remaining()):
             request_count += 1
             total_ad_count = 0
@@ -247,7 +253,7 @@ def main(config):
         facebook_access_token=config_utils.get_facebook_access_token(config),
         sleep_time=config.getint('SEARCH', 'SLEEP_TIME'),
         request_limit=config.getint('SEARCH', 'LIMIT'),
-        max_requests=config.getint('SEARCH', 'MAX_REQUESTS'),
+        max_requests=config.getint('SEARCH', 'MAX_REQUESTS', fallback=0),
         stop_at_datetime=stop_at_datetime)
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
