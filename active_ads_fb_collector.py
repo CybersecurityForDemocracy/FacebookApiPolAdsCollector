@@ -71,7 +71,7 @@ class SearchRunner():
                     id='ads_archive',
                     ad_reached_countries=self.country_code,
                     ad_type='POLITICAL_AND_ISSUE_ADS',
-                    ad_active_status='ALL',
+                    ad_active_status='ACTIVE',
                     ad_delivery_date_max=ad_delivery_date_arg_isoformat,
                     ad_delivery_date_min=ad_delivery_date_arg_isoformat,
                     limit=self.request_limit,
