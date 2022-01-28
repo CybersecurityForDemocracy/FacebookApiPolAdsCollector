@@ -55,6 +55,7 @@ CREATE TABLE impressions (
   max_impressions integer,
   potential_reach_min bigint,
   potential_reach_max bigint,
+  spend_estimate numeric(9, 2),
   last_active_date date,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (archive_id),
