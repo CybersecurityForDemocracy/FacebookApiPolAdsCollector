@@ -49,8 +49,9 @@ CREATE TABLE ad_countries(
 CREATE TABLE impressions (
   archive_id bigint,
   ad_status bigint,
-  min_spend decimal(10, 2),
-  max_spend decimal(10, 2),
+  min_spend decimal(12, 2),
+  max_spend decimal(12, 2),
+  spend_estimate numeric(12,2),
   min_impressions integer,
   max_impressions integer,
   potential_reach_min bigint,
@@ -175,24 +176,24 @@ CREATE TABLE demo_impression_results (
   archive_id bigint,
   age_group character varying,
   gender character varying,
-  min_spend decimal(10, 2),
-  max_spend decimal(10, 2),
+  min_spend decimal(12, 2),
+  max_spend decimal(12, 2),
   min_impressions integer,
   max_impressions integer,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  spend_estimate numeric(10,2),
+  spend_estimate numeric(12,2),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_demo_results UNIQUE(archive_id, age_group, gender)
 );
 CREATE TABLE region_impression_results (
   archive_id bigint,
   region character varying,
-  min_spend decimal(10, 2),
-  max_spend decimal(10, 2),
+  min_spend decimal(12, 2),
+  max_spend decimal(12, 2),
   min_impressions integer,
   max_impressions integer,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  spend_estimate numeric(10,2),
+  spend_estimate numeric(12,2),
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_region_results UNIQUE(archive_id, region)
 );
