@@ -56,6 +56,7 @@ CREATE TABLE impressions (
   potential_reach_min bigint,
   potential_reach_max bigint,
   spend_estimate numeric(12, 2),
+  impressions_estimate integer,
   last_active_date date,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   PRIMARY KEY (archive_id),
@@ -181,6 +182,7 @@ CREATE TABLE demo_impression_results (
   max_impressions integer,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   spend_estimate numeric(12,2),
+  impressions_estimate integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_demo_results UNIQUE(archive_id, age_group, gender)
 );
@@ -193,6 +195,7 @@ CREATE TABLE region_impression_results (
   max_impressions integer,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   spend_estimate numeric(12,2),
+  impressions_estimate integer,
   CONSTRAINT archive_id_fk FOREIGN KEY (archive_id) REFERENCES ads (archive_id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION,
   CONSTRAINT unique_region_results UNIQUE(archive_id, region)
 );
