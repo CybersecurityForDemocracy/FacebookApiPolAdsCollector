@@ -1,5 +1,5 @@
 """Unit tests for fb_ad_creative_retriever. This test intentionally uses live data fetch from
-facebook's ad archive to confirm that changes to that page's structure does not break collection.
+Facebook's ad archive to confirm that changes to that page's structure does not break collection.
 """
 
 import logging
@@ -8,9 +8,9 @@ import time
 import unittest
 import unittest.mock
 
-from fbactiveads.adsnapshots import ad_creative_retriever
-from fbactiveads.adsnapshots import browser_context
-from fbactiveads.common import config as fbactiveads_config
+from render_ad import render_ad
+from render_ad import browser_context
+from render_ad import config as render_ad_config
 from fb_ad_creative_retriever import AdCreativeRecord, make_image_hash_file_path, make_video_sha256_hash_file_path
 
 import fb_ad_creative_retriever
@@ -40,8 +40,9 @@ def make_ad_creative_record(archive_id, ad_creative_body=None, ad_creative_body_
 class FacebookAdCreativeRetrieverTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        config = fbactiveads_config.load_config('fb_ad_creative_retriever_test.cfg')
-        cls.creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
+        config = render_ad_config.load_config('render_ad/config/fb_ad_creative_retriever_test.cfg')
+        render_ad_config.log_config(config)
+        cls.creative_retriever_factory = render_ad.FacebookAdCreativeRetrieverFactory(config)
         cls.browser_context_factory = browser_context.DockerSeleniumBrowserContextFactory(config)
 
     def setUp(self):
@@ -49,7 +50,7 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
         self.mock_video_bucket_client = unittest.mock.Mock()
         self.mock_screenshot_bucket_client = unittest.mock.Mock()
         self.retriever = fb_ad_creative_retriever.FacebookAdCreativeRetriever(
-            db_connection=None, creative_retriever_factory=self.creative_retriever_factory,
+            database_connection_params=None, creative_retriever_factory=self.creative_retriever_factory,
             browser_context_factory=self.browser_context_factory,
             ad_creative_images_bucket_client=self.mock_image_bucket_client,
             ad_creative_videos_bucket_client=self.mock_video_bucket_client,
@@ -138,8 +139,8 @@ class FacebookAdCreativeRetrieverTest(unittest.TestCase):
         self.assertEqual(creative_data_a.ad_creative_link_caption,
                          creative_data_b.ad_creative_link_caption,
                          msg='Creative link caption from creative {}'.format(creative_index))
-        self.assertEqual(creative_data_a.ad_creative_link_button_text,
-                         creative_data_b.ad_creative_link_button_text,
+        self.assertEqual(creative_data_a.ad_creative_link_button_text.lower() if creative_data_a.ad_creative_link_button_text is not None else None,
+                         creative_data_b.ad_creative_link_button_text.lower() if creative_data_b.ad_creative_link_button_text is not None else None,
                          msg='Creative link button text from creative {}'.format(creative_index))
         if creative_data_a.image_downloaded_url:
             self.assertTrue(creative_data_b.image_downloaded_url,

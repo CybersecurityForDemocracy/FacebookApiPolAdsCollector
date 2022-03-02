@@ -1,11 +1,4 @@
-"""Module to coordinate retrieval, processing, and storage of Facebook ad creatives dta.
-
-**Unfortunately this requires access to a private repo**
-
-1. Clone project facebook-ad-scraper
-2. Build python package fbactiveads (instructions in setup.py)
-3. Install package built in previous step with pip (pip install path/to/package)
-4. Install package's dependencies (pip install -r path/to/fbactiveads/requirements.txt)
+"""Module to coordinate retrieval, processing, and storage of Facebook ad creatives data.
 """
 import collections
 import datetime
@@ -27,10 +20,10 @@ import requests
 from PIL import Image
 import tenacity
 
-from fbactiveads.adsnapshots import ad_creative_retriever
-from fbactiveads.adsnapshots import browser_context
-from fbactiveads.common import config as fbactiveads_config
-from fbactiveads.common.crawler import EndBatchCrawlerException
+from render_ad import render_ad
+from render_ad import browser_context
+from render_ad import config as render_ad_config
+from render_ad.docker_context import ContainerStartFailedException
 from selenium.common.exceptions import WebDriverException
 
 import config_utils
@@ -304,7 +297,7 @@ class FacebookAdCreativeRetriever:
                     self.reset_creative_retriever()
                     num_snapshots_processed_since_chromedriver_reset = 0
 
-            except (ad_creative_retriever.TooManyRequestsError, EndBatchCrawlerException) as error:
+            except (render_ad.TooManyRequestsError, ContainerStartFailedException) as error:
                 suggested_sleep_time = getattr(error, 'wait_before_next_batch_seconds',
                                                TOO_MANY_REQUESTS_SLEEP_TIME)
                 slack_msg = (
@@ -348,7 +341,7 @@ class FacebookAdCreativeRetriever:
             try:
                 fetch_time = datetime.datetime.now()
                 screenshot_and_creatives = self.creative_retriever.retrieve_ad(str(archive_id))
-            except (ad_creative_retriever.BrowserTimeoutError, WebDriverException) as error:
+            except (render_ad.BrowserTimeoutError, WebDriverException) as error:
                 logging.info('Browser error (%s), resetting ad creative retriever', error)
                 self.reset_creative_retriever()
                 fetch_time = datetime.datetime.now()
@@ -369,18 +362,18 @@ class FacebookAdCreativeRetriever:
                 archive_id, request_exception)
             self.num_snapshots_fetch_failed += 1
             # TODO(macpd): decide how to count the errors below
-        except (ad_creative_retriever.SnapshotNoContentFoundError,
-                ad_creative_retriever.SnapshotMissingMediaError):
+        except (render_ad.SnapshotNoContentFoundError,
+                render_ad.SnapshotMissingMediaError):
             logging.info('No content found for archive_id %d', archive_id)
             snapshot_fetch_status = SnapshotFetchStatus.NO_CONTENT_FOUND
-        except ad_creative_retriever.SnapshotAgeRestrictionError:
+        except render_ad.SnapshotAgeRestrictionError:
             snapshot_fetch_status = SnapshotFetchStatus.AGE_RESTRICTION_ERROR
-        except ad_creative_retriever.SnapshotIntellectualPropertyViolationError:
+        except render_ad.SnapshotIntellectualPropertyViolationError:
             snapshot_fetch_status = SnapshotFetchStatus.INTELLECTUAL_PROPERTY_VIOLATION_ERROR
-        except (ad_creative_retriever.SnapshotInvalidIdError,
-                ad_creative_retriever.SnapshotWrongAdArchiveIdError):
+        except (render_ad.SnapshotInvalidIdError,
+                render_ad.SnapshotWrongAdArchiveIdError):
             snapshot_fetch_status = SnapshotFetchStatus.INVALID_ID_ERROR
-        except ad_creative_retriever.SnapshotPermanentlyUnavailableError:
+        except render_ad.SnapshotPermanentlyUnavailableError:
             snapshot_fetch_status = SnapshotFetchStatus.SNAPSHOT_PERMANENTLY_UNAVAILABLE_ERROR
 
         # TODO(macpd): use ad_creative_retriever errors and exceptions
@@ -501,7 +494,11 @@ class FacebookAdCreativeRetriever:
             video_bucket_path = None
             if creative.image:
                 try:
-                    image_dhash = get_image_dhash(creative.image.binary_data)
+                    if creative.image.binary_data in (None, "", b""):
+                        # this can happen when missing ad images are allowed (e.g., for testing with old ads)
+                        image_dhash = "00000000000000000000000000000000"
+                    else:
+                        image_dhash = get_image_dhash(creative.image.binary_data)
                 except OSError as error:
                     logging.warning(
                         "Error generating dhash for archive ID: %s, image_url: %s. "
@@ -587,7 +584,8 @@ class FacebookAdCreativeRetriever:
 
 
 def main(argv):
-    config = fbactiveads_config.load_config(argv[0])
+    config = render_ad_config.load_config(argv[0])
+    render_ad_config.log_config(config)
 
     # Force consistent langdetect results. https://pypi.org/project/langdetect/
     DetectorFactory.seed = 0
@@ -601,7 +599,7 @@ def main(argv):
                                             fallback=DEFAULT_MAX_VIDEO_DOWNLOAD_SIZE)
 
     database_connection_params = config_utils.get_database_connection_params_from_config(config)
-    creative_retriever_factory = ad_creative_retriever.FacebookAdCreativeRetrieverFactory(config)
+    creative_retriever_factory = render_ad.FacebookAdCreativeRetrieverFactory(config)
     browser_context_factory = browser_context.DockerSeleniumBrowserContextFactory(config)
 
     ad_creative_images_bucket_client = make_gcs_bucket_client(AD_CREATIVE_IMAGES_BUCKET,
