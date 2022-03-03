@@ -1,0 +1,23 @@
+# Configuration of ad renderer default settings
+# =============================================
+# To configure an ad renderer instance, rename this file to configuration.ini and override the default settings in the
+# respective section. Be sure to update the configuration version and date below
+
+[CUSTOM]
+version=0.0 (YYYY-MM-DD)
+
+
+[AbstractDockerContextFactory]
+# container_connection_type=host_port
+ # See below or the source code for possible values. For simple deployments, use the default "host_port"
+ # host_port: bind container port to an available port on 127.0.0.1. Crawler must run outside container. Set port below
+ # docker_network: connect new container to a Docker network. Crawler must run in a container connected to the network
+# docker_network_name=SPECIFY_FOR_DOCKER_NETWORK_CONTAINER_CONNECTION_TYPE
+ # only needed when container_connection_type=docker_network
+
+
+[adsnapshots]
+# raise_if_missing_image=true
+ # by default, ad rendering is considered as failed when an image cannot be extracted from the browser; however, some of
+ # the ads used in tests are old and images aren't available any more, so this needs to be set to "false" when running
+ # the tests. Default (and recommended for production use) is "true"

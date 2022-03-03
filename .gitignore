@@ -1,4 +1,6 @@
 *.cfg
+secrets.ini
+secrets.cfg
 *.log
 response*
 .vscode/

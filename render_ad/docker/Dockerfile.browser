@@ -1,0 +1,11 @@
+# docker build -t fbadrenderer-browser:1.0.2 -f docker/Dockerfile.browser .
+# parent Docker file: https://github.com/SeleniumHQ/docker-selenium/blob/master/NodeBase/Dockerfile.txt
+
+FROM selenium/standalone-chrome:3.141.59-20210311
+
+RUN sudo apt-get -qqy update \
+  && sudo apt-get -qqy --no-install-recommends install \
+    fonts-noto \
+    fonts-noto-color-emoji \
+  && sudo rm -rf /var/lib/apt/lists/* \
+  && sudo apt-get -qyy clean
