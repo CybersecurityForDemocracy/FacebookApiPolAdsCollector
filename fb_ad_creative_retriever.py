@@ -493,21 +493,23 @@ class FacebookAdCreativeRetriever:
             video_sha256 = None
             video_bucket_path = None
             if creative.image:
-                try:
-                    if creative.image.binary_data in (None, "", b""):
-                        # this can happen when missing ad images are allowed (e.g., for testing with old ads)
-                        image_dhash = "00000000000000000000000000000000"
-                    else:
-                        image_dhash = get_image_dhash(creative.image.binary_data)
-                except OSError as error:
-                    logging.warning(
-                        "Error generating dhash for archive ID: %s, image_url: %s. "
-                        "images_bytes len: %d\n%s", archive_id,
-                        creative.image.url, len(creative.image.binary_data), error)
+                if len(creative.image.binary_data) == 0:
+                    # ad image missing (e.g., for testing with old ads where ad images not available any more)
+                    image_dhash = "00000000000000000000000000000000"
                     self.num_image_download_failure += 1
-                    continue
+                else:
+                    try:
+                        image_dhash = get_image_dhash(creative.image.binary_data)
+                        self.num_image_download_success += 1
+                    except OSError as error:
+                        # corrupted (but not missing) ad image
+                        logging.warning(
+                            "Error generating dhash for archive ID: %s, image_url: %s. "
+                            "images_bytes len: %d\n%s", archive_id,
+                            creative.image.url, len(creative.image.binary_data), error)
+                        self.num_image_download_failure += 1
+                        continue
 
-                self.num_image_download_success += 1
                 image_url = creative.image.url
                 image_sha256 = hashlib.sha256(creative.image.binary_data).hexdigest()
                 image_bucket_path = self.store_image_in_google_bucket(
