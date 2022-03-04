@@ -28,6 +28,25 @@ def get_account_record_list_only_latest_updated_records(pcoll):
     return dedupe_account_records_by_max_updated_field(
         itertools.chain.from_iterable(map(attrgetter('account_list'), pcoll)))
 
+def dedupe_post_records_by_max_updated_field(post_records):
+    """Return list of post records deduped by ID. If multiple records with the same ID are found
+    the record with the highest/latest |updated| is returned.
+    """
+    logging.debug('dedupe_post_records_by_max_updated_field: post_records: %s', post_records)
+    post_id_to_latest_updated_record = {}
+    for post in post_records:
+        if post.id in post_id_to_latest_updated_record:
+            post_id_to_latest_updated_record[post.id] = max(
+                post, post_id_to_latest_updated_record[post.id], key=attrgetter('updated'))
+        else:
+            post_id_to_latest_updated_record[post.id] = post
+    return list(post_id_to_latest_updated_record.values())
+
+def get_post_record_list_only_latest_updated_records(pcoll):
+    """Returns list of post records deduped by max updated field."""
+    return dedupe_post_records_by_max_updated_field(
+        itertools.chain(map(attrgetter('post'), pcoll)))
+
 class WriteCrowdTangleResultsToDatabase(beam.DoFn):
     """DoFn that expects iterables of process_crowdtangle_posts.EncapsulatedPost and writes the
     contained data to database (in order FK relationships reqire).
@@ -47,7 +66,7 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
             db_interface = db_functions.CrowdTangleDBInterface(database_connection)
 
             db_interface.upsert_accounts(get_account_record_list_only_latest_updated_records(pcoll))
-            db_interface.upsert_posts(itertools.chain(map(attrgetter('post'), pcoll)))
+            db_interface.upsert_posts(get_account_record_list_only_latest_updated_records(pcoll))
             db_interface.upsert_statistics(
                 itertools.chain(map(attrgetter('statistics_actual'), pcoll)),
                 itertools.chain(map(attrgetter('statistics_expected'), pcoll)))
