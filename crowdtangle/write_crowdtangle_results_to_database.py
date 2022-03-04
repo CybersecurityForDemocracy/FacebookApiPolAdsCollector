@@ -66,7 +66,7 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
             db_interface = db_functions.CrowdTangleDBInterface(database_connection)
 
             db_interface.upsert_accounts(get_account_record_list_only_latest_updated_records(pcoll))
-            db_interface.upsert_posts(get_account_record_list_only_latest_updated_records(pcoll))
+            db_interface.upsert_posts(get_post_record_list_only_latest_updated_records(pcoll))
             db_interface.upsert_statistics(
                 itertools.chain(map(attrgetter('statistics_actual'), pcoll)),
                 itertools.chain(map(attrgetter('statistics_expected'), pcoll)))
