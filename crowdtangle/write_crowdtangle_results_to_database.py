@@ -32,7 +32,6 @@ def dedupe_post_records_by_max_updated_field(post_records):
     """Return list of post records deduped by ID. If multiple records with the same ID are found
     the record with the highest/latest |updated| is returned.
     """
-    logging.debug('dedupe_post_records_by_max_updated_field: post_records: %s', post_records)
     post_id_to_latest_updated_record = {}
     for post in post_records:
         if post.id in post_id_to_latest_updated_record:
