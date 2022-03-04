@@ -10,40 +10,27 @@ from crowdtangle import db_functions
 
 logger = logging.getLogger()
 
-def dedupe_account_records_by_max_updated_field(account_records):
-    """Return list of account records deduped by ID. If multiple records with the same ID are found
-    the record with the highest/latest |updated| is returned.
+def dedupe_records_with_same_id_by_max_updated_field(records):
+    """Return list of records deduped by ID. If multiple records with the same ID are found the
+    record with the highest/latest |updated| is returned.
     """
-    account_id_to_latest_updated_record = {}
-    for account in account_records:
-        if account.id in account_id_to_latest_updated_record:
-            account_id_to_latest_updated_record[account.id] = max(
-                account, account_id_to_latest_updated_record[account.id], key=attrgetter('updated'))
+    record_id_to_latest_updated_record = {}
+    for record in records:
+        if record.id in record_id_to_latest_updated_record:
+            record_id_to_latest_updated_record[record.id] = max(
+                record, record_id_to_latest_updated_record[record.id], key=attrgetter('updated'))
         else:
-            account_id_to_latest_updated_record[account.id] = account
-    return list(account_id_to_latest_updated_record.values())
+            record_id_to_latest_updated_record[record.id] = record
+    return list(record_id_to_latest_updated_record.values())
 
 def get_account_record_list_only_latest_updated_records(pcoll):
     """Returns list of account records deduped by max updated field."""
-    return dedupe_account_records_by_max_updated_field(
+    return dedupe_records_with_same_id_by_max_updated_field(
         itertools.chain.from_iterable(map(attrgetter('account_list'), pcoll)))
-
-def dedupe_post_records_by_max_updated_field(post_records):
-    """Return list of post records deduped by ID. If multiple records with the same ID are found
-    the record with the highest/latest |updated| is returned.
-    """
-    post_id_to_latest_updated_record = {}
-    for post in post_records:
-        if post.id in post_id_to_latest_updated_record:
-            post_id_to_latest_updated_record[post.id] = max(
-                post, post_id_to_latest_updated_record[post.id], key=attrgetter('updated'))
-        else:
-            post_id_to_latest_updated_record[post.id] = post
-    return list(post_id_to_latest_updated_record.values())
 
 def get_post_record_list_only_latest_updated_records(pcoll):
     """Returns list of post records deduped by max updated field."""
-    return dedupe_post_records_by_max_updated_field(
+    return dedupe_records_with_same_id_by_max_updated_field(
         itertools.chain(map(attrgetter('post'), pcoll)))
 
 class WriteCrowdTangleResultsToDatabase(beam.DoFn):
