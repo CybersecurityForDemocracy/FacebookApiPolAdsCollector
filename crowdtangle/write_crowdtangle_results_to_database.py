@@ -10,17 +10,18 @@ from crowdtangle import db_functions
 
 logger = logging.getLogger()
 
-def dedupe_records_with_same_id_by_max_updated_field(records):
+def dedupe_records_with_same_id_by_max_updated_field(records, id_attr_name='id'):
     """Return list of records deduped by ID. If multiple records with the same ID are found the
     record with the highest/latest |updated| is returned.
     """
     record_id_to_latest_updated_record = {}
     for record in records:
-        if record.id in record_id_to_latest_updated_record:
-            record_id_to_latest_updated_record[record.id] = max(
-                record, record_id_to_latest_updated_record[record.id], key=attrgetter('updated'))
+        record_id = getattr(record, id_attr_name)
+        if record_id in record_id_to_latest_updated_record:
+            record_id_to_latest_updated_record[record_id] = max(
+                record, record_id_to_latest_updated_record[record_id], key=attrgetter('updated'))
         else:
-            record_id_to_latest_updated_record[record.id] = record
+            record_id_to_latest_updated_record[record_id] = record
     return list(record_id_to_latest_updated_record.values())
 
 def get_account_record_list_only_latest_updated_records(pcoll):
@@ -54,10 +55,18 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
             db_interface.upsert_accounts(get_account_record_list_only_latest_updated_records(pcoll))
             db_interface.upsert_posts(get_post_record_list_only_latest_updated_records(pcoll))
             db_interface.upsert_statistics(
-                itertools.chain(map(attrgetter('statistics_actual'), pcoll)),
-                itertools.chain(map(attrgetter('statistics_expected'), pcoll)))
-            db_interface.upsert_expanded_links(itertools.chain.from_iterable(
-                    map(attrgetter('expanded_links'), pcoll)))
-            db_interface.upsert_media(itertools.chain.from_iterable(
-                    map(attrgetter('media_list'), pcoll)))
+                dedupe_records_with_same_id_by_max_updated_field(
+                    itertools.chain(map(attrgetter('statistics_actual'), pcoll)),
+                    id_attr_name='post_id'),
+                dedupe_records_with_same_id_by_max_updated_field(
+                    itertools.chain(map(attrgetter('statistics_expected'), pcoll)),
+                    id_attr_name='post_id'))
+            db_interface.upsert_expanded_links(
+                dedupe_records_with_same_id_by_max_updated_field(
+                    itertools.chain.from_iterable(map(attrgetter('expanded_links'), pcoll)),
+                    id_attr_name='post_id'))
+            db_interface.upsert_media(
+                dedupe_records_with_same_id_by_max_updated_field(
+                    itertools.chain.from_iterable(map(attrgetter('media_list'), pcoll)),
+                    id_attr_name='post_id'))
             db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})
