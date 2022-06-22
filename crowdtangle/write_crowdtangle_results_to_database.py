@@ -8,8 +8,12 @@ import psycopg2
 import config_utils
 from crowdtangle import db_functions
 from crowdtangle_file_storage import add_crowdtangle_media_to_cloud_storage 
+from fb_ad_creative_retriever import make_gcs_bucket_client
 
 logger = logging.getLogger()
+
+GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
+CROWDTANGLE_BUCKET = 'crowdtangle-media'
 
 def dedupe_records_with_same_id_by_max_updated_field(records, id_attr_name='id'):
     """Return list of records deduped by ID. If multiple records with the same ID are found the
@@ -39,9 +43,11 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
     """DoFn that expects iterables of process_crowdtangle_posts.EncapsulatedPost and writes the
     contained data to database (in order FK relationships reqire).
     """
-    def __init__(self, database_connection_params, *args, **kwargs):
+    def __init__(self, database_connection_params, gcs_bucket_name, gcs_credentials_file, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._database_connection_params = database_connection_params
+        self._crowdtangle_bucket_client = make_gcs_bucket_client(gcs_bucket_name,
+                                                                 gcs_credentials_file)
 
     @tenacity.retry(stop=tenacity.stop_after_attempt(3),
                     reraise=True,
@@ -66,10 +72,11 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
                 dedupe_records_with_same_id_by_max_updated_field(
                     itertools.chain.from_iterable(map(attrgetter('expanded_links'), pcoll)),
                     id_attr_name='post_id'))
-            
+
             media_records = dedupe_records_with_same_id_by_max_updated_field(itertools.chain.from_iterable(map(attrgetter('media_list'), pcoll)),id_attr_name='post_id')
             for key in media_records:
-                media_records[key] = add_crowdtangle_media_to_cloud_storage(media_records[key])
+                media_records[key] = add_crowdtangle_media_to_cloud_storage(media_records[key],
+                                                                            self._bucket_client)
 
             db_interface.upsert_media(media_records)
             db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})

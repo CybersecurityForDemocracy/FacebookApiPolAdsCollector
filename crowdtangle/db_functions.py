@@ -140,10 +140,11 @@ class CrowdTangleDBInterface:
         cursor = self.get_cursor()
         insert_template = (
             '(%(post_id)s, %(url_full)s, %(url)s, %(width)s, %(height)s, '
-            '%(type)s, CURRENT_TIMESTAMP)')
+            '%(type)s, %(nyu_sha256_hash)s, %(nyu_sim_hash)s, %(nyu_bucket_path)s,'
+            'CURRENT_TIMESTAMP)')
         insert_query = (
-            '''INSERT INTO media (post_id, url_full, url, width, height, type,
-             last_modified_time) VALUES %s ON CONFLICT DO NOTHING''')
+            '''INSERT INTO media (post_id, url_full, url, width, height, type, nyu_sha256_hash,
+            nyu_sim_hash, nyu_bucket_path last_modified_time) VALUES %s ON CONFLICT DO NOTHING''')
         psycopg2.extras.execute_values(cursor,
                                        insert_query,
                                        [x._asdict() for x in media_records],

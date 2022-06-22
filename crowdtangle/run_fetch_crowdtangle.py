@@ -15,6 +15,8 @@ from crowdtangle import process_crowdtangle_posts
 from crowdtangle import write_crowdtangle_results_to_database
 from crowdtangle import db_functions
 
+GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
+CROWDTANGLE_BUCKET = 'crowdtangle-media'
 
 def get_dashboards_fetch_args(config: configparser.ConfigParser,
                               database_connection_params: config_utils.DatabaseConnectionParams) -> Sequence[fetch_crowdtangle.FetchCrowdTangleArgs]:
@@ -115,7 +117,10 @@ def run(argv=None, save_main_session=True):
             (processed_results
              | 'Write processed results to Database' >> beam.ParDo(
                  write_crowdtangle_results_to_database.WriteCrowdTangleResultsToDatabase(
-                         database_connection_params)))
+                         database_connection_params=database_connection_params,
+                         # TODO(macpd): read bucket name and creds file path from config
+                         gcs_bucket_name=CROWDTANGLE_BUCKET,
+                         gcs_credentials_file=GCS_CREDENTIALS_FILE)))
 
 
 if __name__ == '__main__':

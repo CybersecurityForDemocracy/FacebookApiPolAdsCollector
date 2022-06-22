@@ -81,7 +81,10 @@ MediaRecord = namedtuple('MediaRecord',
                           'url',
                           'width',
                           'height',
-                          'type'])
+                          'type',
+                          'nyu_sha256_hash',
+                          'nyu_sim_hash',
+                          'nyu_bucket_path'])
 
 class ProcessCrowdTanglePosts(beam.DoFn):
     """Accepts dict representation of crowdtangle post object, and transforms it EncapsulatedPost.
@@ -162,8 +165,9 @@ class ProcessCrowdTanglePosts(beam.DoFn):
         if item.get(_MEDIA_KEY):
             media_records = [
                 MediaRecord(post_id=post_id, updated=post_updated, url_full=medium.get('full'),
-                         url=medium.get('url'), width=medium.get('width'),
-                         height=medium.get('height'), type=medium.get('type'))
+                            url=medium.get('url'), width=medium.get('width'),
+                            height=medium.get('height'), type=medium.get('type'),
+                            nyu_sha256_hash=None, nyu_sim_hash=None, nyu_bucket_path=None)
                 for medium in item[_MEDIA_KEY]]
 
         expanded_links = []
