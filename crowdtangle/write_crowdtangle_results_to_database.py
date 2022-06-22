@@ -7,7 +7,7 @@ import psycopg2
 
 import config_utils
 from crowdtangle import db_functions
-from crowdtangle_file_storage import add_crowdtangle_media_to_cloud_storage 
+from crowdtangle.crowdtangle_file_storage import add_crowdtangle_media_to_cloud_storage 
 from fb_ad_creative_retriever import make_gcs_bucket_client
 
 logger = logging.getLogger()
