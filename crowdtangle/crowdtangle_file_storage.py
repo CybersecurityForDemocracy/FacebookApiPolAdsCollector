@@ -1,10 +1,14 @@
 import requests
 import logging
 import hashlib
+import io
+import os.path
 
 import dhash
 from PIL import Image
 import tenacity
+
+logger = logging.getLogger()
 
 def make_image_hash_file_path(image_hash):
     base_file_name = '%s.jpg' % image_hash
@@ -22,7 +26,7 @@ def get_image_dhash(image_bytes):
 
 @tenacity.retry(stop=tenacity.stop_after_attempt(4),
                 wait=tenacity.wait_random_exponential(multiplier=1, max=30),
-                before_sleep=tenacity.before_sleep_log(LOGGER, logging.INFO))
+                before_sleep=tenacity.before_sleep_log(logger, logging.INFO))
 def upload_blob(bucket_client, blob_path, blob_data):
     blob = bucket_client.blob(blob_path)
     if blob.exists():

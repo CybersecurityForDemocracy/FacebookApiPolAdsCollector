@@ -4,6 +4,7 @@ import logging
 import apache_beam as beam
 import tenacity
 import psycopg2
+from google.cloud import storage
 
 import config_utils
 from crowdtangle import db_functions
