@@ -40,9 +40,8 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
         logging.debug('Skipping non-photo media')
         return media_record
 
-    url = media_record.url_full or media_record.url
     try:
-        with requests.get(url) as req:
+        with requests.get(media_record.url) as req:
             #  image_bytes = requests.get(url).content
             image_bytes = req.content
 
@@ -50,8 +49,9 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
 
             image_dhash = get_image_dhash(image_bytes)
     except Exception as e:
-        logging.info('Exception %s while processing %s.\nrequest headers: %s\nresponse content:\n%s', e, media_record,
-                     req.headers, req.content)
+        logging.info(
+            'Exception %s while processing %s.\nrequest headers: %s\nresponse content:\n%s',
+            e, media_record, req.headers, req.content)
         raise
     bucket_path = make_image_hash_file_path(image_dhash)
 
