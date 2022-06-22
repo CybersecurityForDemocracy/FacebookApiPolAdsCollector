@@ -40,6 +40,11 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
         logging.debug('Skipping non-photo media')
         return media_record
 
+    if media_record.url == 'https://www.facebook.com/':
+        logging.debug('skipping fetch for media with url https://www.facebook.com/ b/c that is not '
+                      'a sensical media url')
+        return media_record
+
     try:
         resp = requests.get(media_record.url)
         if resp.status_code != 200:
