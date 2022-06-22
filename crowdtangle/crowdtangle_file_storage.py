@@ -42,13 +42,13 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
 
     url = media_record.url_full or media_record.url
     try:
-        with requests.get(url) as req
-        #  image_bytes = requests.get(url).content
-        image_bytes = req.content
+        with requests.get(url) as req:
+            #  image_bytes = requests.get(url).content
+            image_bytes = req.content
 
-        media_sha256_hash = hashlib.sha256(image_bytes).hexdigest()
+            media_sha256_hash = hashlib.sha256(image_bytes).hexdigest()
 
-        image_dhash = get_image_dhash(image_bytes)
+            image_dhash = get_image_dhash(image_bytes)
     except as e:
         logging.info('Exception %s while processing %s.\nrequest headers: %s', e, media_record,
                      req.headers)
