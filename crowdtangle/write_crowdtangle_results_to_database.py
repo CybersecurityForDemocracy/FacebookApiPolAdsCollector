@@ -49,8 +49,8 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
     def __init__(self, database_connection_params, gcs_bucket_name, gcs_credentials_file, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._database_connection_params = database_connection_params
-        self._crowdtangle_bucket_client = make_gcs_bucket_client(gcs_bucket_name,
-                                                                 gcs_credentials_file)
+        self._gcs_bucket_name = gcs_bucket_name
+        self._gcs_credentials_file = gcs_credentials_file
 
     @tenacity.retry(stop=tenacity.stop_after_attempt(3),
                     reraise=True,
@@ -58,6 +58,7 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
                     wait=tenacity.wait_random_exponential(multiplier=1, max=60),
                     before_sleep=tenacity.before_sleep_log(logger, logging.INFO))
     def process(self, pcoll):
+        bucket_client = make_gcs_bucket_client(self._gcs_bucket_name, self._gcs_credentials_file)
         database_connection = config_utils.get_database_connection(self._database_connection_params)
         with database_connection:
             db_interface = db_functions.CrowdTangleDBInterface(database_connection)
@@ -79,7 +80,7 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
             media_records = dedupe_records_with_same_id_by_max_updated_field(itertools.chain.from_iterable(map(attrgetter('media_list'), pcoll)),id_attr_name='post_id')
             for key in media_records:
                 media_records[key] = add_crowdtangle_media_to_cloud_storage(media_records[key],
-                                                                            self._bucket_client)
+                                                                            bucket_client)
 
             db_interface.upsert_media(media_records)
             db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})
