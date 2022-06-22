@@ -50,8 +50,8 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
 
             image_dhash = get_image_dhash(image_bytes)
     except Exception as e:
-        logging.info('Exception %s while processing %s.\nrequest headers: %s', e, media_record,
-                     req.headers)
+        logging.info('Exception %s while processing %s.\nrequest headers: %s\nresponse content:\n%s', e, media_record,
+                     req.headers, req.content)
         raise
     bucket_path = make_image_hash_file_path(image_dhash)
 
