@@ -78,9 +78,11 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
                     id_attr_name='post_id'))
 
             media_records = dedupe_records_with_same_id_by_max_updated_field(itertools.chain.from_iterable(map(attrgetter('media_list'), pcoll)),id_attr_name='post_id')
-            for key in media_records:
-                media_records[key] = add_crowdtangle_media_to_cloud_storage(media_records[key],
-                                                                            bucket_client)
+            new_media_records = [add_crowdtangle_media_to_cloud_storage(record, bucket_client) for
+                                 record in media_records]
+            #  for key in media_records:
+                #  media_records[key] = add_crowdtangle_media_to_cloud_storage(media_records[key],
+                                                                            #  bucket_client)
 
-            db_interface.upsert_media(media_records)
+            db_interface.upsert_media(new_media_records)
             db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})
