@@ -41,21 +41,20 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
         return media_record
 
     try:
-        with requests.get(media_record.url) as req:
-            #  image_bytes = requests.get(url).content
-            if req.status_code != 200:
-                logging.info('Unable to fetch %s status: %s', media_record.url, req.status_code)
-                return media_record
-            image_bytes = req.content
+        resp = requests.get(media_record.url)
+        if resp.status_code != 200:
+            logging.info('Unable to fetch %s status: %s', media_record.url, resp.status_code)
+            return media_record
+        image_bytes = resp.content
 
-            media_sha256_hash = hashlib.sha256(image_bytes).hexdigest()
+        media_sha256_hash = hashlib.sha256(image_bytes).hexdigest()
 
-            image_dhash = get_image_dhash(image_bytes)
+        image_dhash = get_image_dhash(image_bytes)
     except Exception as e:
         logging.info(
             'Exception %s while processing %s.\nrequest headers: %s\nresponse content:\n%s',
             e, media_record, req.headers, req.content)
-        raise
+        return media_record
     bucket_path = make_image_hash_file_path(image_dhash)
 
     blob_id = upload_blob(bucket_client, bucket_path, image_bytes)
