@@ -404,6 +404,9 @@ CREATE TABLE public.media (
   width bigint,
   height bigint,
   type character varying,
+  nyu_sha256_hash character varying,
+  nyu_sim_hash character varying,
+  nyu_bucket_path character varying,
   last_modified_time timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
   CONSTRAINT post_id_fk FOREIGN KEY (post_id) REFERENCES public.posts (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE NO ACTION
 );
@@ -491,4 +494,6 @@ COMMENT ON COLUMN public.media.url IS 'The source of the media.';
 COMMENT ON COLUMN public.media.width IS 'The width of the media.';
 COMMENT ON COLUMN public.media.height IS 'The height of the media.';
 COMMENT ON COLUMN public.media.type IS 'The type of the media. enum (photo or video)';
-
+COMMENT ON COLUMN public.media.nyu_sha256_hash IS 'sha256 hash of file downloaded from media.url';
+COMMENT ON COLUMN public.media.nyu_sim_hash IS 'sim/perceptual hash of file';
+COMMENT ON COLUMN public.media.nyu_bucket_path IS 'bucket path where contents of file downloaed from media.url are stored.';
