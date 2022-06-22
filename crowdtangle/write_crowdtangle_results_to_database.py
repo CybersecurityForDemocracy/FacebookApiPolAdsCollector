@@ -8,12 +8,14 @@ import psycopg2
 import config_utils
 from crowdtangle import db_functions
 from crowdtangle.crowdtangle_file_storage import add_crowdtangle_media_to_cloud_storage 
-from fb_ad_creative_retriever import make_gcs_bucket_client
 
 logger = logging.getLogger()
 
-GCS_CREDENTIALS_FILE = 'gcs_credentials.json'
-CROWDTANGLE_BUCKET = 'crowdtangle-media'
+
+def make_gcs_bucket_client(bucket_name, credentials_file):
+    storage_client = storage.Client.from_service_account_json(credentials_file)
+    bucket_client = storage_client.get_bucket(bucket_name)
+    return bucket_client
 
 def dedupe_records_with_same_id_by_max_updated_field(records, id_attr_name='id'):
     """Return list of records deduped by ID. If multiple records with the same ID are found the
