@@ -55,6 +55,8 @@ def add_crowdtangle_media_to_cloud_storage(media_record, bucket_client):
         media_sha256_hash = hashlib.sha256(image_bytes).hexdigest()
 
         image_dhash = get_image_dhash(image_bytes)
+    # TODO(macpd): do not catch general exception. catch and handle exceptions from requests and
+    # pillow.
     except Exception as e:
         logging.info(
             'Exception %s while processing %s.\nresponse headers: %s\nresponse content:\n%s',
