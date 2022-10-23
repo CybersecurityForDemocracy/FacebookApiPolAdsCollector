@@ -1,6 +1,7 @@
 import argparse
 import configparser
 import datetime
+import json
 import logging
 
 from typing import Sequence
@@ -70,6 +71,11 @@ def run(argv=None, save_main_session=True):
         required=True,
         help='Configuration file path')
     parser.add_argument(
+        '--raw-output-path',
+        dest='raw_output_path',
+        help='path to save raw Crowdtangle output'
+    )
+    parser.add_argument(
         '--dry_run',
         dest='dry_run',
         action='store_true',
@@ -96,6 +102,9 @@ def run(argv=None, save_main_session=True):
             pipeline | beam.Create(fetch_args_list)
             | 'Fetch CrowdTangle results' >> fetch_crowdtangle.FetchCrowdTangle()
             )
+        if known_args.raw_output_path:
+            file_prefix = f'{known_args.raw_output_path}/raw_results-{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}'
+            results | beam.Map(lambda r: json.dumps(r)) | beam.io.WriteToText(file_prefix, file_name_suffix='.json.bz2')
 
         processed_results = (
             results

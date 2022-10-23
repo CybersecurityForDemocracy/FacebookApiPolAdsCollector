@@ -1,0 +1,47 @@
+# crowdtangle
+
+This subproject collects crowdtangle data using [Apache Beam](https://beam.apache.org/). The main script is
+`run_fetch_crowdtangle` which is typically run from cron. Given a config file with a set of Crowdtangle dashboard
+ids, it pulls data and writes is to the given SQL database.
+
+
+## key info
+
+Key API documentation includes:
+
+* crowdtangle codebook - https://help.crowdtangle.com/en/articles/3213537-crowdtangle-codebook
+* api overview - https://help.crowdtangle.com/en/articles/1189612-crowdtangle-api
+* api cheat sheat - https://help.crowdtangle.com/en/articles/3443476-api-cheat-sheet
+* api reference - https://github.com/CrowdTangle/API/wiki/Posts#get-posts
+
+A brief look at the main files:
+* run_fetch_crowdtangle.py: main script; parses arguments, sets up beam stuff, and kicks it off
+    * fetch_crowdtangle.py: contains a Beam PTransform that appears not to transform, but to fetch
+    * process_crowdtangle_posts.py: contains key object plus parsing:
+        * EncapsulatedPost
+            * PostRecord - the post contents
+            * AccountRecord - the poster, I guess; weirdly, as a list of one
+            * StatisticsRecord - post stats, actual and "expected", meaning Crowdtangle's guess
+            * ExpandedLinkRecord - list of links, I think it's short vs actual
+            * MediaRecord - list of media items
+            * the dashboard it's from
+  * write_crowdtangle_results_to_database.py
+  * import db_functions.py
+
+
+## operating
+
+### adding new dashboards
+
+If you need to add a new dashboard to a crawl, you have to do it in 3 places:
+1. Add a section in the config file with the API token and dashboard name
+2. Add a reference to that section in the `DASHBOARD_CONFIG_SECTION_NAMES` list
+3. Add an entry in the `dashboards` table
+
+It would be better if this just all happened automatically after adding a new section, so if we're going to keep
+using Crowdtangle, this would be a nice-to-have fix
+
+### saving raw output
+
+If you need the raw Crowdtangle output, use the --raw-output-path to specify a directory. Each run
+will create a timestamped, compressed JSON file.
