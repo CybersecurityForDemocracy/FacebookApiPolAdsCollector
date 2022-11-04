@@ -73,3 +73,33 @@ class WriteCrowdTangleResultsToDatabase(beam.DoFn):
 
             db_interface.upsert_media(media_records)
             db_interface.insert_post_dashboards({item.post.id: item.dashboard_id for item in pcoll})
+
+
+# from google.cloud import storage
+# import urllib.request
+
+# BUCKET_NAME = "[project_name].appspot.com" # change project_name placeholder to your preferences
+# BUCKET_FILE_PATH = "path/to/your/images" # change this path
+
+# def upload_image_from_url_to_google_storage(img_url, img_name):
+#     """
+#     Uploads an image from a URL source to google storage.
+#     - img_url: string URL of the image, e.g. https://picsum.photos/200/200
+#     - img_name: string name of the image file to be stored
+#     """
+#     storage_client = storage.Client()
+#     bucket = storage_client.get_bucket(BUCKET_NAME)
+#     blob = bucket.blob(BUCKET_FILE_PATH + "/" + img_name + ".jpg")
+
+#     # try to read the image URL
+#     try:
+#         with urllib.request.urlopen(img_url) as response:
+#             # check if URL contains an image
+#             info = response.info()
+#             if(info.get_content_type().startswith("image")):
+#                 blob.upload_from_string(response.read(), content_type=info.get_content_type())
+#                 print("Uploaded image from: " + img_url)
+#             else:
+#                 print("Could not upload image. No image data type in URL")
+#     except Exception as e:
+#         print('Could not upload image. Generic exception: ', e)
