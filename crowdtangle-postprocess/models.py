@@ -50,6 +50,7 @@ class Posts(Base):
 
 
 class Statistics(Base):
+    __abstract__ = True
 
     post_id = Column(String, primary_key=True)
     updated = Column(DateTime(True))
@@ -79,6 +80,7 @@ class PostStatisiticsExpected(Statistics):
 class ExpandedLinks(Base):
     __tablename__ = 'expanded_links'
 
+    id = Column(Integer, primary_key=True)
     post_id = Column(String,ForeignKey("public.posts.id"))
     expanded = Column(String)
     original = Column(String)
@@ -88,6 +90,7 @@ class ExpandedLinks(Base):
 class Media(Base):
     __tablename__ = 'media'
 
+    id = Column(Integer, primary_key=True)
     post_id = Column(String, ForeignKey("public.posts.id"))
     url_full = Column(String)
     url = Column(String)

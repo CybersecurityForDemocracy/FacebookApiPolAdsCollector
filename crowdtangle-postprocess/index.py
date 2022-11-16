@@ -1,10 +1,13 @@
-from db_conn import get_crowdtangle_db_session
-from dal_ukr import CrowdtangleDAL
+from db_engine_function import get_crowdtangle_db_session
+from crowdtangle_dal import CrowdtangleDAL
+from utils import load_config
 
 import bz2
 import json
 
-Session = get_crowdtangle_db_session()
+config = load_config()
+Session = get_crowdtangle_db_session(config['DATABASE'])
+
 
 def load_raw_crowdtangle_files(path,batch_size):
     with bz2.open(path, "rt") as bzinput:
@@ -34,6 +37,7 @@ def write_crowdtangle_post_to_db(post_data):
 def write_posts_to_dead_letter_queue(post_data,error):
     # For now we will write it to a .json.bz2 file and have error table in the crowdtangle db
     # id, main_file_name or id, error_message, new_file_path
+    print(error)
     pass
 
 
