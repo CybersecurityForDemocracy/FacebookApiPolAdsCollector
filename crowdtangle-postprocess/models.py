@@ -29,10 +29,10 @@ class Posts(Base):
    branded_content_sponsor_account_id = Column(Integer)
    message = Column(Text)
    title = Column(String)
-   platform = Column(String)
-   platform_id = Column(String)
-   post_url = Column(String)
-   subscriber_count = Column(Integer)
+   platform = Column(String) #redundant
+   platform_id = Column(String) #redundant
+   post_url = Column(String) 
+   subscriber_count = Column(Integer) #redundant
    type = Column(String)
    updated = Column(DateTime(True))
    video_length_ms = Column(Integer)
@@ -42,7 +42,7 @@ class Posts(Base):
    link = Column(String)
    date = Column(DateTime(True))
    description = Column(String)
-   score = Column(Float)
+   score = Column(Float) #redundant
    live_video_status = Column(String)
    last_modified_time = Column(DateTime(True), server_default=text("now()"))
    message_sha256_hash = Column(Text)

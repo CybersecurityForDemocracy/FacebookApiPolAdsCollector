@@ -26,10 +26,9 @@ def write_crowdtangle_post_to_db(post_data):
         dal = CrowdtangleDAL(session,post_data)
         dal.create_accounts_obj()
         dal.create_posts_obj()
-        dal.create_statistics_obj(type='actual')
-        dal.create_statistics_obj(type='expected')
+        dal.create_statistics_obj()
         dal.create_media_obj()
-        dal.create_post_dashboards_obj()
+        # dal.create_post_dashboards_obj()
         dal.push_to_db()
 
 def write_posts_to_dead_letter_queue(post_data,error):
