@@ -163,11 +163,12 @@ class CrowdtangleDAL():
             )
             self.db_session.execute(stmt)
 
+    # TODO: Figure out how to keep unique entries might use pkey(post_id,url)
     def upsert_media_data(self):
-        media = []
+        mediaRecords = []
         for post_data in self.posts_data:
             for media in post_data.get('media',[]):
-                media.append({
+                mediaRecords.append({
                     "post_id":post_data['id'],
                     "url_full":media.get('full'),
                     "url":media.get('url'),
@@ -178,8 +179,10 @@ class CrowdtangleDAL():
                     # nyu_bucket_path = Column(String)
                     # nyu_sim_hash = Column(String)
                 })
-        # self.upsert_stmt(Media,media,'all',None)
-            
+        stmt = insert(Media).values(mediaRecords)
+        self.db_session.execute(stmt)
+    
+    # TODO: Figure out how to keep unique entries might use pkey(post_id,original)
     def upsert_expanded_links(self):
         expanded_links = []
         for post_data in self.posts_data:

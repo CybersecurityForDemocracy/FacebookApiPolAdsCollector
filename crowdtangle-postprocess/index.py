@@ -30,7 +30,7 @@ def write_crowdtangle_post_to_db(post_data):
         dal.upsert_accounts()
         dal.upsert_posts()
         dal.upsert_statistics()
-        # dal.upsert_media_data()
+        dal.upsert_media_data()
         dal.upsert_expanded_links()
         # dal.create_post_dashboards_obj()
         dal.push_to_db()
