@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, Float, text, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql import func
 Base = declarative_base()
 
 class Accounts(Base):
@@ -53,7 +54,7 @@ class Statistics(Base):
     __abstract__ = True
 
     post_id = Column(String, primary_key=True)
-    updated = Column(DateTime(True))
+    updated = Column(DateTime(True), server_default=text("now()"))
     angry_count = Column(Integer)
     comment_count = Column(Integer)
     favorite_count = Column(Integer)
@@ -71,17 +72,17 @@ class Statistics(Base):
 
 
 class PostStatisiticsActual(Statistics):
-   __tablename__ = 'post_statisitics_actual'
+   __tablename__ = 'post_statistics_actual'
 
 
 class PostStatisiticsExpected(Statistics):
-   __tablename__ = 'post_statisitics_expected'
+   __tablename__ = 'post_statistics_expected'
 
 class ExpandedLinks(Base):
     __tablename__ = 'expanded_links'
 
     id = Column(Integer, primary_key=True)
-    post_id = Column(String,ForeignKey("public.posts.id"))
+    post_id = Column(String,ForeignKey("posts.id"))
     expanded = Column(String)
     original = Column(String)
     last_modified_time = Column(DateTime(True), server_default=text("now()"))
@@ -91,16 +92,16 @@ class Media(Base):
     __tablename__ = 'media'
 
     id = Column(Integer, primary_key=True)
-    post_id = Column(String, ForeignKey("public.posts.id"))
+    post_id = Column(String, ForeignKey("posts.id"))
     url_full = Column(String)
     url = Column(String)
     width = Column(Integer)
     height = Column(Integer)
     type = Column(String)
     last_modified_time = Column(DateTime(True), server_default=text("now()"))
-    nyu_sha256_hash = Column(String)
-    nyu_bucket_path = Column(String)
-    nyu_sim_hash = Column(String)
+    # nyu_sha256_hash = Column(String)
+    # nyu_bucket_path = Column(String)
+    # nyu_sim_hash = Column(String)
 
 class PostDashboard(Base):
     __tablename__ = 'post_dashboards'

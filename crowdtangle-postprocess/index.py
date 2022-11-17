@@ -27,12 +27,14 @@ def load_raw_crowdtangle_files(path,batch_size):
 def write_crowdtangle_post_to_db(post_data):
     with Session() as session:
         dal = CrowdtangleDAL(session,post_data)
-        dal.create_accounts_obj()
-        dal.create_posts_obj()
-        dal.create_statistics_obj()
-        dal.create_media_obj()
+        dal.upsert_accounts()
+        dal.upsert_posts()
+        dal.upsert_statistics()
+        # dal.upsert_media_data()
+        dal.upsert_expanded_links()
         # dal.create_post_dashboards_obj()
         dal.push_to_db()
+    
 
 def write_posts_to_dead_letter_queue(post_data,error):
     # For now we will write it to a .json.bz2 file and have error table in the crowdtangle db
@@ -43,5 +45,5 @@ def write_posts_to_dead_letter_queue(post_data,error):
 
 
 if __name__ == "__main__":
-    load_raw_crowdtangle_files("/Users/akashmishra/csd/mdev/ukr_noUA_noRU-20221027-180750.json.bz2",10)
+    load_raw_crowdtangle_files("/Users/akashmishra/csd/mdev/ukr_noUA_noRU-20221027-180750.json.bz2",20)
     
