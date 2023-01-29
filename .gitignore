@@ -10,3 +10,4 @@ venv/
 .*.swp
 # config for YouCompleteMe https://github.com/ycm-core/YouCompleteMe#python-semantic-completion
 .ycm_extra_conf.py
+env/*
